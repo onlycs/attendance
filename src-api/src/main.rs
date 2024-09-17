@@ -1,9 +1,10 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use cuid::cuid2;
+use dotenvy_macro::dotenv;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
 
-const ADMIN_HASH: &str = "d168c550ddff8635f490d9552e6359ee86741180021c1321f870969b6de3285c";
+const ADMIN_HASH: &str = dotenv!("ADMIN_PASSWORD");
 
 #[get("/")]
 async fn hello() -> impl Responder {
