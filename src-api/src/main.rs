@@ -1,42 +1,47 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+#![feature(never_type)]
+
+mod error;
+mod model;
+
+use crate::model::*;
+use actix_cors::Cors;
+use actix_web::{
+    post,
+    web::{self, Data},
+    App, HttpResponse, HttpServer, Responder,
+};
 use cuid::cuid2;
 use dotenvy_macro::dotenv;
-use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
+use error::{InitError, RouteError};
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 const ADMIN_HASH: &str = dotenv!("ADMIN_PASSWORD");
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+async fn authorize(token: String, pg: &PgPool) -> Result<bool, RouteError> {
+    let token = sqlx::query!(
+        r#"
+        SELECT * FROM tokens
+        WHERE created_at > NOW() - INTERVAL '5 hours' and token = $1
+        "#,
+        token
+    )
+    .fetch_optional(pg)
+    .await?;
 
-#[derive(Deserialize)]
-struct AttendRequest {
-    auth: String,
-    id: i32,
-}
-
-#[derive(Deserialize)]
-struct AuthRequest {
-    passwd: String,
-}
-
-#[derive(Serialize)]
-struct AuthResponse {
-    token: String,
-}
-
-struct AppState {
-    pg: Pool<Postgres>,
+    Ok(token.is_some())
 }
 
 #[post("/attendance")]
-async fn attend(body: web::Json<AttendRequest>, state: web::Data<AppState>) -> impl Responder {
+async fn attend(
+    body: web::Json<AttendRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
     let AttendRequest { auth, id } = body.into_inner();
 
-    if !authorize(auth, &state.pg).await {
-        return HttpResponse::Unauthorized().finish();
+    if !authorize(auth, &state.pg).await? {
+        return Ok(HttpResponse::Unauthorized().finish());
     }
 
     let record = sqlx::query!(
@@ -47,8 +52,7 @@ async fn attend(body: web::Json<AttendRequest>, state: web::Data<AppState>) -> i
         id
     )
     .fetch_optional(&state.pg)
-    .await
-    .unwrap();
+    .await?;
 
     if let Some(record) = record {
         sqlx::query!(
@@ -60,8 +64,7 @@ async fn attend(body: web::Json<AttendRequest>, state: web::Data<AppState>) -> i
             record.id
         )
         .execute(&state.pg)
-        .await
-        .unwrap();
+        .await?;
     } else {
         sqlx::query!(
             r#"
@@ -72,35 +75,22 @@ async fn attend(body: web::Json<AttendRequest>, state: web::Data<AppState>) -> i
             id
         )
         .execute(&state.pg)
-        .await
-        .unwrap();
+        .await?;
     }
 
-    HttpResponse::Ok().finish()
-}
-
-async fn authorize(token: String, pg: &PgPool) -> bool {
-    let token = sqlx::query!(
-        r#"
-        SELECT * FROM tokens
-        WHERE created_at > NOW() - INTERVAL '5 hours' and token = $1
-        "#,
-        token
-    )
-    .fetch_optional(pg)
-    .await
-    .unwrap();
-
-    token.is_some()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[post("/login")]
-async fn login(body: web::Json<AuthRequest>, state: web::Data<AppState>) -> impl Responder {
-    let AuthRequest { passwd } = body.into_inner();
-    let hashed = sha256::digest(passwd.as_bytes());
+async fn login(
+    body: web::Json<AuthRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    let AuthRequest { password } = body.into_inner();
+    let hashed = sha256::digest(password.as_bytes());
 
     if hashed != ADMIN_HASH {
-        return HttpResponse::Unauthorized().finish();
+        return Ok(HttpResponse::Unauthorized().finish());
     }
 
     let token = sqlx::query!(
@@ -122,8 +112,7 @@ async fn login(body: web::Json<AuthRequest>, state: web::Data<AppState>) -> impl
             "#
         )
         .execute(&state.pg)
-        .await
-        .unwrap();
+        .await?;
 
         let record = sqlx::query!(
             r#"
@@ -134,29 +123,39 @@ async fn login(body: web::Json<AuthRequest>, state: web::Data<AppState>) -> impl
             cuid2()
         )
         .fetch_one(&state.pg)
-        .await
-        .unwrap();
+        .await?;
 
         record.token
     };
 
-    HttpResponse::Ok().json(AuthResponse { token })
+    Ok(HttpResponse::Ok().json(AuthResponse { token }))
 }
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<!, InitError> {
+    SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(dotenvy_macro::dotenv!("DATABASE_URL"))
-        .await
-        .unwrap();
+        .await?;
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .max_age(3600);
+
         App::new()
-            .app_data(AppState { pg: pool.clone() })
+            .wrap(cors)
+            .app_data(Data::new(AppState { pg: pool.clone() }))
             .service(attend)
+            .service(login)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
-    .await
+    .await?;
+
+    unreachable!()
 }
