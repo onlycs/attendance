@@ -21,10 +21,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-
-      - name: Get rust version
-        run: echo "RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
-
+          default: true
+          override: true
+          
       - name: Cache target directory
         uses: actions/cache@v2
         with:
@@ -48,7 +47,7 @@ jobs:
       - name: Deploy on SSH server
         uses: appleboy/ssh-action@master
         with:
-          host: h2o2
+          host: redlap
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
