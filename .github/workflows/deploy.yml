@@ -33,6 +33,8 @@ jobs:
 
       - name: Build
         run: cargo build --release
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Build Docker image
         run: docker build -t onlycs/attendance .
