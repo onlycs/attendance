@@ -23,7 +23,7 @@ jobs:
           toolchain: nightly
           default: true
           override: true
-          
+
       - name: Cache target directory
         uses: actions/cache@v2
         with:
@@ -59,3 +59,4 @@ jobs:
             docker-compose down
             docker-compose pull
             docker-compose up -d
+        continue-on-error: true
