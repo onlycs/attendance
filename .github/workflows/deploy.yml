@@ -25,9 +25,6 @@ jobs:
       - name: Get rust version
         run: echo "RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
 
-      - name: cd into src-api
-        run: cd src-api
-
       - name: Cache target directory
         uses: actions/cache@v2
         with:
