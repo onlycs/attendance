@@ -3,7 +3,6 @@ use sqlx::PgPool;
 
 #[derive(Deserialize)]
 pub struct AttendRequest {
-    pub auth: String,
     pub id: i32,
 }
 
@@ -15,6 +14,27 @@ pub struct AuthRequest {
 #[derive(Serialize)]
 pub struct AuthResponse {
     pub token: String,
+}
+
+#[derive(Deserialize)]
+pub struct ExistsRequest {
+    pub id: i32,
+}
+
+#[derive(Serialize)]
+pub struct ExistsResponse {
+    pub exists: bool,
+}
+
+#[derive(Deserialize)]
+pub struct RegisterRequest {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Serialize)]
+pub struct RegisterResponse {
+    pub success: bool,
 }
 
 pub struct AppState {

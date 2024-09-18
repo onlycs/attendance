@@ -2,25 +2,26 @@
 
 mod error;
 mod model;
+mod prelude;
+mod routes;
 
 use crate::model::*;
+use crate::prelude::*;
 use actix_cors::Cors;
 use actix_web::{
     post,
     web::{self, Data},
-    App, HttpResponse, HttpServer, Responder,
+    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use cuid::cuid2;
-use dotenvy_macro::dotenv;
-use error::{InitError, RouteError};
+use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-const ADMIN_HASH: &str = dotenv!("ADMIN_PASSWORD");
+pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
+    let token = token.replacen("Bearer ", "", 1);
 
-async fn authorize(token: String, pg: &PgPool) -> Result<bool, RouteError> {
-    let token = sqlx::query!(
+    let Some(_) = sqlx::query!(
         r#"
         SELECT * FROM tokens
         WHERE created_at > NOW() - INTERVAL '5 hours' and token = $1
@@ -28,57 +29,22 @@ async fn authorize(token: String, pg: &PgPool) -> Result<bool, RouteError> {
         token
     )
     .fetch_optional(pg)
-    .await?;
+    .await?
+    else {
+        return Err(RouteError::InvalidToken);
+    };
 
-    Ok(token.is_some())
+    Ok(())
 }
 
-#[post("/attendance")]
-async fn attend(
-    body: web::Json<AttendRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    let AttendRequest { auth, id } = body.into_inner();
+pub fn get_auth_header(req: &HttpRequest) -> Result<String, RouteError> {
+    let auth_header = req.headers().get("Authorization");
 
-    if !authorize(auth, &state.pg).await? {
-        return Ok(HttpResponse::Unauthorized().finish());
-    }
+    let Some(auth) = auth_header else {
+        return Err(RouteError::NoAuth);
+    };
 
-    let record = sqlx::query!(
-        r#"
-        SELECT id FROM records
-        WHERE student_id = $1 and in_progress = true
-        "#,
-        id
-    )
-    .fetch_optional(&state.pg)
-    .await?;
-
-    if let Some(record) = record {
-        sqlx::query!(
-            r#"
-            UPDATE records
-            SET in_progress = false, sign_out = NOW()
-            WHERE id = $1
-            "#,
-            record.id
-        )
-        .execute(&state.pg)
-        .await?;
-    } else {
-        sqlx::query!(
-            r#"
-            INSERT INTO records (id, student_id, sign_in)
-            VALUES ($1, $2, NOW())
-            "#,
-            cuid2(),
-            id
-        )
-        .execute(&state.pg)
-        .await?;
-    }
-
-    Ok(HttpResponse::Ok().finish())
+    Ok(auth.to_str()?.to_string())
 }
 
 #[post("/login")]
@@ -86,58 +52,62 @@ async fn login(
     body: web::Json<AuthRequest>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    let AuthRequest { password } = body.into_inner();
-    let hashed = sha256::digest(password.as_bytes());
-
-    if hashed != ADMIN_HASH {
-        return Ok(HttpResponse::Unauthorized().finish());
-    }
-
-    let token = sqlx::query!(
-        r#"
-        SELECT * FROM tokens
-        WHERE created_at > NOW() - INTERVAL '5 hours'
-        "#
-    )
-    .fetch_optional(&state.pg)
-    .await
-    .unwrap();
-
-    let token = if let Some(tkn) = token {
-        tkn.token
-    } else {
-        sqlx::query!(
-            r#"
-            DELETE FROM tokens
-            "#
-        )
-        .execute(&state.pg)
-        .await?;
-
-        let record = sqlx::query!(
-            r#"
-            INSERT INTO tokens (token)
-            values ($1)
-            returning token
-            "#,
-            cuid2()
-        )
-        .fetch_one(&state.pg)
-        .await?;
-
-        record.token
-    };
+    let password = body.into_inner().password;
+    let token = routes::login(password, &state.pg).await?;
 
     Ok(HttpResponse::Ok().json(AuthResponse { token }))
+}
+
+#[post("/exists")]
+async fn exists(
+    req: HttpRequest,
+    body: web::Json<ExistsRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+
+    let id = body.into_inner().id;
+    let exists = routes::exists(id, &state.pg).await?;
+
+    Ok(HttpResponse::Ok().json(ExistsResponse { exists }))
+}
+
+#[post("/register")]
+async fn register(
+    req: HttpRequest,
+    body: web::Json<RegisterRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+
+    let RegisterRequest { id, name } = body.into_inner();
+    routes::register(id, name, &state.pg).await?;
+
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[post("/log")]
+async fn student_login(
+    req: HttpRequest,
+    body: web::Json<AttendRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+
+    let AttendRequest { id } = body.into_inner();
+    routes::log(id, &state.pg).await?;
+
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[actix_web::main]
 async fn main() -> Result<!, InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
+    dotenv().ok();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(dotenvy_macro::dotenv!("DATABASE_URL"))
+        .connect(&env::var("DATABASE_URL")?)
         .await?;
 
     HttpServer::new(move || {
@@ -150,8 +120,10 @@ async fn main() -> Result<!, InitError> {
         App::new()
             .wrap(cors)
             .app_data(Data::new(AppState { pg: pool.clone() }))
-            .service(attend)
             .service(login)
+            .service(exists)
+            .service(register)
+            .service(student_login)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

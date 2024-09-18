@@ -11,9 +11,9 @@ const API_URL = 'http://localhost:8080';
 function InputId({ submit }: { submit: (_: number) => void }) {
 	const [id, setId] = useState('');
 
-	if (typeof window !== 'undefined') {
+	useEffect(() => {
 		document.querySelector('input')?.focus();
-	}
+	});
 
 	if (id.length === 5) {
 		submit(parseInt(id));
@@ -33,7 +33,7 @@ function InputId({ submit }: { submit: (_: number) => void }) {
 	)
 }
 
-function InputPassword({ submit, ...props }: { submit: (_: string) => void }) {
+function InputPassword({ submit }: { submit: (_: string) => void }) {
 	const [password, setPassword] = useState('');
 
 	const onSubmit = (ev: React.FormEvent) => {
@@ -56,12 +56,30 @@ export default function Home() {
 
 	// Page State
 	const [form, setForm] = useState<'password' | 'id' | 'name'>('password');
-	const [message, setMessage] = useState('');
+	const [error, setError] = useState('');
 
-	// Update
+	// Updates
+	const resetForm = (form: 'password' | 'id' | 'name') => {
+		setError('');
+		setForm(form);
+	};
+
 	const onId = (id: number) => {
-		alert(id);
 		setId(id);
+		fetch(`${API_URL}/exists`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			},
+			body: JSON.stringify({ id }),
+		})
+			.then((response) => response.json())
+			.then((response) => {
+				if (response.exists) resetForm('id');
+				else resetForm('name');
+			})
+			.catch(() => setError('Invalid student ID'));
 	};
 
 	const onPassword = (password: string) => {
@@ -74,16 +92,14 @@ export default function Home() {
 		})
 			.then((response) => response.json())
 			.then((response) => {
-				if (response.ok) {
-					setToken(response.token);
-					setForm('id');
-				} else setMessage('Invalid password');
+				setToken(response.token);
+				resetForm('id');
 			})
-			.catch(() => setMessage('Invalid password'));
+			.catch(() => setError('Invalid password'));
 	};
 
 	const formComponent = {
-		['id']: <InputId submit={setId} />,
+		['id']: <InputId submit={onId} />,
 		['password']: <InputPassword submit={onPassword} />,
 		['name']: <></>
 	}[form];
@@ -107,7 +123,7 @@ export default function Home() {
 			</div>
 			{formComponent}
 			<div className='text-center text-md font-medium mt-4 text-red-400'>
-				{message}
+				{error}
 			</div>
 		</div>
 	);
