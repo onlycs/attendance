@@ -37,6 +37,17 @@ pub struct RegisterResponse {
     pub success: bool,
 }
 
+#[derive(Deserialize)]
+pub struct HoursRequest {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Serialize)]
+pub struct HoursResponse {
+    pub hours: f64,
+}
+
 pub struct AppState {
     pub pg: PgPool,
 }

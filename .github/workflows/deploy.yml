@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+
+      - name: Get rust version
+        run: echo "RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
+
+      - name: cd into src-api
+        run: cd src-api
+
+      - name: Cache target directory
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}-rust-cache
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Build Docker image
+        run: docker build -t onlycs/attendance .
+
+      - name: Login to Docker Hub
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker image
+        run: docker push onlycs/attendance
+
+      - name: Deploy on SSH server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/attendance
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d

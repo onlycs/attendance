@@ -19,6 +19,8 @@ use crate::model::*;
 use crate::prelude::*;
 
 use actix_cors::Cors;
+use actix_web::get;
+use actix_web_httpauth::extractors::basic::BasicAuth;
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -112,10 +114,36 @@ async fn student_login(
     Ok(HttpResponse::Ok().finish())
 }
 
+#[get("/csv")]
+async fn csv(creds: BasicAuth, state: web::Data<AppState>) -> Result<impl Responder, RouteError> {
+    let Some(password) = creds.password() else {
+        return Err(RouteError::NoAuth);
+    };
+
+    if sha256::digest(password.as_bytes()) != env::var("ADMIN_HASH")? {
+        return Err(RouteError::InvalidToken);
+    }
+
+    let csv = routes::csv(&state.pg).await?;
+
+    Ok(HttpResponse::Ok().body(csv))
+}
+
+#[get("/hours")]
+async fn hours(
+    query: web::Query<HoursRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    let HoursRequest { name, id } = query.into_inner();
+    let hours = routes::hours(name, id, &state.pg).await?;
+
+    Ok(HttpResponse::Ok().json(HoursResponse { hours }))
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
-    dotenv()?;
+    dotenv().ok();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -136,6 +164,8 @@ async fn main() -> Result<(), InitError> {
             .service(exists)
             .service(register)
             .service(student_login)
+            .service(csv)
+            .service(hours)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

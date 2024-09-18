@@ -68,7 +68,7 @@ pub enum RouteError {
         location: &'static Location<'static>,
     },
 
-    #[error("No authorization header")]
+    #[error("No token or password provided")]
     NoAuth,
 
     #[error("Invalid token or password")]
@@ -76,6 +76,9 @@ pub enum RouteError {
 
     #[error("User already exists")]
     UserExists,
+
+    #[error("User not found")]
+    UserNotFound,
 }
 
 impl ResponseError for RouteError {
@@ -84,6 +87,7 @@ impl ResponseError for RouteError {
             RouteError::NoAuth => StatusCode::UNAUTHORIZED,
             RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
             RouteError::UserExists => StatusCode::CONFLICT,
+            RouteError::UserNotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -93,6 +97,7 @@ impl ResponseError for RouteError {
             RouteError::NoAuth => HttpResponse::Unauthorized().body(format!("{self}")),
             RouteError::InvalidToken => HttpResponse::Unauthorized().body(format!("{self}")),
             RouteError::UserExists => HttpResponse::Conflict().body(format!("{self}")),
+            RouteError::UserNotFound => HttpResponse::NotFound().body(format!("{self}")),
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }

@@ -1,69 +1,12 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
 import './globals.css';
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import React, { useEffect, useState } from 'react';
-
-const API_URL = 'http://localhost:8080';
-
-function InputId({ submit }: { submit: (_: number) => void }) {
-	const [id, setId] = useState('');
-
-	useEffect(() => {
-		document.querySelector('input')?.focus();
-	});
-
-	if (id.length === 5) {
-		submit(parseInt(id));
-		setId('');
-	}
-
-	return (
-		<InputOTP maxLength={5} pattern={REGEXP_ONLY_DIGITS} value={id} onChange={setId}>
-			<InputOTPGroup>
-				<InputOTPSlot index={0} />
-				<InputOTPSlot index={1} />
-				<InputOTPSlot index={2} />
-				<InputOTPSlot index={3} />
-				<InputOTPSlot index={4} />
-			</InputOTPGroup>
-		</InputOTP>
-	)
-}
-
-function InputPassword({ submit }: { submit: (_: string) => void }) {
-	const [password, setPassword] = useState('');
-
-	const onSubmit = (ev: React.FormEvent) => {
-		ev.preventDefault();
-		submit(password);
-		setPassword('');
-	}
-
-	return (
-		<form onSubmit={onSubmit}>
-			<Input type="password" value={password} onChange={(ev) => setPassword(ev.target.value)} />
-		</form>
-	)
-}
-
-function InputName({ submit }: { submit: (_: string) => void }) {
-	const [name, setName] = useState('');
-
-	const onSubmit = (ev: React.FormEvent) => {
-		ev.preventDefault();
-		submit(name);
-		setName('');
-	}
-
-	return (
-		<form onSubmit={onSubmit}>
-			<Input className="bg-red-500 border-red-400 focus-visible:ring-red-300 focus-visible:ring-0 text-center" placeholder='e.x. John Doe' value={name} onChange={(ev) => setName(ev.target.value)} />
-		</form>
-	)
-}
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { InputId, InputName, InputPassword } from '@/components/forms';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { API_URL } from '@/lib/utils';
 
 export default function Home() {
 	// Data
@@ -140,9 +83,9 @@ export default function Home() {
 	};
 
 	const formComponent = {
-		['id']: <InputId submit={onId} />,
+		['id']: <InputId complete={onId} />,
 		['password']: <InputPassword submit={onPassword} />,
-		['name']: <InputName submit={onName}></InputName>
+		['name']: <InputName submit={onName} setError={setError}></InputName>
 	}[form];
 
 	const aboveMessage = {
@@ -157,15 +100,52 @@ export default function Home() {
 		['name']: 'bg-red-700'
 	}[form];
 
+	const errorcol = {
+		['id']: 'text-red-400',
+		['password']: 'text-red-400',
+		['name']: 'text-white'
+	}[form];
+
 	return (
 		<div className={`flex flex-col items-center justify-center w-full h-full ${background}`}>
 			<div className='text-center text-md font-medium mb-4'>
 				{aboveMessage}
 			</div>
 			{formComponent}
-			<div className='text-center text-md font-medium mt-4 text-red-400'>
+			<div className={`text-center text-md font-medium mt-4 ${errorcol}`}>
 				{error}
 			</div>
+			{form === 'password' && (
+				<>
+					<div className='flex flex-row justify-center items-center gap-4 mt-8 mb-4 w-96'>
+						<div className='w-full h-0.5 bg-slate-300' />
+						<p>or</p>
+						<div className='w-full h-0.5 bg-slate-300' />
+					</div>
+					<div className='flex flex-row justify-center items-center gap-4'>
+						<TooltipProvider>
+							<Tooltip delayDuration={0}>
+								<TooltipTrigger asChild>
+									{/* magic to extend the hover hitbox */}
+									<div className='pl-16 -ml-16 py-16 -my-16 z-10'>
+										<Button className='w-48' asChild>
+											<Link href={`${API_URL}/csv`}>Admin - Download CSV</Link>
+										</Button>
+									</div>
+								</TooltipTrigger>
+								{/* offset required due to magic used above */}
+								<TooltipContent className='-mb-16 mt-8 -mr-16'>
+									<p>The username is "admin"</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+
+						<Button className='w-48' asChild>
+							<Link href='/student'>Student - View Hours</Link>
+						</Button>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }
