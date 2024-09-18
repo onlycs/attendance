@@ -9,6 +9,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: src-api
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -45,10 +49,13 @@ jobs:
       - name: Deploy on SSH server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: h2o2
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          proxy_host: ${{ secrets.SSH_HOST }}
+          proxy_username: ${{ secrets.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/attendance
             docker-compose down
