@@ -135,7 +135,7 @@ export default function Home() {
 								</TooltipTrigger>
 								{/* offset required due to magic used above */}
 								<TooltipContent className='-mb-16 mt-8 -mr-16'>
-									<p>The username is "admin"</p>
+									<p>The username is &quot;admin&quot;</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
