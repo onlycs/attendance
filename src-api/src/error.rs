@@ -36,6 +36,13 @@ pub enum InitError {
         source: VarError,
         location: &'static Location<'static>,
     },
+
+    #[error("At {location}: Failed to start dotenv:\n{source}")]
+    DotenvError {
+        #[from]
+        source: dotenvy::Error,
+        location: &'static Location<'static>,
+    },
 }
 
 #[derive(Error, Debug)]

@@ -1,4 +1,4 @@
-use super::exists;
+use super::{exists, log};
 use crate::prelude::*;
 
 pub async fn register(uid: i32, name: String, pg: &PgPool) -> Result<(), RouteError> {
@@ -16,6 +16,8 @@ pub async fn register(uid: i32, name: String, pg: &PgPool) -> Result<(), RouteEr
     )
     .execute(pg)
     .await?;
+
+    log(uid, pg).await?;
 
     Ok(())
 }

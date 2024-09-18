@@ -1,5 +1,15 @@
 #![feature(never_type)]
 
+extern crate actix_cors;
+extern crate actix_web;
+extern crate cuid;
+extern crate dotenvy;
+extern crate log;
+extern crate serde;
+extern crate simple_logger;
+extern crate sqlx;
+extern crate thiserror;
+
 mod error;
 mod model;
 mod prelude;
@@ -7,16 +17,18 @@ mod routes;
 
 use crate::model::*;
 use crate::prelude::*;
+
 use actix_cors::Cors;
+use dotenvy::dotenv;
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use sqlx::{postgres::PgPoolOptions, PgPool};
+
 use actix_web::{
     post,
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use dotenvy::dotenv;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
-use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = token.replacen("Bearer ", "", 1);
@@ -101,9 +113,9 @@ async fn student_login(
 }
 
 #[actix_web::main]
-async fn main() -> Result<!, InitError> {
+async fn main() -> Result<(), InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
-    dotenv().ok();
+    dotenv()?;
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -129,5 +141,5 @@ async fn main() -> Result<!, InitError> {
     .run()
     .await?;
 
-    unreachable!()
+    Ok(())
 }
