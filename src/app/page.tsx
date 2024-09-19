@@ -23,20 +23,33 @@ export default function Home() {
 		setForm(form);
 	};
 
-	const onPassword = (password: string) => {
-		fetch(`${API_URL}/login`, {
+	const parseFetch = async (f: void | Response): Promise<any | void> => {
+		if (!f) return;
+
+		const text = await f.text();
+
+		if (!f.ok) {
+			setError(text);
+			return;
+		}
+
+		return JSON.parse(text || '{}');
+	};
+
+	const onPassword = async (password: string) => {
+		const res = await fetch(`${API_URL}/login`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ password })
-		})
-			.then((response) => response.json())
-			.then((response) => {
-				setToken(response.token);
-				resetForm('id');
-			})
-			.catch(() => setError('Invalid password'));
+		}).catch(() => setError('Failed to connect to server'));
+
+		const data = await parseFetch(res);
+		if (!data) return;
+
+		setToken(data.token);
+		resetForm('id');
 	};
 
 	const onId = async (id: number) => {
@@ -49,37 +62,42 @@ export default function Home() {
 				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify({ id }),
-		}).catch(() => setError('Invalid ID'));
+		}).catch(() => setError('Failed to connect to server'));
 
-		if (!exists_res) return;
+		const exists_data = await parseFetch(exists_res);
 
-		const exists_data = await exists_res.json();
+		if (!exists_data) return;
 		if (!exists_data.exists) {
 			resetForm('name');
 			return;
 		}
 
-		await fetch(`${API_URL}/log`, {
+		const res = await fetch(`${API_URL}/log`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify({ id })
-		}).catch(() => setError('Invalid ID'));
+		}).catch(() => setError('Failed to connect to server'));
+
+		await parseFetch(res);
 	};
 
-	const onName = (name: string) => {
-		fetch(`${API_URL}/register`, {
+	const onName = async (name: string) => {
+		const res = await fetch(`${API_URL}/register`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify({ id, name })
-		})
-			.then(() => resetForm('id'))
-			.catch(() => setError('Invalid name or ID'));
+		}).catch(() => setError('Failed to connect to server'));
+
+		const data = await parseFetch(res);
+		if (!data) return;
+
+		resetForm('id');
 	};
 
 	const formComponent = {

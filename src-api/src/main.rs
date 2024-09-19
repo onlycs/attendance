@@ -2,6 +2,7 @@
 
 extern crate actix_cors;
 extern crate actix_web;
+extern crate chrono;
 extern crate cuid;
 extern crate dotenvy;
 extern crate log;
