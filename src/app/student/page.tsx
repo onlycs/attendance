@@ -1,5 +1,7 @@
 'use client';
 
+import '@/app/globals.css';
+
 import { InputId } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
