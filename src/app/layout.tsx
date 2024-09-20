@@ -1,9 +1,9 @@
-import { ThemeProvider } from "next-themes"
+import { ThemeProvider } from 'next-themes';
 
 export const metadata = {
 	title: 'Attendance App',
 	description: 'Team 2791\'s Attendance App',
-}
+};
 
 export default function RootLayout({
 	children,
@@ -18,5 +18,5 @@ export default function RootLayout({
 				</ThemeProvider>
 			</body>
 		</html>
-	)
+	);
 }

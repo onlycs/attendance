@@ -1,7 +1,7 @@
-import { InputOTPSlot, InputOTP, InputOTPGroup } from "@/components/ui/input-otp";
-import { Input } from "@/components/ui/input";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
-import React, { useEffect, useState } from "react";
+import { InputOTPSlot, InputOTP, InputOTPGroup } from '@/components/ui/input-otp';
+import { Input } from '@/components/ui/input';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import React, { useEffect, useState } from 'react';
 
 export function InputId({ complete, noClear }: { complete: (_: number) => void, noClear?: boolean }) {
 	const [id, setId] = useState('');
@@ -28,7 +28,7 @@ export function InputId({ complete, noClear }: { complete: (_: number) => void, 
 				<InputOTPSlot index={4} />
 			</InputOTPGroup>
 		</InputOTP>
-	)
+	);
 }
 
 export function InputPassword({ submit }: { submit: (_: string) => void }) {
@@ -38,13 +38,13 @@ export function InputPassword({ submit }: { submit: (_: string) => void }) {
 		ev.preventDefault();
 		submit(password);
 		setPassword('');
-	}
+	};
 
 	return (
 		<form onSubmit={onSubmit}>
 			<Input type="password" value={password} onChange={(ev) => setPassword(ev.target.value)} />
 		</form>
-	)
+	);
 }
 
 export function InputName({ submit, setError }: { submit: (_: string) => void, setError: (_: string) => void }) {
@@ -64,11 +64,11 @@ export function InputName({ submit, setError }: { submit: (_: string) => void, s
 
 		submit(fixedname);
 		setName('');
-	}
+	};
 
 	return (
 		<form onSubmit={onSubmit}>
 			<Input className="bg-red-500 border-red-400 focus-visible:ring-red-300 focus-visible:ring-0 text-center" placeholder='e.x. John Doe' value={name} onChange={(ev) => setName(ev.target.value)} />
 		</form>
-	)
+	);
 }

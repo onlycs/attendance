@@ -1,11 +1,11 @@
 'use client';
 
-import { InputId } from "@/components/forms";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { API_URL } from "@/lib/utils";
-import { useState } from "react";
+import { InputId } from '@/components/forms';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { API_URL } from '@/lib/utils';
+import { useState } from 'react';
 
 function Form({ submit, setError }: { submit: (name: string, id: number) => void, setError: (_: string) => void }) {
 	const [name, setName] = useState('');
@@ -33,7 +33,7 @@ function Form({ submit, setError }: { submit: (name: string, id: number) => void
 			<Input className='text-center mt-4' placeholder='e.x. John Doe' value={name} onChange={(ev) => setName(ev.target.value)} />
 			<Button className='mt-4 w-64' type='submit'>Go!</Button>
 		</form>
-	)
+	);
 }
 
 function Success({ name, uid, hours }: { name: string, uid: number, hours: number }) {
