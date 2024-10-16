@@ -6,7 +6,6 @@ import { useTransitionOut } from '@lib/transitions';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { cn } from '@lib/utils';
 import { FetchError, InternalServerError, tfetch } from '@lib/api';
 import { Label } from '@ui/label';
 import { Spinner } from '@ui/spinner';

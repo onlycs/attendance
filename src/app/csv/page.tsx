@@ -1,17 +1,17 @@
 'use client';
 
-import { FetchError, InternalServerError, tfetch } from "@lib/api";
-import { API_URL, cn } from "@lib/utils";
-import { TooltipTrigger } from "@radix-ui/react-tooltip";
-import { Button } from "@ui/button";
-import { Label } from "@ui/label";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@ui/pagination";
-import { Spinner } from "@ui/spinner";
-import { Tooltip, TooltipContent, TooltipProvider } from "@ui/tooltip";
-import { Download, File, HelpCircle } from "lucide-react";
-import { useCookies } from "next-client-cookies";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { API_URL, cn } from '@lib/utils';
+import { TooltipTrigger } from '@radix-ui/react-tooltip';
+import { Button } from '@ui/button';
+import { Label } from '@ui/label';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@ui/pagination';
+import { Spinner } from '@ui/spinner';
+import { Tooltip, TooltipContent, TooltipProvider } from '@ui/tooltip';
+import { Download, File, HelpCircle } from 'lucide-react';
+import { useCookies } from 'next-client-cookies';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface AuthProp {
 	token: string;
@@ -45,14 +45,14 @@ function merge(idname: string[], hrs: Record<string, number>, idcol: number, nam
 
 	for (const line of idname) {
 		if (!line) continue;
-		const vals = line.split(",");
+		const vals = line.split(',');
 		const id = vals[idcol].trim();
 		const name = vals[namecol].trim();
 		const hours = hrs[id];
 		map[id] = { name, hours };
 	}
 
-	let csv = "id,name,hours\n";
+	let csv = 'id,name,hours\n';
 	for (const entry of Object.keys(map)) {
 		console.log(entry);
 
@@ -64,7 +64,6 @@ function merge(idname: string[], hrs: Record<string, number>, idcol: number, nam
 
 function Both({ token }: AuthProp) {
 	const router = useRouter();
-	const cookies = useCookies();
 
 	const [error, setError] = useState<string | undefined>();
 	const [status, setStatus] = useState<'upload' | 'loading' | 'download'>('upload');
@@ -73,7 +72,7 @@ function Both({ token }: AuthProp) {
 	const resetError = (error: string) => {
 		setStatus('upload');
 		setError(error);
-	}
+	};
 
 	const drop = (ev: React.DragEvent<HTMLDivElement>) => {
 		setStatus('loading');
@@ -82,12 +81,12 @@ function Both({ token }: AuthProp) {
 		const file = ev.dataTransfer.files[0];
 
 		if (!file) {
-			resetError("No file uploaded.");
+			resetError('No file uploaded.');
 			return;
 		}
 
-		if (file.type !== "text/csv") {
-			resetError("Invalid file type. Please upload a CSV file.");
+		if (file.type !== 'text/csv') {
+			resetError('Invalid file type. Please upload a CSV file.');
 			return;
 		}
 
@@ -100,12 +99,12 @@ function Both({ token }: AuthProp) {
 		const file = ev.target.files?.[0];
 
 		if (!file) {
-			resetError("No file uploaded.");
+			resetError('No file uploaded.');
 			return;
 		}
 
-		if (file.type !== "text/csv") {
-			resetError("Invalid file type. Please upload a CSV file.");
+		if (file.type !== 'text/csv') {
+			resetError('Invalid file type. Please upload a CSV file.');
 			return;
 		}
 
@@ -114,23 +113,23 @@ function Both({ token }: AuthProp) {
 	};
 
 	const process = (file: string) => {
-		const lines = file.split("\n");
-		const header = lines[0].split(",");
+		const lines = file.split('\n');
+		const header = lines[0].split(',');
 		const body = lines.splice(1);
 
-		let idcol = header.indexOf("id");
-		let namecol = header.indexOf("name");
+		const idcol = header.indexOf('id');
+		const namecol = header.indexOf('name');
 
 		console.log(idcol, namecol);
 
 		if (idcol == undefined) {
 			resetError('No ID header detected. Make sure the first line contains the correct header');
-			return
+			return;
 		}
 
 		if (namecol == undefined) {
 			resetError('No name header detected. Make sure the first line contains the correct header');
-			return
+			return;
 		}
 
 		tfetch('/hours.csv', { token })
@@ -141,20 +140,20 @@ function Both({ token }: AuthProp) {
 					} else if (res.error!.ecode == 401) {
 						router.push('/');
 					} else {
-						resetError("Failed to get csv");
+						resetError('Failed to get csv');
 					}
 				}
 
 				try {
 					const csv = res.result!.csv;
-					const hours = mapize(csv.split("\n").slice(1));
+					const hours = mapize(csv.split('\n').slice(1));
 					const merged = merge(body, hours, idcol, namecol);
 
 					setCsv(merged);
 					setStatus('download');
 				} catch (err) {
 					console.log(err);
-					resetError("Failed to parse CSV");
+					resetError('Failed to parse CSV');
 				}
 			})
 			.catch((err) => {
@@ -173,8 +172,8 @@ function Both({ token }: AuthProp) {
 						</TooltipTrigger>
 						<TooltipContent>
 							<Label className="text-center text-md leading-5">
-								Upload a CSV that contains every student's name and id, with the field titles "name" and "id." <br />
-								You will download a file that contains the student's name, id, and hours. <br />
+								Upload a CSV that contains every student&apos;s name and id, with the field titles &quot;name&quot; and &quot;id.&quot; <br />
+								You will download a file that contains the student&apos;s name, id, and hours. <br />
 								No student data ever leaves your computer.
 							</Label>
 						</TooltipContent>
@@ -220,14 +219,14 @@ function Both({ token }: AuthProp) {
 		<div className="flex flex-col items-center justify-center">
 			<div
 				className={cn(
-					"w-96 h-48 mt-10",
-					"flex flex-col items-center justify-center",
-					"border border-white rounded-xl",
-					"cursor-pointer",
-					"z-10",
+					'w-96 h-48 mt-10',
+					'flex flex-col items-center justify-center',
+					'border border-white rounded-xl',
+					'cursor-pointer',
+					'z-10',
 				)}
 				onDrop={drop}
-				onClick={() => document.getElementById("file-input")?.click()}
+				onClick={() => document.getElementById('file-input')?.click()}
 			>
 				{inner}
 			</div>
@@ -245,8 +244,8 @@ export default function Csv() {
 	});
 
 	const element = {
-		[0]: <IdOnly token={cookies.get("token")!} />,
-		[1]: <Both token={cookies.get("token")!} />
+		[0]: <IdOnly token={cookies.get('token')!} />,
+		[1]: <Both token={cookies.get('token')!} />
 	}[selected];
 
 	return (
@@ -254,9 +253,9 @@ export default function Csv() {
 			<div
 				className="w-128 flex flex-col gap-8 mb-10 absolute"
 				style={{
-					left: "50%",
-					top: "15%",
-					transform: "translateX(-50%)"
+					left: '50%',
+					top: '15%',
+					transform: 'translateX(-50%)'
 				}}
 			>
 				<Pagination>
@@ -276,5 +275,5 @@ export default function Csv() {
 			</div>
 			{element}
 		</div>
-	)
+	);
 }
