@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from './button';
 import { useTransitionOut } from '@lib/transitions';
 
-export function BackButton() {
+export function HomeButton() {
 	const router = useRouter();
 	const { push } = useTransitionOut(router);
 

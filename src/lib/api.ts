@@ -28,6 +28,10 @@ export interface RosterResponse {
 	login: boolean;
 }
 
+export interface CSVResponse {
+	csv: string;
+}
+
 export interface Error {
 	ecode: number;
 	message: string;
@@ -37,12 +41,14 @@ export interface Requests {
 	'/hours': HoursRequest;
 	'/login': LoginRequest;
 	'/roster': RosterRequest;
+	'/hours.csv': AuthenticatedRequest;
 }
 
 export interface Responses {
 	'/hours': HoursResponse;
 	'/login': LoginResponse;
 	'/roster': RosterResponse;
+	'/hours.csv': CSVResponse;
 }
 
 export interface HttpResult<T> {
@@ -60,6 +66,7 @@ const RequestMethod: Record<Route, 'GET' | 'POST'> = {
 	'/hours': 'GET',
 	'/login': 'POST',
 	'/roster': 'POST',
+	'/hours.csv': 'GET'
 };
 
 export const InternalServerError = 'Problem with the server. Get Angad to fix this';
@@ -72,6 +79,8 @@ export function makeurl<T extends Route>(route: T, data: Requests[T]): string {
 		Object.entries(data).forEach(([key, value]) => {
 			url.searchParams.append(key, value.toString());
 		});
+
+		url.searchParams.append('json', 'true');
 	}
 
 	return url.toString();
@@ -87,7 +96,7 @@ export function makebody<T extends Route>(route: T, data: Requests[T]): Optional
 
 export function tfetch<T extends Route>(route: T, data: Requests[T]): Promise<HttpResult<Responses[T]>> {
 	const bearer: OptionalBearer =
-		'token' in data
+		'token' in data && RequestMethod[route] === 'POST'
 			? { 'Authorization': `Bearer ${data.token}` }
 			: {};
 

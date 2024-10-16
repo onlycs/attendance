@@ -14,7 +14,7 @@ export default function Admin() {
 
 	useEffect(() => {
 		router.prefetch('/attendance');
-		router.prefetch('/download');
+		router.prefetch('/csv');
 	}, [router]);
 
 	useEffect(() => {
@@ -26,7 +26,7 @@ export default function Admin() {
 			<Button className="w-72" onClick={() => push('/attendance')}>
 				Start Attendance&emsp;&rarr;
 			</Button>
-			<Button className="w-72" onClick={() => push('/download')}>
+			<Button className="w-72" onClick={() => push('/csv')}>
 				Download Student Hours&emsp;&rarr;
 			</Button>
 		</div>

@@ -3,6 +3,11 @@ import { CookiesProvider } from 'next-client-cookies/server';
 
 import '@styles/globals.scss';
 
+export const metadata = {
+	title: 'Attendance',
+	description: 'Attendance tracking system',
+};
+
 export default function RootLayout({
 	children,
 }: {

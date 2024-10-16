@@ -49,6 +49,8 @@ export default function Attendance() {
 				}
 			})
 			.catch(() => resetError(FetchError));
+
+		setId('');
 	};
 
 	return (

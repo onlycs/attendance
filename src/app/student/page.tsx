@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@lib/utils';
 import { FetchError, InternalServerError, tfetch } from '@lib/api';
 import { Label } from '@ui/label';
+import { Spinner } from '@ui/spinner';
 
 interface IdInputProps {
 	error: string,
@@ -37,27 +38,6 @@ function IdInput({ error, setError }: IdInputProps) {
 			<div className="text-center text-md font-medium mt-4 text-red-400">
 				{error}
 			</div>
-		</div>
-	);
-}
-
-function Loading() {
-	return (
-		<div>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				className={cn('animate-spin')}
-			>
-				<path d="M21 12a9 9 0 1 1-6.219-8.56" />
-			</svg>
 		</div>
 	);
 }
@@ -92,7 +72,7 @@ export default function Student() {
 				opacity: +loading,
 				transition: 'all 0.2s ease'
 			}}>
-				<Loading />
+				<Spinner />
 			</div>
 			<div style={{
 				opacity: +!loading,

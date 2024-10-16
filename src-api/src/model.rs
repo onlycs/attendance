@@ -20,6 +20,7 @@ pub struct RosterRequest {
 pub struct CSVRequest {
     #[serde(default)]
     pub json: bool,
+    pub token: String,
 }
 
 #[derive(Serialize)]

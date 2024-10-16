@@ -1,6 +1,6 @@
 'use client';
 
-import { BackButton } from '@ui/backbutton';
+import { HomeButton } from '@ui/homebutton';
 import { TransitionOutContext } from '@lib/transitions';
 
 import React from 'react';
@@ -32,7 +32,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
 			value={transitionOut}
 			key={`${pathname}${query}`}
 		>
-			{pathname == '/' || pathname == undefined ? null : <BackButton />}
+			{pathname == '/' || pathname == undefined ? null : <HomeButton />}
 
 			<motion.div
 				initial={{
