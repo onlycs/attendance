@@ -2,13 +2,13 @@ use chrono::{Duration, Utc};
 
 use crate::prelude::*;
 
-pub async fn log(uid: i32, pg: &PgPool) -> Result<(), RouteError> {
+pub async fn roster(id: String, pg: &PgPool) -> Result<bool, RouteError> {
     let record = sqlx::query!(
         r#"
         SELECT * FROM records
         WHERE student_id = $1 and in_progress = true
         "#,
-        uid
+        id
     )
     .fetch_optional(pg)
     .await?;
@@ -31,6 +31,8 @@ pub async fn log(uid: i32, pg: &PgPool) -> Result<(), RouteError> {
         )
         .execute(pg)
         .await?;
+
+        Ok(false)
     } else {
         sqlx::query!(
             r#"
@@ -38,11 +40,11 @@ pub async fn log(uid: i32, pg: &PgPool) -> Result<(), RouteError> {
             VALUES ($1, $2, NOW())
             "#,
             cuid2(),
-            uid
+            id
         )
         .execute(pg)
         .await?;
-    }
 
-    Ok(())
+        Ok(true)
+    }
 }

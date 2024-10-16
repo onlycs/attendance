@@ -1,21 +1,6 @@
 use crate::prelude::*;
 
-pub async fn hours(name: String, id: i32, pg: &PgPool) -> Result<f64, RouteError> {
-    let student = sqlx::query!(
-        r#"
-        SELECT * FROM students
-        WHERE id = $1 and name = $2
-        "#,
-        id,
-        name
-    )
-    .fetch_optional(pg)
-    .await?;
-
-    if student.is_none() {
-        return Err(RouteError::UserExists);
-    }
-
+pub async fn hours(id: String, pg: &PgPool) -> Result<f64, RouteError> {
     let records = sqlx::query!(
         r#"
         SELECT * FROM records

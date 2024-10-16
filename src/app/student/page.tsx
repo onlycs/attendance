@@ -1,108 +1,105 @@
 'use client';
 
-import '@/app/globals.css';
+import { InputId } from "@components/forms";
+import { Button } from "@ui/button";
+import { useTransitionOut } from "@lib/transitions";
 
-import { InputId } from '@/components/forms';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { API_URL } from '@/lib/utils';
-import { useState } from 'react';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@lib/utils";
+import { FetchError, InternalServerError, tfetch } from "@lib/api";
+import { Label } from "@ui/label";
 
-function Form({ submit, setError }: { submit: (name: string, id: number) => void, setError: (_: string) => void }) {
-	const [name, setName] = useState('');
-	const [id, setId] = useState(undefined as number | undefined);
-
-	const onSubmit = (ev: React.FormEvent) => {
-		ev.preventDefault();
-
-		if (id === undefined) {
-			setError('Please enter your ID');
-			return;
-		}
-
-		if (name.length === 0) {
-			setError('Please enter your name');
-			return;
-		}
-
-		submit(name, id);
-	};
-
-	return (
-		<form className="flex flex-col items-center justify-center" onSubmit={onSubmit}>
-			<InputId complete={setId} noClear />
-			<Input className='text-center mt-4' placeholder='e.x. John Doe' value={name} onChange={(ev) => setName(ev.target.value)} />
-			<Button className='mt-4 w-64' type='submit'>Go!</Button>
-		</form>
-	);
+interface IdInputProps {
+	error: string,
+	setError: (_: string) => void,
 }
 
-function Success({ name, uid, hours }: { name: string, uid: number, hours: number }) {
-	return (
-		<>
-			<Label className="text-lg">{name}</Label>
-			<Label className="text-sm text-gray-300 mb-16">{uid}</Label>
-			<Label className="text-xl">Hours: {hours}</Label>
-		</>
-	);
-}
+function IdInput({ error, setError }: IdInputProps) {
+	const router = useRouter();
 
-export default function Student() {
-	// Data
-	const [id, setId] = useState(undefined as number | undefined);
-	const [name, setName] = useState('');
-	const [hours, setHours] = useState(0);
-
-	// Page State
-	const [page, setPage] = useState<'form' | 'success'>('form');
-	const [error, setError] = useState('');
-
-	// Updates
-	const resetPage = (page: 'form' | 'success') => {
-		setError('');
-		setPage(page);
-	};
-
-	const onForm = (name: string, id: number) => {
-		setId(id);
-		setName(name);
-
-		fetch(`${API_URL}/hours?id=${id}&name=${name}`, {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		})
-			.then((res) => res.json())
-			.then((res) => {
-				setHours(res.hours);
-				resetPage('success');
-			})
-			.catch(() => {
-				setError('Invalid name, ID, or user not found');
-			});
-	};
-
-	const pageComponent = {
-		['form']: <Form submit={onForm} setError={setError} />,
-		['success']: <Success name={name} uid={id!} hours={hours} />
-	}[page];
-
-	const aboveMessage = {
-		['form']: 'Please enter your ID and name',
-		['success']: ''
-	}[page];
+	const { push } = useTransitionOut(router);
+	const [id, setId] = useState<string>('');
 
 	return (
-		<div className="flex flex-col items-center justify-center w-full h-full bg-background">
+		<div className='flex flex-col items-center justify-center'>
 			<div className="text-center text-md font-medium mb-4">
-				{aboveMessage}
+				Please enter your ID
 			</div>
-			{pageComponent}
+			<form className="flex flex-col items-center justify-center" onSubmit={(ev) => {
+				ev.preventDefault();
+				if (id.length == 5) push(`/student?id=${id}`);
+				else setError('Please enter a full student ID');
+			}}>
+				<InputId value={id} onChange={setId} />
+				<Button className='mt-4 w-52' type='submit'>Go &rarr;</Button>
+			</form>
 			<div className="text-center text-md font-medium mt-4 text-red-400">
 				{error}
 			</div>
 		</div>
+	);
+}
+
+function Loading() {
+	return (
+		<div>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				className={cn("animate-spin")}
+			>
+				<path d="M21 12a9 9 0 1 1-6.219-8.56" />
+			</svg>
+		</div>
+	)
+}
+
+export default function Student() {
+	const params = useSearchParams();
+
+	const [error, setError] = useState<string>('');
+	const [loading, setLoading] = useState(true);
+	const [hours, setHours] = useState<number | undefined>();
+
+	useEffect(() => {
+		const id = params.get('id');
+		if (!id) return;
+
+		setLoading(true);
+		tfetch('/hours', { id })
+			.then(res => {
+				if (res.ok) setHours(res.result!.hours);
+				else setError(res.error!.ecode == 500 ? InternalServerError : 'Invalid student ID');
+			})
+			.catch(() => setError(FetchError))
+			.finally(() => setLoading(false));
+	}, []);
+
+	if (!params.get('id') || error) return <IdInput error={error} setError={setError} />;
+
+	return (
+		<>
+			<div style={{
+				position: 'absolute',
+				opacity: +loading,
+				transition: 'all 0.2s ease'
+			}}>
+				<Loading />
+			</div>
+			<div style={{
+				opacity: +!loading,
+				transition: 'all 0.5s ease'
+			}}>
+				<Label className='text-2xl'>Hours: {hours}</Label>
+			</div>
+		</>
 	);
 }

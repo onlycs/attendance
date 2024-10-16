@@ -1,21 +1,23 @@
 import { ThemeProvider } from 'next-themes';
+import { CookiesProvider } from 'next-client-cookies/server';
 
-export const metadata = {
-	title: 'Attendance App',
-	description: 'Team 2791\'s Attendance App',
-};
+import '@styles/globals.scss';
 
 export default function RootLayout({
 	children,
 }: {
-	children: React.ReactNode
+	children: React.ReactNode,
 }) {
+
+
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body>
-				<ThemeProvider attribute="class" defaultTheme="dark">
-					{children}
-				</ThemeProvider>
+			<body className='bg-background'>
+				<CookiesProvider>
+					<ThemeProvider attribute="class" defaultTheme="dark">
+						{children}
+					</ThemeProvider>
+				</CookiesProvider>
 			</body>
 		</html>
 	);
