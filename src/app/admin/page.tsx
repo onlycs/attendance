@@ -1,11 +1,11 @@
 'use client';
 
-import { useTransitionOut } from "@lib/transitions";
-import { Button } from "@ui/button";
+import { useTransitionOut } from '@lib/transitions';
+import { Button } from '@ui/button';
 
-import { useCookies } from "next-client-cookies";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useCookies } from 'next-client-cookies';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Admin() {
 	const router = useRouter();
@@ -15,11 +15,11 @@ export default function Admin() {
 	useEffect(() => {
 		router.prefetch('/attendance');
 		router.prefetch('/download');
-	}, []);
+	}, [router]);
 
 	useEffect(() => {
 		if (!cookies.get('token')) router.push('/login');
-	});
+	}, [router, cookies]);
 
 	return (
 		<div className='flex flex-col gap-4'>

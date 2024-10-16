@@ -1,4 +1,4 @@
-import { API_URL } from "./utils";
+import { API_URL } from './utils';
 
 interface AuthenticatedRequest {
 	token: string;
@@ -52,15 +52,15 @@ export interface HttpResult<T> {
 }
 
 
-type OptionalBearer = { token: string } | {};
-type OptionalBody = { body: string } | {};
+type OptionalBearer = { 'Authorization': string } | Record<string, never>;
+type OptionalBody = { body: string } | Record<string, never>;
 type Route = keyof Requests & keyof Responses;
 
 const RequestMethod: Record<Route, 'GET' | 'POST'> = {
 	'/hours': 'GET',
 	'/login': 'POST',
 	'/roster': 'POST',
-}
+};
 
 export const InternalServerError = 'Problem with the server. Get Angad to fix this';
 export const FetchError = 'Could not connect to the server. Are you online?';

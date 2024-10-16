@@ -1,12 +1,12 @@
 'use client';
 
-import { InputId } from "@components/forms";
-import { FetchError, InternalServerError, tfetch } from "@lib/api";
-import { useTransitionOut } from "@lib/transitions";
-import { Button } from "@ui/button";
-import { useCookies } from "next-client-cookies";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { InputId } from '@components/forms';
+import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { useTransitionOut } from '@lib/transitions';
+import { Button } from '@ui/button';
+import { useCookies } from 'next-client-cookies';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function Attendance() {
 	const cookies = useCookies();
@@ -24,15 +24,15 @@ export default function Attendance() {
 	const resetSuccess = (msg: string) => {
 		setError('');
 		setSuccess(msg);
-	}
+	};
 
 	const resetError = (msg: string) => {
 		setError(msg);
 		setSuccess('');
-	}
+	};
 
 	const submit = () => {
-		tfetch(`/roster`, {
+		tfetch('/roster', {
 			token: cookies.get('token')!,
 			id: id,
 		})
@@ -54,7 +54,7 @@ export default function Attendance() {
 	return (
 		<div className='flex flex-col items-center justify-center'>
 			<div className="text-center text-md font-medium mb-4">
-				Please enter your ID
+				Please enter or scan your ID
 			</div>
 			<form className="flex flex-col items-center justify-center" onSubmit={(ev) => {
 				ev.preventDefault();

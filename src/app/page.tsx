@@ -13,7 +13,7 @@ export default function Home() {
 	useEffect(() => {
 		router.prefetch('/login');
 		router.prefetch('/student');
-	}, []);
+	}, [router]);
 
 	return (
 		<div className='flex flex-col gap-4'>

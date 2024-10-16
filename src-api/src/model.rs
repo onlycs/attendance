@@ -16,6 +16,12 @@ pub struct RosterRequest {
     pub id: String,
 }
 
+#[derive(Deserialize)]
+pub struct CSVRequest {
+    #[serde(default)]
+    pub json: bool,
+}
+
 #[derive(Serialize)]
 pub struct HoursResponse {
     pub hours: f64,
@@ -29,6 +35,11 @@ pub struct AuthResponse {
 #[derive(Serialize)]
 pub struct RosterResponse {
     pub login: bool,
+}
+
+#[derive(Serialize)]
+pub struct CSVResponse {
+    pub csv: String,
 }
 
 pub struct AppState {

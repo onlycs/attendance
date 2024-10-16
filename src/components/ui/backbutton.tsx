@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from "next/navigation";
-import { Button } from "./button";
-import { useTransitionOut } from "@lib/transitions";
+import { useRouter } from 'next/navigation';
+import { Button } from './button';
+import { useTransitionOut } from '@lib/transitions';
 
 export function BackButton() {
 	const router = useRouter();

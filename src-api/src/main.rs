@@ -97,6 +97,23 @@ async fn hours(
     Ok(HttpResponse::Ok().json(HoursResponse { hours }))
 }
 
+#[get("/csv")]
+async fn csv(
+    req: HttpRequest,
+    query: web::Query<CSVRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+
+    let csv = routes::csv(&state.pg).await?;
+
+    if query.into_inner().json {
+        Ok(HttpResponse::Ok().json(CSVResponse { csv }))
+    } else {
+        Ok(HttpResponse::Ok().body(csv))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;

@@ -1,14 +1,13 @@
 'use client';
 
-import { Button } from "@ui/button";
-import { Input } from "@ui/input";
-import { API_URL } from "@lib/utils";
-import { useTransitionOut } from "@lib/transitions";
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { useTransitionOut } from '@lib/transitions';
 
-import { useEffect, useState } from "react";
-import { useCookies } from "next-client-cookies";
-import { useRouter } from "next/navigation";
-import { FetchError, tfetch } from "@lib/api";
+import { useEffect, useState } from 'react';
+import { useCookies } from 'next-client-cookies';
+import { useRouter } from 'next/navigation';
+import { FetchError, tfetch } from '@lib/api';
 
 export default function Teacher() {
 	const cookies = useCookies();
@@ -18,7 +17,7 @@ export default function Teacher() {
 
 	useEffect(() => {
 		if (cookies.get('token')) router.push('/admin');
-	}, []);
+	}, [router, cookies]);
 
 	const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
 		ev.preventDefault();

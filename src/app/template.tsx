@@ -24,7 +24,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
 		controls.start({
 			opacity: 0,
 			x: -100,
-		}).then(callback)
+		}).then(callback);
 	};
 
 	return (

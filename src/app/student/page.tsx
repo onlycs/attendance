@@ -1,14 +1,14 @@
 'use client';
 
-import { InputId } from "@components/forms";
-import { Button } from "@ui/button";
-import { useTransitionOut } from "@lib/transitions";
+import { InputId } from '@components/forms';
+import { Button } from '@ui/button';
+import { useTransitionOut } from '@lib/transitions';
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@lib/utils";
-import { FetchError, InternalServerError, tfetch } from "@lib/api";
-import { Label } from "@ui/label";
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { cn } from '@lib/utils';
+import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { Label } from '@ui/label';
 
 interface IdInputProps {
 	error: string,
@@ -54,12 +54,12 @@ function Loading() {
 				strokeWidth="2"
 				strokeLinecap="round"
 				strokeLinejoin="round"
-				className={cn("animate-spin")}
+				className={cn('animate-spin')}
 			>
 				<path d="M21 12a9 9 0 1 1-6.219-8.56" />
 			</svg>
 		</div>
-	)
+	);
 }
 
 export default function Student() {
@@ -81,7 +81,7 @@ export default function Student() {
 			})
 			.catch(() => setError(FetchError))
 			.finally(() => setLoading(false));
-	}, []);
+	}, [params]);
 
 	if (!params.get('id') || error) return <IdInput error={error} setError={setError} />;
 
