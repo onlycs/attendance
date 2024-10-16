@@ -2,13 +2,30 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 #[derive(Deserialize)]
-pub struct AttendRequest {
-    pub id: i32,
+pub struct AuthRequest {
+    pub password: String,
 }
 
 #[derive(Deserialize)]
-pub struct AuthRequest {
-    pub password: String,
+pub struct HoursRequest {
+    pub id: String,
+}
+
+#[derive(Deserialize)]
+pub struct RosterRequest {
+    pub id: String,
+}
+
+#[derive(Deserialize)]
+pub struct CSVRequest {
+    #[serde(default)]
+    pub json: bool,
+    pub token: String,
+}
+
+#[derive(Serialize)]
+pub struct HoursResponse {
+    pub hours: f64,
 }
 
 #[derive(Serialize)]
@@ -16,36 +33,14 @@ pub struct AuthResponse {
     pub token: String,
 }
 
-#[derive(Deserialize)]
-pub struct ExistsRequest {
-    pub id: i32,
+#[derive(Serialize)]
+pub struct RosterResponse {
+    pub login: bool,
 }
 
 #[derive(Serialize)]
-pub struct ExistsResponse {
-    pub exists: bool,
-}
-
-#[derive(Deserialize)]
-pub struct RegisterRequest {
-    pub id: i32,
-    pub name: String,
-}
-
-#[derive(Serialize)]
-pub struct RegisterResponse {
-    pub success: bool,
-}
-
-#[derive(Deserialize)]
-pub struct HoursRequest {
-    pub id: i32,
-    pub name: String,
-}
-
-#[derive(Serialize)]
-pub struct HoursResponse {
-    pub hours: f64,
+pub struct CSVResponse {
+    pub csv: String,
 }
 
 pub struct AppState {

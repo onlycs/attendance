@@ -5,53 +5,37 @@ use crate::prelude::*;
 pub async fn csv(pg: &PgPool) -> Result<String, RouteError> {
     let records = sqlx::query!(
         r#"
-        SELECT * FROM records
-        WHERE in_progress = false
-        "#,
+        SELECT
+            student_id,
+            sign_in,
+            sign_out
+        FROM records
+        WHERE in_progress = false 
+            AND sign_out IS NOT NULL 
+            AND sign_out < sign_in + INTERVAL '4 hours'
+        "#
     )
     .fetch_all(pg)
     .await?;
 
-    let names = sqlx::query!(
-        r#"
-        SELECT * FROM students
-        "#,
-    )
-    .fetch_all(pg)
-    .await?
-    .into_iter()
-    .map(|s| (s.id, s.name))
-    .collect::<HashMap<i32, String>>();
-
-    let mut minutes = HashMap::new();
+    let mut hours = HashMap::new();
+    let mut csv = String::from("id,hours\n");
 
     for record in records {
         let timein = record.sign_in;
         let timeout = record.sign_out.unwrap();
         let duration = timeout.signed_duration_since(timein);
-        let new_minutes = duration.num_minutes();
+        let mins = duration.num_minutes();
 
-        minutes
+        hours
             .entry(record.student_id)
-            .and_modify(|e| *e += new_minutes)
-            .or_insert(new_minutes);
+            .and_modify(|time| *time += mins)
+            .or_insert(mins);
     }
 
-    let mut csv = String::new();
-
-    // Write the header
-    csv.push_str("last, first, id, hours\n");
-
-    for (id, minutes) in minutes {
-        let name = names.get(&id).unwrap();
-        let (first, last) = name.split_once(' ').unwrap();
-        csv.push_str(&format!(
-            "{}, {}, {}, {}\n",
-            last,
-            first,
-            id,
-            minutes as f64 / 60.0
-        ));
+    for (student_id, mins) in hours {
+        let hours = mins as f64 / 60.0;
+        csv.push_str(&format!("{},{}\n", student_id, hours));
     }
 
     Ok(csv)

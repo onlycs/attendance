@@ -21,7 +21,6 @@ use crate::prelude::*;
 
 use actix_cors::Cors;
 use actix_web::get;
-use actix_web_httpauth::extractors::basic::BasicAuth;
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -73,61 +72,18 @@ async fn login(
     Ok(HttpResponse::Ok().json(AuthResponse { token }))
 }
 
-#[post("/exists")]
-async fn exists(
+#[post("/roster")]
+async fn roster(
     req: HttpRequest,
-    body: web::Json<ExistsRequest>,
+    body: web::Json<RosterRequest>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
     authorize(get_auth_header(&req)?, &state.pg).await?;
 
-    let id = body.into_inner().id;
-    let exists = routes::exists(id, &state.pg).await?;
+    let RosterRequest { id } = body.into_inner();
+    let res = routes::roster(id, &state.pg).await?;
 
-    Ok(HttpResponse::Ok().json(ExistsResponse { exists }))
-}
-
-#[post("/register")]
-async fn register(
-    req: HttpRequest,
-    body: web::Json<RegisterRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    authorize(get_auth_header(&req)?, &state.pg).await?;
-
-    let RegisterRequest { id, name } = body.into_inner();
-    routes::register(id, name, &state.pg).await?;
-
-    Ok(HttpResponse::Ok().finish())
-}
-
-#[post("/log")]
-async fn student_login(
-    req: HttpRequest,
-    body: web::Json<AttendRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    authorize(get_auth_header(&req)?, &state.pg).await?;
-
-    let AttendRequest { id } = body.into_inner();
-    routes::log(id, &state.pg).await?;
-
-    Ok(HttpResponse::Ok().finish())
-}
-
-#[get("/csv")]
-async fn csv(creds: BasicAuth, state: web::Data<AppState>) -> Result<impl Responder, RouteError> {
-    let Some(password) = creds.password() else {
-        return Err(RouteError::NoAuth);
-    };
-
-    if sha256::digest(password.as_bytes()) != env::var("ADMIN_HASH")? {
-        return Err(RouteError::InvalidToken);
-    }
-
-    let csv = routes::csv(&state.pg).await?;
-
-    Ok(HttpResponse::Ok().body(csv))
+    Ok(HttpResponse::Ok().json(RosterResponse { login: res }))
 }
 
 #[get("/hours")]
@@ -135,10 +91,27 @@ async fn hours(
     query: web::Query<HoursRequest>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    let HoursRequest { name, id } = query.into_inner();
-    let hours = routes::hours(name, id, &state.pg).await?;
+    let HoursRequest { id } = query.into_inner();
+    let hours = routes::hours(id, &state.pg).await?;
 
     Ok(HttpResponse::Ok().json(HoursResponse { hours }))
+}
+
+#[get("/hours.csv")]
+async fn csv(
+    query: web::Query<CSVRequest>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    let CSVRequest { json, token } = query.into_inner();
+
+    authorize(token, &state.pg).await?;
+    let csv = routes::csv(&state.pg).await?;
+
+    if json {
+        Ok(HttpResponse::Ok().json(CSVResponse { csv }))
+    } else {
+        Ok(HttpResponse::Ok().body(csv))
+    }
 }
 
 #[actix_web::main]
@@ -162,11 +135,9 @@ async fn main() -> Result<(), InitError> {
             .wrap(cors)
             .app_data(Data::new(AppState { pg: pool.clone() }))
             .service(login)
-            .service(exists)
-            .service(register)
-            .service(student_login)
-            .service(csv)
             .service(hours)
+            .service(roster)
+            .service(csv)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
