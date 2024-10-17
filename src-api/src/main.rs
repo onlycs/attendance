@@ -114,6 +114,13 @@ async fn csv(
     }
 }
 
+#[get("/")]
+async fn index() -> impl Responder {
+    HttpResponse::PermanentRedirect()
+        .append_header(("Location", "https://attendance.angad.page/"))
+        .finish()
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
@@ -134,6 +141,7 @@ async fn main() -> Result<(), InitError> {
         App::new()
             .wrap(cors)
             .app_data(Data::new(AppState { pg: pool.clone() }))
+            .service(index)
             .service(login)
             .service(hours)
             .service(roster)
