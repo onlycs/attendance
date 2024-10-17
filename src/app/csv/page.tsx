@@ -179,9 +179,9 @@ function Both({ token }: AuthProp) {
 						</TooltipContent>
 					</Tooltip>
 				</TooltipProvider>
-				<form className="-mt-4 w-full h-full flex items-center justify-center">
+				<form className="-mt-4 w-full h-full flex flex-col items-center justify-center">
 					<input type="file" accept=".csv" id="file-input" hidden onChange={upload} />
-					<div className="flex flex-col items-center justify-center">
+					<div className="flex flex-col items-center mt-auto justify-center">
 						<File />
 						<Label className="mt-2 cursor-pointer text-center leading-5" htmlFor="file-input">
 							Drag or Click <br />
