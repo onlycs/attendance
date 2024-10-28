@@ -7,17 +7,13 @@ import { useTransitionOut } from '@lib/transitions';
 import { useEffect, useState } from 'react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
-import { FetchError, tfetch } from '@lib/api';
+import { Errors, FetchError, GetError, tfetch } from '@lib/api';
 
 export default function Teacher() {
 	const cookies = useCookies();
 	const router = useRouter();
 	const { push } = useTransitionOut(router);
-	const [error, setError] = useState('');
-
-	useEffect(() => {
-		if (cookies.get('token')) router.push('/admin');
-	}, [router, cookies]);
+	const [error, setError] = useState<React.JSX.Element | string>('');
 
 	const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
 		ev.preventDefault();
@@ -25,19 +21,15 @@ export default function Teacher() {
 
 		tfetch('/login', { password })
 			.then(res => {
-				if (res.ok) {
-					cookies.set('token', res.result!.token);
-					push('/admin');
-				} else {
-					setError(
-						{
-							[500]: 'Problem with the server. Get Angad to fix this',
-							[401]: 'Incorrect Password',
-						}[res.error!.ecode] || 'Invalid input'
-					);
+				if (!res.ok) {
+					setError(GetError(res.error!.ecode, res.error!.message));
+					return;
 				}
+
+				cookies.set('token', res.result!.token);
+				push('/admin');
 			})
-			.catch(() => setError(FetchError));
+			.catch(FetchError(setError));
 	};
 
 	return (

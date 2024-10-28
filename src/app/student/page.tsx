@@ -6,13 +6,13 @@ import { useTransitionOut } from '@lib/transitions';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { FetchError, GetError, tfetch } from '@lib/api';
 import { Label } from '@ui/label';
 import { Spinner } from '@ui/spinner';
 
 interface IdInputProps {
-	error: string,
-	setError: (_: string) => void,
+	error: string | React.JSX.Element,
+	setError: (_: React.JSX.Element | string) => void,
 }
 
 function IdInput({ error, setError }: IdInputProps) {
@@ -44,7 +44,7 @@ function IdInput({ error, setError }: IdInputProps) {
 export default function Student() {
 	const params = useSearchParams();
 
-	const [error, setError] = useState<string>('');
+	const [error, setError] = useState<string | React.JSX.Element>('');
 	const [loading, setLoading] = useState(true);
 	const [hours, setHours] = useState<number | undefined>();
 
@@ -55,10 +55,13 @@ export default function Student() {
 		setLoading(true);
 		tfetch('/hours', { id })
 			.then(res => {
-				if (res.ok) setHours(res.result!.hours);
-				else setError(res.error!.ecode == 500 ? InternalServerError : 'Invalid student ID');
+				if (!res.ok) {
+					setError(GetError(res.error!.ecode, res.error!.message));
+					return;
+				}
+				setHours(res.result!.hours);
 			})
-			.catch(() => setError(FetchError))
+			.catch(FetchError(setError))
 			.finally(() => setLoading(false));
 	}, [params]);
 

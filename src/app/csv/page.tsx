@@ -1,6 +1,6 @@
 'use client';
 
-import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { FetchError, GetError, tfetch } from '@lib/api';
 import { API_URL, cn } from '@lib/utils';
 import { TooltipTrigger } from '@radix-ui/react-tooltip';
 import { Button } from '@ui/button';
@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider } from '@ui/tooltip';
 import { Download, File, HelpCircle } from 'lucide-react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface AuthProp {
 	token: string;
@@ -65,11 +65,11 @@ function merge(idname: string[], hrs: Record<string, number>, idcol: number, nam
 function Both({ token }: AuthProp) {
 	const router = useRouter();
 
-	const [error, setError] = useState<string | undefined>();
+	const [error, setError] = useState<React.JSX.Element | string | undefined>();
 	const [status, setStatus] = useState<'upload' | 'loading' | 'download'>('upload');
 	const [csv, setCsv] = useState('');
 
-	const resetError = (error: string) => {
+	const resetError = (error: React.JSX.Element | string) => {
 		setStatus('upload');
 		setError(error);
 	};
@@ -135,13 +135,8 @@ function Both({ token }: AuthProp) {
 		tfetch('/hours.csv', { token })
 			.then(res => {
 				if (!res.ok) {
-					if (res.error!.ecode == 500) {
-						resetError(InternalServerError);
-					} else if (res.error!.ecode == 401) {
-						router.push('/');
-					} else {
-						resetError('Failed to get csv');
-					}
+					resetError(GetError(res.error!.ecode, res.error!.message));
+					return;
 				}
 
 				try {
@@ -152,14 +147,10 @@ function Both({ token }: AuthProp) {
 					setCsv(merged);
 					setStatus('download');
 				} catch (err) {
-					console.log(err);
 					resetError('Failed to parse CSV');
 				}
 			})
-			.catch((err) => {
-				console.log(err);
-				resetError(FetchError);
-			});
+			.catch(FetchError(resetError));
 	};
 
 	const UploadInner = () => {

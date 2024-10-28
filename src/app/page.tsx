@@ -11,13 +11,13 @@ export default function Home() {
 	const { push } = useTransitionOut(router);
 
 	useEffect(() => {
-		router.prefetch('/login');
+		router.prefetch('/admin');
 		router.prefetch('/student');
 	}, [router]);
 
 	return (
 		<div className='flex flex-col gap-4'>
-			<Button className="w-64" onClick={() => push('/login')}>
+			<Button className="w-64" onClick={() => push('/admin')}>
 				Admin &rarr;
 			</Button>
 			<Button className="w-64" onClick={() => push('/student')}>

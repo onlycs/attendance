@@ -1,19 +1,18 @@
 'use client';
 
 import { InputId } from '@components/forms';
-import { FetchError, InternalServerError, tfetch } from '@lib/api';
+import { FetchError, GetError, tfetch } from '@lib/api';
 import { useTransitionOut } from '@lib/transitions';
 import { Button } from '@ui/button';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { JSX, useEffect, useState } from 'react';
 
 export default function Attendance() {
 	const cookies = useCookies();
 	const router = useRouter();
 
-	const { push } = useTransitionOut(router);
-	const [error, setError] = useState('');
+	const [error, setError] = useState<string | JSX.Element>('');
 	const [success, setSuccess] = useState('');
 	const [id, setId] = useState<string>('');
 
@@ -26,7 +25,7 @@ export default function Attendance() {
 		setSuccess(msg);
 	};
 
-	const resetError = (msg: string) => {
+	const resetError = (msg: string | JSX.Element) => {
 		setError(msg);
 		setSuccess('');
 	};
@@ -37,18 +36,15 @@ export default function Attendance() {
 			id: id,
 		})
 			.then(res => {
-				if (res.ok) {
-					if (res.result!.login) resetSuccess('Logged in');
-					else resetSuccess('Logged out');
-				} else {
-					if (res.error!.ecode == 401) {
-						cookies.remove('token');
-						push('/login');
-					} else if (res.error!.ecode == 500) resetError(InternalServerError);
-					else resetError('Failed to log user');
+				if (!res.ok) {
+					resetError(GetError(res.error!.ecode, res.error!.message));
+					return;
 				}
+
+				if (res.result!.login) resetSuccess('Logged in');
+				else resetSuccess('Logged out');
 			})
-			.catch(() => resetError(FetchError));
+			.catch(FetchError(resetError));
 
 		setId('');
 	};
@@ -60,7 +56,8 @@ export default function Attendance() {
 			</div>
 			<form className="flex flex-col items-center justify-center" onSubmit={(ev) => {
 				ev.preventDefault();
-				submit();
+				if (id.length == 5) submit();
+				else resetError('Please enter a full student ID');
 			}}>
 				<InputId value={id} onChange={setId} />
 				<Button className='mt-4 w-52' type='submit'>Go&nbsp;&nbsp;&rarr;</Button>

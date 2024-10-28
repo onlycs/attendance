@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { API_URL } from './utils';
 
 interface AuthenticatedRequest {
@@ -69,8 +70,19 @@ const RequestMethod: Record<Route, 'GET' | 'POST'> = {
 	'/hours.csv': 'GET'
 };
 
-export const InternalServerError = 'Problem with the server. Get Angad to fix this';
-export const FetchError = 'Could not connect to the server. Are you online?';
+export const Errors = {
+	[500]: <>Problem with the server. Get Angad to fix this</>,
+	[401]: <>Incorrect password or token. Try <Link href="/login">logging in again.</Link></>,
+	[404]: <>Not found</>,
+} as Record<number, JSX.Element>;
+
+export function FetchError(fn: (_: string) => void): () => void {
+	return () => fn('Could not connect to the server. Are you online? Ask Angad for help');
+}
+
+export function GetError(ecode: number, def: string = 'Unknown error'): JSX.Element {
+	return Errors[ecode] || <>{def}</>;
+}
 
 export function makeurl<T extends Route>(route: T, data: Requests[T]): string {
 	const url = new URL(`${API_URL}${route}`);
