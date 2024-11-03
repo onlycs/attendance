@@ -1,4 +1,4 @@
-import sha256 from "sha256";
+import sha256 from 'sha256';
 
 export interface UserInput {
 	id: string;

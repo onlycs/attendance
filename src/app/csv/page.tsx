@@ -2,7 +2,6 @@
 
 import { FetchError, GetError, tfetch } from '@lib/api';
 import { processCsv } from '@lib/csv';
-import { API_URL, cn } from '@lib/utils';
 import { TooltipTrigger } from '@radix-ui/react-tooltip';
 import { Button } from '@ui/button';
 import { Label } from '@ui/label';
@@ -12,6 +11,7 @@ import { DownloadIcon, File, HelpCircle } from 'lucide-react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { cn } from '@lib/utils';
 
 type Status = 'upload' | 'loading' | 'download';
 type Error = React.JSX.Element | string | undefined;
@@ -125,7 +125,6 @@ export default function Csv() {
 	const process = (file: string) => {
 		const lines = file.split('\n');
 		const header = lines[0].split(',');
-		const body = lines.splice(1);
 
 		const idcol = header.indexOf('id');
 		const namecol = header.indexOf('name');

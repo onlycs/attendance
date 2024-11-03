@@ -2,7 +2,6 @@
 
 import { InputId } from '@components/forms';
 import { FetchError, GetError, tfetch } from '@lib/api';
-import { useTransitionOut } from '@lib/transitions';
 import { Button } from '@ui/button';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
