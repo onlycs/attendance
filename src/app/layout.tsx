@@ -1,5 +1,6 @@
 import { ThemeProvider } from 'next-themes';
 import { CookiesProvider } from 'next-client-cookies/server';
+import { Analytics } from '@vercel/analytics/react';
 
 import '@styles/globals.scss';
 
@@ -13,8 +14,6 @@ export default function RootLayout({
 }: {
 	children: React.ReactNode,
 }) {
-
-
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body className='bg-background'>
@@ -23,6 +22,7 @@ export default function RootLayout({
 						{children}
 					</ThemeProvider>
 				</CookiesProvider>
+				<Analytics />
 			</body>
 		</html>
 	);
