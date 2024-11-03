@@ -4,10 +4,10 @@ import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { useTransitionOut } from '@lib/transitions';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
-import { Errors, FetchError, GetError, tfetch } from '@lib/api';
+import { FetchError, GetError, tfetch } from '@lib/api';
 
 export default function Teacher() {
 	const cookies = useCookies();

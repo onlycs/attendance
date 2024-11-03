@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FetchError, GetError, tfetch } from '@lib/api';
 import { Label } from '@ui/label';
 import { Spinner } from '@ui/spinner';
+import sha256 from 'sha256';
 
 interface IdInputProps {
 	error: string | React.JSX.Element,
@@ -28,7 +29,7 @@ function IdInput({ error, setError }: IdInputProps) {
 			</div>
 			<form className="flex flex-col items-center justify-center" onSubmit={(ev) => {
 				ev.preventDefault();
-				if (id.length == 5) push(`/student?id=${id}`);
+				if (id.length == 5) push(`/student?id=${sha256(id)}`);
 				else setError('Please enter a full student ID');
 			}}>
 				<InputId value={id} onChange={setId} />

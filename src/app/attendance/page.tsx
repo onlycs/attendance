@@ -7,6 +7,7 @@ import { Button } from '@ui/button';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
 import { JSX, useEffect, useState } from 'react';
+import sha256 from 'sha256';
 
 export default function Attendance() {
 	const cookies = useCookies();
@@ -33,7 +34,7 @@ export default function Attendance() {
 	const submit = () => {
 		tfetch('/roster', {
 			token: cookies.get('token')!,
-			id: id,
+			id: sha256(id),
 		})
 			.then(res => {
 				if (!res.ok) {
