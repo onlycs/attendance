@@ -6,17 +6,12 @@ export interface UserInput {
 	last: string;
 }
 
-export interface ApiInput {
-	id: string;
-	hours: number;
-}
-
 export interface UserOutput extends UserInput {
 	hours: number;
 }
 
-export interface UserInputKeyed {
-	[id: string]: UserInput;
+export interface ApiInput {
+	[id: string]: number;
 }
 
 interface CsvHeader {
@@ -25,11 +20,15 @@ interface CsvHeader {
 }
 
 function parseHeader(firstline: string): CsvHeader {
-	const header = Object.fromEntries(firstline.split(',').map((title, index) => [title, index]));
+	const header = Object.fromEntries(firstline.trim().split(',').map((title, index) => [title, index]));
 	return header;
 }
 
 function parseUserRecords(header: CsvHeader, lines: string[]): UserInput[] {
+	if (!('id' in header && 'first' in header && 'last' in header)) {
+		throw new Error('Invalid CSV header');
+	}
+
 	return lines.map(line => {
 		const fields = line.split(',');
 
@@ -41,46 +40,38 @@ function parseUserRecords(header: CsvHeader, lines: string[]): UserInput[] {
 	});
 }
 
-function parseApiRecords(header: CsvHeader, lines: string[]): ApiInput[] {
-	return lines.map(line => {
+function parseApiRecords(header: CsvHeader, lines: string[]): ApiInput {
+	if (!('id' in header && 'hours' in header)) {
+		throw new Error('Invalid CSV header');
+	}
+
+	return Object.fromEntries(lines.map(line => {
 		const fields = line.split(',');
 
-		return {
-			id: fields[header.id],
-			hours: parseInt(fields[header.hours]),
-		};
-	});
+		return [fields[header.id], parseInt(fields[header.hours])];
+	}));
 }
 
 function parseUser(file: string): UserInput[] {
 	const lines = file.split('\n');
 	const header = parseHeader(lines[0]);
 	const records = parseUserRecords(header, lines.splice(1));
+
 	return records;
 }
 
-function parseApi(file: string): ApiInput[] {
+function parseApi(file: string): ApiInput {
 	const lines = file.split('\n');
 	const header = parseHeader(lines[0]);
 	const records = parseApiRecords(header, lines.splice(1));
 	return records;
 }
 
-function merge(records: UserInput[], hours: ApiInput[]): UserOutput[] {
-	return records.map(record => {
-		const out = {
-			...record,
-			hours: 0,
-		};
-
-		const match = hours.find(hour => hour.id == sha256(record.id));
-		if (!match) return undefined;
-
-		return {
-			...out,
-			hours: match.hours,
-		};
-	}).filter(record => !!record);
+function merge(records: UserInput[], hours: ApiInput): UserOutput[] {
+	return records.map(record => ({
+		...record,
+		hours: hours[sha256(record.id)] ?? 0,
+	}));
 }
 
 function tocsv(records: UserOutput[]): string {
@@ -90,7 +81,7 @@ function tocsv(records: UserOutput[]): string {
 }
 
 export function processCsv(file: string, hours: string): string {
-	const records = parseUser(file);
+	const records = parseUser(file.replaceAll('\r', ''));
 	const api = parseApi(hours);
 	const merged = merge(records, api);
 	return tocsv(merged);

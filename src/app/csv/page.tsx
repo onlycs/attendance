@@ -85,28 +85,17 @@ export default function Csv() {
 	});
 
 	const drop = (ev: React.DragEvent<HTMLDivElement>) => {
-		setStatus('loading');
 		ev.preventDefault();
-
-		const file = ev.dataTransfer.files[0];
-
-		if (!file) {
-			resetError('No file uploaded.');
-			return;
-		}
-
-		if (file.type !== 'text/csv') {
-			resetError('Invalid file type. Please upload a CSV file.');
-			return;
-		}
-
-		file.text().then(process);
+		process(ev.dataTransfer.files[0]);
 	};
 
 	const upload = (ev: React.ChangeEvent<HTMLInputElement>) => {
-		setStatus('loading');
 		ev.preventDefault();
-		const file = ev.target.files?.[0];
+		process(ev.target.files?.[0]);
+	};
+
+	const process = async (file: File | undefined) => {
+		setStatus('loading');
 
 		if (!file) {
 			resetError('No file uploaded.');
@@ -118,28 +107,11 @@ export default function Csv() {
 			return;
 		}
 
-		file.text()
-			.then(process);
-	};
+		const text = await file.text().catch(() => {
+			resetError('Failed to read file');
+		});
 
-	const process = (file: string) => {
-		const lines = file.split('\n');
-		const header = lines[0].split(',');
-
-		const idcol = header.indexOf('id');
-		const namecol = header.indexOf('name');
-
-		console.log(idcol, namecol);
-
-		if (idcol == undefined) {
-			resetError('No ID header detected. Make sure the first line contains the correct header');
-			return;
-		}
-
-		if (namecol == undefined) {
-			resetError('No name header detected. Make sure the first line contains the correct header');
-			return;
-		}
+		if (!text) return;
 
 		tfetch('/hours.csv', { token: cookies.get('token')! })
 			.then(res => {
@@ -150,7 +122,7 @@ export default function Csv() {
 
 				try {
 					const csv = res.result!.csv;
-					const out = processCsv(file, csv);
+					const out = processCsv(text, csv);
 
 					setCsv(out);
 					setStatus('download');
