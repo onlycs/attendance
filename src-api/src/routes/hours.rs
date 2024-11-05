@@ -1,28 +1,64 @@
 use crate::prelude::*;
 
-pub async fn hours(id: String, pg: &PgPool) -> Result<f64, RouteError> {
-    let records = sqlx::query!(
+pub async fn hours(id: String, pg: &PgPool) -> Result<(f64, f64), RouteError> {
+    sqlx::query!(
         r#"
-        SELECT sign_in, sign_out FROM records
+        DELETE FROM records
+        WHERE sign_in - sign_out > INTERVAL '5 hours'
+        "#
+    )
+    .execute(pg)
+    .await?;
+
+    let learning_days = sqlx::query!(
+        r#"
+        SELECT sign_in, sign_out 
+        FROM records
         WHERE student_id = $1 
             AND sign_out IS NOT NULL 
             AND in_progress = false
+            AND EXTRACT(MONTH FROM sign_in) <= 12
+            AND EXTRACT(MONTH FROM sign_in) >= 11
         "#,
         id
     )
     .fetch_all(pg)
     .await?;
 
-    let mut minutes = 0;
+    let build_hours = sqlx::query!(
+        r#"
+        SELECT sign_in, sign_out FROM records
+        WHERE student_id = $1 
+            AND sign_out IS NOT NULL 
+            AND in_progress = false
+            AND EXTRACT(MONTH FROM sign_in) <= 5
+            AND EXTRACT(MONTH FROM sign_in) >= 1
+        "#,
+        id
+    )
+    .fetch_all(pg)
+    .await?;
 
-    for record in records {
-        let timein = record.sign_in;
-        let timeout = record.sign_out.unwrap();
-        let duration = timeout.signed_duration_since(timein);
-        let new_minutes = duration.num_minutes();
+    let mut learning_mins = 0.0;
+    let mut build_mins = 0.0;
 
-        minutes += new_minutes;
+    for learning_day in learning_days {
+        let sign_in = learning_day.sign_in;
+        let sign_out = learning_day.sign_out.unwrap();
+        let diff = sign_out.signed_duration_since(sign_in);
+        let mins = diff.num_minutes();
+
+        learning_mins += mins as f64;
     }
 
-    Ok(minutes as f64 / 60.0)
+    for build_day in build_hours {
+        let sign_in = build_day.sign_in;
+        let sign_out = build_day.sign_out.unwrap();
+        let diff = sign_out.signed_duration_since(sign_in);
+        let mins = diff.num_minutes();
+
+        build_mins += mins as f64;
+    }
+
+    Ok((learning_mins / 60.0, build_mins / 60.0))
 }

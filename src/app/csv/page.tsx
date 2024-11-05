@@ -32,9 +32,22 @@ function Upload({ upload, error }: SubpageProps) {
 					</TooltipTrigger>
 					<TooltipContent>
 						<Label className="text-center text-md leading-5">
-							Upload a CSV that contains every student&apos;s name and id, with the field titles &quot;id,&quot; &quot;first,&quot; and &quot;last.&quot;<br />
-							You will download a file that contains the student&apos;s name, id, and hours. <br />
-							No student data ever leaves your computer.
+							Upload a CSV that contains every student&apos;s ids, <br />
+							and all other data other than hours (e.g. name, etc.) <br />
+							The CSV should have a header row. The leftmost column <br />
+							should be the student id. <br /><br />
+
+							Example input
+							<p className='font-mono'>
+								id, name, ... <br />
+								123456, John Doe, ... <br />
+							</p>
+
+							Example output
+							<p className='font-mono'>
+								id, name, ..., total, learning, build, ... (daily data) <br />
+								123456, John Doe, ..., 10, 5, 5, ... <br />
+							</p>
 						</Label>
 					</TooltipContent>
 				</Tooltip>

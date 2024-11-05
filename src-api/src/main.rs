@@ -92,9 +92,9 @@ async fn hours(
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
     let HoursRequest { id } = query.into_inner();
-    let hours = routes::hours(id, &state.pg).await?;
+    let (learning, build) = routes::hours(id, &state.pg).await?;
 
-    Ok(HttpResponse::Ok().json(HoursResponse { hours }))
+    Ok(HttpResponse::Ok().json(HoursResponse { learning, build }))
 }
 
 #[get("/hours.csv")]

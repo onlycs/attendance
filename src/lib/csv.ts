@@ -1,88 +1,39 @@
 import sha256 from 'sha256';
 
-export interface UserInput {
-	id: string;
-	first: string;
-	last: string;
-}
+export function processCsv(user_f: string, api_f: string): string {
+	const ulines = user_f.replaceAll('\r', '').split('\n');
+	const alines = api_f.split('\n');
 
-export interface UserOutput extends UserInput {
-	hours: number;
-}
+	const user = Object.fromEntries(ulines.slice(1).map((line: string) => {
+		const data = line.split(',');
 
-export interface ApiInput {
-	[id: string]: number;
-}
+		const id = data[0];
+		const rest = data.slice(1);
 
-interface CsvHeader {
-	// title: index
-	[key: string]: number;
-}
+		return [id, rest];
+	}));
 
-function parseHeader(firstline: string): CsvHeader {
-	const header = Object.fromEntries(firstline.trim().split(',').map((title, index) => [title, index]));
-	return header;
-}
+	const api = Object.fromEntries(alines.slice(1).map((line: string) => {
+		const data = line.split(',');
 
-function parseUserRecords(header: CsvHeader, lines: string[]): UserInput[] {
-	if (!('id' in header && 'first' in header && 'last' in header)) {
-		throw new Error('Invalid CSV header');
+		const id = data[0];
+		const rest = data.slice(1);
+
+		return [id, rest];
+	}));
+
+	const next = [];
+
+	for (const [id, rest] of Object.entries(user)) {
+		const api_id = sha256(id);
+
+		if (api_id in api) {
+			next.push([id, ...rest, ...api[api_id]]);
+		}
 	}
 
-	return lines.map(line => {
-		const fields = line.split(',');
+	const header = ['id', ...ulines[0].split(',').slice(1), ...alines[0].split(',').slice(1)];
+	const out = [header, ...next.map(line => line.join(','))].join('\n');
 
-		return {
-			id: fields[header.id],
-			first: fields[header.first],
-			last: fields[header.last],
-		};
-	});
-}
-
-function parseApiRecords(header: CsvHeader, lines: string[]): ApiInput {
-	if (!('id' in header && 'hours' in header)) {
-		throw new Error('Invalid CSV header');
-	}
-
-	return Object.fromEntries(lines.map(line => {
-		const fields = line.split(',');
-
-		return [fields[header.id], parseInt(fields[header.hours])];
-	}));
-}
-
-function parseUser(file: string): UserInput[] {
-	const lines = file.split('\n');
-	const header = parseHeader(lines[0]);
-	const records = parseUserRecords(header, lines.splice(1));
-
-	return records;
-}
-
-function parseApi(file: string): ApiInput {
-	const lines = file.split('\n');
-	const header = parseHeader(lines[0]);
-	const records = parseApiRecords(header, lines.splice(1));
-	return records;
-}
-
-function merge(records: UserInput[], hours: ApiInput): UserOutput[] {
-	return records.map(record => ({
-		...record,
-		hours: hours[sha256(record.id)] ?? 0,
-	}));
-}
-
-function tocsv(records: UserOutput[]): string {
-	const header = 'id,first,last,hours\n';
-	const body = records.map(record => `${record.id},${record.first},${record.last},${record.hours}`).join('\n');
-	return header + body;
-}
-
-export function processCsv(file: string, hours: string): string {
-	const records = parseUser(file.replaceAll('\r', ''));
-	const api = parseApi(hours);
-	const merged = merge(records, api);
-	return tocsv(merged);
+	return out;
 }

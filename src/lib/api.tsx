@@ -18,7 +18,8 @@ export interface RosterRequest extends AuthenticatedRequest {
 }
 
 export interface HoursResponse {
-	hours: number;
+	learning: number;
+	build: number;
 }
 
 export interface LoginResponse {

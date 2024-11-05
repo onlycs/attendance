@@ -25,7 +25,8 @@ pub struct CSVRequest {
 
 #[derive(Serialize)]
 pub struct HoursResponse {
-    pub hours: f64,
+    pub learning: f64,
+    pub build: f64,
 }
 
 #[derive(Serialize)]

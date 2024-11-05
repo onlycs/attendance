@@ -6,10 +6,11 @@ import { useTransitionOut } from '@lib/transitions';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FetchError, GetError, tfetch } from '@lib/api';
+import { FetchError, GetError, HoursResponse, tfetch } from '@lib/api';
 import { Label } from '@ui/label';
 import { Spinner } from '@ui/spinner';
 import sha256 from 'sha256';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@ui/table';
 
 interface IdInputProps {
 	error: string | React.JSX.Element,
@@ -47,7 +48,7 @@ export default function Student() {
 
 	const [error, setError] = useState<string | React.JSX.Element>('');
 	const [loading, setLoading] = useState(true);
-	const [hours, setHours] = useState<number | undefined>();
+	const [hours, setHours] = useState<HoursResponse | undefined>();
 
 	useEffect(() => {
 		const id = params.get('id');
@@ -60,7 +61,7 @@ export default function Student() {
 					setError(GetError(res.error!.ecode, res.error!.message));
 					return;
 				}
-				setHours(res.result!.hours);
+				setHours(res.result!);
 			})
 			.catch(FetchError(setError))
 			.finally(() => setLoading(false));
@@ -81,7 +82,31 @@ export default function Student() {
 				opacity: +!loading,
 				transition: 'all 0.5s ease'
 			}}>
-				<Label className='text-2xl'>Hours: {hours}</Label>
+				<Table className='text-lg rounded-md'>
+					<TableCaption>Student Hours</TableCaption>
+					<TableHeader>
+						<TableRow>
+							<TableHead className='w-48'>Hours Type</TableHead>
+							<TableHead className='w-44 text-center'>Hours Earned</TableHead>
+							<TableHead className='w-44 text-center'>Hours Remaining</TableHead>
+							<TableHead className='text-center'>Total Required</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						<TableRow>
+							<TableCell className='font-bold'>Learning Days</TableCell>
+							<TableCell className='text-center'>{hours?.learning}</TableCell>
+							<TableCell className='text-center'>{8 - (hours?.learning ?? 0)}</TableCell>
+							<TableCell className='text-center'>8</TableCell>
+						</TableRow>
+						<TableRow>
+							<TableCell className='font-bold'>Build Season</TableCell>
+							<TableCell className='text-center'>{hours?.build}</TableCell>
+							<TableCell className='text-center'>{40 - (hours?.build ?? 0)}</TableCell>
+							<TableCell className='text-center'>40</TableCell>
+						</TableRow>
+					</TableBody>
+				</Table>
 			</div>
 		</>
 	);
