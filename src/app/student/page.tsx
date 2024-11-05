@@ -7,7 +7,6 @@ import { useTransitionOut } from '@lib/transitions';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FetchError, GetError, HoursResponse, tfetch } from '@lib/api';
-import { Label } from '@ui/label';
 import { Spinner } from '@ui/spinner';
 import sha256 from 'sha256';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@ui/table';

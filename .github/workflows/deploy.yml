@@ -30,7 +30,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: | 
-            src-api/target
+            target
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-rust-cache
