@@ -44,6 +44,7 @@ export default function Attendance() {
 				if (res.result!.login) resetSuccess('Logged in');
 				else resetSuccess('Logged out');
 			})
+			.then(() => setTimeout(() => resetSuccess(''), 5000))
 			.catch(FetchError(resetError));
 
 		setId('');
