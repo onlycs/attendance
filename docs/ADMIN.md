@@ -36,13 +36,13 @@
 
 [^2]: So how do I store their info in the first place you may ask? Good question! Here's the rundown:
 
-  There exists a mathematical function called a hash. It takes some input data and turns it
-  into some unrecognisable output data. However, it always gives the same output data (for
-  some given input), consistently. It is also unique enough that it can never feasably have
-  a collision (that is, two inputs having the same output). A basic hash function would
-  be assigning a=1, b=2, and so on, then adding them all up for your input text. It turns
-  normal text into something that cannot be turned back into the normal text, but given the
-  same input text, it will always give back the same output number. In reality the hash
-  function I use is [much more complicated](https://wikipedia.org/wiki/sha256), and is
-  used to secure literally every password on almost every service (thing Google, Apple,
-  Microsoft, etc.).
+    There exists a mathematical function called a hash. It takes some input data and turns it
+    into some unrecognisable output data. However, it always gives the same output data (for
+    some given input), consistently. It is also unique enough that it can never feasably have
+    a collision (that is, two inputs having the same output). A basic hash function would
+    be assigning a=1, b=2, and so on, then adding them all up for your input text. It turns
+    normal text into something that cannot be turned back into the normal text, but given the
+    same input text, it will always give back the same output number. In reality the hash
+    function I use is [much more complicated](https://wikipedia.org/wiki/sha256), and is
+    used to secure literally every password on almost every service (thing Google, Apple,
+    Microsoft, etc.).
