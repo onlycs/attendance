@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -45,5 +47,5 @@ pub struct CSVResponse {
 }
 
 pub struct AppState {
-    pub pg: PgPool,
+    pub pg: Arc<PgPool>,
 }

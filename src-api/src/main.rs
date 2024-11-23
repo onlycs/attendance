@@ -16,11 +16,14 @@ mod model;
 mod prelude;
 mod routes;
 
+use std::sync::Arc;
+
 use crate::model::*;
 use crate::prelude::*;
 
 use actix_cors::Cors;
 use actix_web::get;
+use chrono::Local;
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -31,6 +34,8 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use tokio_schedule::every;
+use tokio_schedule::Job;
 
 pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = token.replacen("Bearer ", "", 1);
@@ -121,16 +126,56 @@ async fn index() -> impl Responder {
         .finish()
 }
 
+// Arc makes this safe (static arc == box::leak but you can use it anywhere)
+static mut POOL: Option<Arc<PgPool>> = None;
+
+#[allow(static_mut_refs)]
+async fn get_pool() -> Arc<PgPool> {
+    if let Some(pool) = unsafe { POOL.as_ref() } {
+        Arc::clone(&pool)
+    } else {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&env::var("DATABASE_URL").unwrap())
+            .await
+            .unwrap();
+
+        let pool = Arc::new(pool);
+
+        unsafe { POOL = Some(Arc::clone(&pool)) }
+
+        pool
+    }
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
     SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
     dotenv().ok();
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&env::var("DATABASE_URL")?)
-        .await?;
+    let pool = get_pool().await;
 
+    // clear bad records daily at 9
+    let cron = every(1)
+        .day()
+        .at(21, 00, 00)
+        .in_timezone(&Local)
+        .perform(move || async {
+            sqlx::query!(
+                r#"
+                DELETE FROM records
+                WHERE in_progress = TRUE
+                "#
+            )
+            .execute(&*get_pool().await)
+            .await
+            .unwrap();
+        });
+
+    // spawn, non-blocking on new thread
+    // tokio::spawn(cron);
+
+    // spawn blocking on current thread
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
@@ -140,7 +185,9 @@ async fn main() -> Result<(), InitError> {
 
         App::new()
             .wrap(cors)
-            .app_data(Data::new(AppState { pg: pool.clone() }))
+            .app_data(Data::new(AppState {
+                pg: Arc::clone(&pool),
+            }))
             .service(index)
             .service(login)
             .service(hours)

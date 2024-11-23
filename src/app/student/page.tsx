@@ -94,15 +94,15 @@ export default function Student() {
 					<TableBody>
 						<TableRow>
 							<TableCell className='font-bold'>Learning Days</TableCell>
-							<TableCell className='text-center'>{hours?.learning}</TableCell>
-							<TableCell className='text-center'>{8 - (hours?.learning ?? 0)}</TableCell>
-							<TableCell className='text-center'>8</TableCell>
+							<TableCell className='text-center'>{hours?.learning.toFixed(2)}</TableCell>
+							<TableCell className='text-center'>{Math.max(0, 8 - (hours?.learning ?? 0)).toFixed(2)}</TableCell>
+							<TableCell className='text-center'>8.00</TableCell>
 						</TableRow>
 						<TableRow>
 							<TableCell className='font-bold'>Build Season</TableCell>
-							<TableCell className='text-center'>{hours?.build}</TableCell>
-							<TableCell className='text-center'>{40 - (hours?.build ?? 0)}</TableCell>
-							<TableCell className='text-center'>40</TableCell>
+							<TableCell className='text-center'>{hours?.build.toFixed(2)}</TableCell>
+							<TableCell className='text-center'>{Math.max(0, 40 - (hours?.build ?? 0)).toFixed(2)}</TableCell>
+							<TableCell className='text-center'>40.00</TableCell>
 						</TableRow>
 					</TableBody>
 				</Table>

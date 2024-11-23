@@ -21,3 +21,5 @@ sqlx = { version = "0.8.2", features = [
 	"postgres",
 ] }
 thiserror = { git = "https://github.com/onlycs/thiserror" }
+tokio = "1.41.1"
+tokio_schedule = "0.3.2"
