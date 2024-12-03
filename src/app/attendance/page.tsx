@@ -61,7 +61,7 @@ export default function Attendance() {
 				else resetError('Please enter a full student ID');
 			}}>
 				<InputId value={id} onChange={setId} />
-				<Button className='mt-4 w-52' type='submit'>Go&nbsp;&nbsp;&rarr;</Button>
+				<Button className='mt-4' style={{ width: '12.5rem' }} type='submit'>Go&nbsp;&nbsp;&rarr;</Button>
 			</form>
 			<div className="text-center text-md font-medium mt-4 text-red-400">
 				{error}
