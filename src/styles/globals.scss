@@ -5,28 +5,37 @@
 @layer base {
 	:root {
 		--radius: 0.5rem;
+		--ring: #D7D7D7;
 	}
 
 	.dark {
 		--background: #1e1e1e;
-		--foreground: #D7D7D7;
-		--card: #242424;
-		--card-foreground: #D7D7D7;
-		--popover: #1A1A1A;
-		--popover-foreground: #D7D7D7;
-		--primary: #1c71d8;
-		--primary-foreground: #D7D7D7;
-		--secondary: #303030;
-		--secondary-foreground: #D7D7D7;
-		--accent: #62a0ea;
-		--accent-foreground: #1a1a1a;
-		--destructive: #e01b24;
-		--destructive-foreground: #D7D7D7;
-		--border: #6b7280;
-		--input: #484851;
-		--ring: #D4D4D8;
+		--card: #303030;
+		--card-hover: #454545;
+		--text: #D7D7D7;
+		--hover: #d7d7d725;
+		--border: #d7d7d775;
+		--text-sub: #A7A7A7;
+	}
 
-		--success: #2ec27e;
+	.success {
+		--background: #B3F480;
+		--card: #A2F487;
+		--card-hover: #87f164;
+		--text: #1A1A1A;
+		--hover: #A2F48725;
+		--border: #374d36ac;
+		--ring: #6fee45;
+	}
+
+	.error {
+		--background: #FD9E86;
+		--card: #FB7967;
+		--card-hover: #fa5b45;
+		--text: #1A1A1A;
+		--hover: #fda892;
+		--border: #4d3636ac;
+		--ring: #f94026;
 	}
 }
 
@@ -40,8 +49,7 @@
 	}
 
 	body {
-		@apply bg-background text-foreground;
-		/* font-feature-settings: "rlig" 1, "calt" 1; */
+		@apply bg-background text-text;
 		font-synthesis-weight: none;
 		text-rendering: optimizeLegibility;
 	}
@@ -93,4 +101,8 @@ a {
 
 html {
 	color-scheme: dark;
+}
+
+* {
+	transition: background-color 0.3s ease-out, color 0.3s linear;
 }

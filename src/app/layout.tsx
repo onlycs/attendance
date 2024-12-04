@@ -20,7 +20,11 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<body className='bg-background'>
 				<CookiesProvider>
-					<ThemeProvider attribute="class" defaultTheme="dark">
+					<ThemeProvider attribute="class" defaultTheme="dark" value={{
+						dark: 'dark',
+						success: 'success',
+						error: 'error',
+					}}>
 						{children}
 					</ThemeProvider>
 				</CookiesProvider>

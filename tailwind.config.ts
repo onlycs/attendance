@@ -18,39 +18,14 @@ const config: Config = {
 		},
 		extend: {
 			colors: {
-				border: 'var(--border)',
-				input: 'var(--input)',
-				ring: 'var(--ring)',
 				background: 'var(--background)',
-				foreground: 'var(--foreground)',
-				primary: {
-					DEFAULT: 'var(--primary)',
-					foreground: 'var(--primary-foreground)',
-				},
-				secondary: {
-					DEFAULT: 'var(--secondary)',
-					foreground: 'var(--secondary-foreground)',
-				},
-				destructive: {
-					DEFAULT: 'var(--destructive) / <alpha-value>)',
-					foreground: 'var(--destructive-foreground) / <alpha-value>)',
-				},
-				accent: {
-					DEFAULT: 'var(--accent)',
-					foreground: 'var(--accent-foreground)',
-				},
-				popover: {
-					DEFAULT: 'var(--popover)',
-					foreground: 'var(--popover-foreground)',
-				},
-				card: {
-					DEFAULT: 'var(--card)',
-					foreground: 'var(--card-foreground)',
-				},
-				success: {
-					DEFAULT: 'var(--success)',
-					foreground: 'var(--foreground)',
-				}
+				card: 'var(--card)',
+				'card-hover': 'var(--card-hover)',
+				text: 'var(--text)',
+				hover: 'var(--hover)',
+				border: 'var(--border)',
+				ring: 'var(--ring)',
+				sub: 'var(--text-sub)',
 			},
 			borderRadius: {
 				xl: 'calc(var(--radius) + 4px)',
