@@ -1,6 +1,7 @@
-use crate::prelude::*;
+use crate::{prelude::*, RosterResponse};
+use chrono::Utc;
 
-pub async fn roster(id: String, pg: &PgPool) -> Result<bool, RouteError> {
+pub async fn roster(id: String, force: bool, pg: &PgPool) -> Result<RosterResponse, RouteError> {
     let record = sqlx::query!(
         r#"
         SELECT id, sign_in FROM records
@@ -12,6 +13,21 @@ pub async fn roster(id: String, pg: &PgPool) -> Result<bool, RouteError> {
     .await?;
 
     if let Some(record) = record {
+        // get chrono utc now
+        let dt = Utc::now().naive_utc();
+        let diff = dt - record.sign_in;
+
+        println!("{:?} {:?} {:?}", dt, record.sign_in, diff);
+
+        if (diff.num_minutes() < 5) && !force {
+            println!("less than 5 minutes");
+
+            return Ok(RosterResponse {
+                is_login: false,
+                needs_force: true,
+            });
+        }
+
         sqlx::query!(
             r#"
             UPDATE records
@@ -23,7 +39,10 @@ pub async fn roster(id: String, pg: &PgPool) -> Result<bool, RouteError> {
         .execute(pg)
         .await?;
 
-        Ok(false)
+        Ok(RosterResponse {
+            is_login: false,
+            needs_force: false,
+        })
     } else {
         sqlx::query!(
             r#"
@@ -36,6 +55,9 @@ pub async fn roster(id: String, pg: &PgPool) -> Result<bool, RouteError> {
         .execute(pg)
         .await?;
 
-        Ok(true)
+        Ok(RosterResponse {
+            is_login: true,
+            needs_force: false,
+        })
     }
 }

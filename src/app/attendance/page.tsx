@@ -12,29 +12,34 @@ import sha256 from 'sha256';
 export default function Attendance() {
 	const cookies = useCookies();
 	const router = useRouter();
+	const theme = useTheme();
 
 	const [error, setError] = useState<string | JSX.Element>('');
 	const [success, setSuccess] = useState('');
 	const [id, setId] = useState<string>('');
+	const [force, setForce] = useState(undefined as string | undefined);
+	const [timeout, setResetTimeout] = useState(undefined as any);
 
 	useEffect(() => {
 		if (!cookies.get('token')) router.push('/login');
 	});
 
 	const setTheme = (set: 'success' | 'dark' | 'error') => {
-		['dark', 'success', 'error'].filter(t => t != set).forEach(t => {
-			// hax
-			if (document) {
-				const html = document.querySelector('html')!;
-				html.classList.remove(t);
-			}
-		});
+		// ['dark', 'success', 'error'].filter(t => t != set).forEach(t => {
+		// 	// hax
+		// 	if (document) {
+		// 		const html = document.querySelector('html')!;
+		// 		html.classList.remove(t);
+		// 	}
+		// });
 
-		// hax
-		if (document) {
-			const html = document.querySelector('html')!;
-			html.classList.add(set);
-		}
+		// // hax
+		// if (document) {
+		// 	const html = document.querySelector('html')!;
+		// 	html.classList.add(set);
+		// }
+
+		theme.setTheme(set);
 	};
 
 	const resetAll = () => {
@@ -47,20 +52,19 @@ export default function Attendance() {
 		setError('');
 		setSuccess(msg);
 		setTheme('success');
-		setTimeout(() => resetAll(), 5000);
 	};
 
 	const resetError = (msg: string | JSX.Element) => {
 		setError(msg);
 		setSuccess('');
 		setTheme('error');
-		setTimeout(() => resetAll(), 5000);
 	};
 
 	const submit = () => {
 		tfetch('/roster', {
 			token: cookies.get('token')!,
 			id: sha256(id),
+			force: force === id,
 		})
 			.then(res => {
 				if (!res.ok) {
@@ -68,10 +72,23 @@ export default function Attendance() {
 					return;
 				}
 
-				if (res.result!.login) resetSuccess('Logged in');
-				else resetError('Logged out');
+				if (res.result!.needs_force) {
+					resetError('Logged out too quickly. Try again to confirm.');
+					setForce(id);
+					return;
+				}
+
+				if (res.result!.is_login) resetSuccess('Logged in');
+				else resetError(`Logged out${force === id ? ' forcefully' : ''}`);
+
+				if (force) {
+					setForce(undefined);
+				}
 			})
-			.then(() => setTimeout(() => resetSuccess(''), 5000))
+			.then(() => {
+				if (timeout) clearTimeout(timeout);
+				setResetTimeout(setTimeout(() => resetAll(), 5000));
+			})
 			.catch(FetchError(resetError));
 
 		setId('');

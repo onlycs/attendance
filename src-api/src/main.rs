@@ -85,10 +85,10 @@ async fn roster(
 ) -> Result<impl Responder, RouteError> {
     authorize(get_auth_header(&req)?, &state.pg).await?;
 
-    let RosterRequest { id } = body.into_inner();
-    let res = routes::roster(id, &state.pg).await?;
+    let RosterRequest { id, force } = body.into_inner();
+    let res = routes::roster(id, force, &state.pg).await?;
 
-    Ok(HttpResponse::Ok().json(RosterResponse { login: res }))
+    Ok(HttpResponse::Ok().json(res))
 }
 
 #[get("/hours")]
