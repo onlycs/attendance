@@ -15,6 +15,7 @@ export interface LoginRequest {
 
 export interface RosterRequest extends AuthenticatedRequest {
 	id: string;
+	force?: boolean;
 }
 
 export interface HoursResponse {
@@ -27,7 +28,8 @@ export interface LoginResponse {
 }
 
 export interface RosterResponse {
-	login: boolean;
+	is_login: boolean;
+	needs_force: boolean;
 }
 
 export interface CSVResponse {

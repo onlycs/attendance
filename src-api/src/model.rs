@@ -16,6 +16,8 @@ pub struct HoursRequest {
 #[derive(Deserialize)]
 pub struct RosterRequest {
     pub id: String,
+    #[serde(default)]
+    pub force: bool,
 }
 
 #[derive(Deserialize)]
@@ -38,7 +40,8 @@ pub struct AuthResponse {
 
 #[derive(Serialize)]
 pub struct RosterResponse {
-    pub login: bool,
+    pub is_login: bool,
+    pub needs_force: bool,
 }
 
 #[derive(Serialize)]
