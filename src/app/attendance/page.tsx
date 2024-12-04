@@ -24,40 +24,27 @@ export default function Attendance() {
 		if (!cookies.get('token')) router.push('/login');
 	});
 
-	const setTheme = (set: 'success' | 'dark' | 'error') => {
-		// ['dark', 'success', 'error'].filter(t => t != set).forEach(t => {
-		// 	// hax
-		// 	if (document) {
-		// 		const html = document.querySelector('html')!;
-		// 		html.classList.remove(t);
-		// 	}
-		// });
-
-		// // hax
-		// if (document) {
-		// 	const html = document.querySelector('html')!;
-		// 	html.classList.add(set);
-		// }
-
+	// no but actually
+	const flashbang = (set: 'success' | 'error') => {
 		theme.setTheme(set);
 	};
 
 	const resetAll = () => {
 		setError('');
 		setSuccess('');
-		setTheme('dark');
+		theme.setTheme('dark');
 	};
 
 	const resetSuccess = (msg: string) => {
 		setError('');
 		setSuccess(msg);
-		setTheme('success');
+		flashbang('success');
 	};
 
 	const resetError = (msg: string | JSX.Element) => {
 		setError(msg);
 		setSuccess('');
-		setTheme('error');
+		flashbang('error');
 	};
 
 	const submit = () => {
