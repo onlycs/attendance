@@ -74,7 +74,7 @@ export default function Attendance() {
 			})
 			.then(() => {
 				if (timeout) clearTimeout(timeout);
-				setResetTimeout(setTimeout(() => resetAll(), 5000));
+				setResetTimeout(setTimeout(() => resetAll(), 1500));
 			})
 			.catch(FetchError(resetError));
 
