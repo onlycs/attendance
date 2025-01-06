@@ -23,7 +23,6 @@ use crate::prelude::*;
 
 use actix_cors::Cors;
 use actix_web::get;
-use chrono::Local;
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -34,8 +33,6 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use tokio_schedule::every;
-use tokio_schedule::Job;
 
 pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = token.replacen("Bearer ", "", 1);
@@ -89,6 +86,22 @@ async fn roster(
     let res = routes::roster(id, force, &state.pg).await?;
 
     Ok(HttpResponse::Ok().json(res))
+}
+
+#[post("/clear")]
+async fn clear(req: HttpRequest, state: web::Data<AppState>) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+
+    sqlx::query!(
+        r#"
+        DELETE FROM records
+        WHERE sign_in - sign_out > INTERVAL '5 hours'
+        "#
+    )
+    .execute(&*state.pg)
+    .await?;
+
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[get("/hours")]
@@ -155,26 +168,6 @@ async fn main() -> Result<(), InitError> {
 
     let pool = get_pool().await;
 
-    // clear bad records daily at 9
-    let cron = every(1)
-        .day()
-        .at(21, 00, 00)
-        .in_timezone(&Local)
-        .perform(move || async {
-            sqlx::query!(
-                r#"
-                DELETE FROM records
-                WHERE in_progress = TRUE
-                "#
-            )
-            .execute(&*get_pool().await)
-            .await
-            .unwrap();
-        });
-
-    // spawn, non-blocking on new thread
-    // tokio::spawn(cron);
-
     // spawn blocking on current thread
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -193,6 +186,7 @@ async fn main() -> Result<(), InitError> {
             .service(hours)
             .service(roster)
             .service(csv)
+            .service(clear)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
