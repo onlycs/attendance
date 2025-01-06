@@ -1,4 +1,5 @@
-use chrono::{Local, NaiveDateTime};
+use chrono::NaiveDateTime;
+use chrono_tz::US::Eastern;
 
 use crate::prelude::*;
 use std::collections::HashMap;
@@ -110,7 +111,7 @@ pub async fn csv(pg: &PgPool) -> Result<String, RouteError> {
 
     let mut add_or_get_date = |date: &NaiveDateTime| {
         let date = date
-            .and_local_timezone(Local)
+            .and_local_timezone(Eastern)
             .unwrap()
             .format("%Y-%m-%d")
             .to_string();
