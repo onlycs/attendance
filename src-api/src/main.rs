@@ -47,6 +47,10 @@ pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     .fetch_optional(pg)
     .await?
     else {
+        if env::var("ADMIN_HASH")? == sha256::digest(&token) {
+            return Ok(());
+        }
+
         return Err(RouteError::InvalidToken);
     };
 
@@ -95,7 +99,8 @@ async fn clear(req: HttpRequest, state: web::Data<AppState>) -> Result<impl Resp
     sqlx::query!(
         r#"
         DELETE FROM records
-        WHERE sign_in - sign_out > INTERVAL '5 hours'
+        WHERE sign_in - sign_out > INTERVAL '5 hours' 
+            or in_progress = true
         "#
     )
     .execute(&*state.pg)
