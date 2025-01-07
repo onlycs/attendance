@@ -52,7 +52,7 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
-          token_format: 'access-token'
+          token_format: 'access_token'
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
           service_account: ${{ secrets.GCP_SA }}
