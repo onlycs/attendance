@@ -36,7 +36,6 @@ jobs:
           key: ${{ runner.os }}-rust-cache
 
       - name: Set up Rust
-        if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
