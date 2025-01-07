@@ -25,22 +25,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          default: true
-          override: true
+      
+      - name: Get current working directory
+        id: cwd
+        run: $PWD
 
       - name: Load target cache
         uses: actions/cache/restore@v4
         id: cache-restore
         with:
           path: | 
-            ./target
+            ${{ steps.cwd.outputs.stdout }}/target
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-rust-cache
+
+      - name: Set up Rust
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          default: true
+          override: true
 
       - name: Build
         run: cargo build --release
@@ -76,13 +82,12 @@ jobs:
             --region=us-central1 \
             --allow-unauthenticated
 
-      # always run this, even if any of the previous steps fail
       - name: Save target cache
         if: always()
         uses: actions/cache/save@v4
         with:
           path: | 
-            ./target
+            ${{ steps.cwd.outputs.stdout }}/target
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
