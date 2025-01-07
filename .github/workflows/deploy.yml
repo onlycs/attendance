@@ -28,7 +28,7 @@ jobs:
       
       - name: Get current working directory
         id: cwd
-        run: $PWD
+        run: pwd
 
       - name: Load target cache
         uses: actions/cache/restore@v4
