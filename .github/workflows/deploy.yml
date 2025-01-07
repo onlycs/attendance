@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'src-api/**/*'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
 
 jobs:
   build:
