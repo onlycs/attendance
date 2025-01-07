@@ -26,6 +26,9 @@ jobs:
           default: true
           override: true
 
+      - name: ls because im so confused
+        run: ls
+
       - name: Cache target directory
         uses: actions/cache@v2
         with:
@@ -49,19 +52,22 @@ jobs:
       - name: Push Docker image
         run: docker push onlycs/attendance
 
-      - name: Deploy on SSH server
-        uses: appleboy/ssh-action@master
+      - name: Login to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          host: redlap
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          proxy_host: ${{ secrets.SSH_HOST }}
-          proxy_username: ${{ secrets.SSH_USERNAME }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/attendance
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d
-        continue-on-error: true
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WLIP }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Push to GCR
+        run: |
+          docker tag onlycs/attendance us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy attendance \
+            --image=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest \
+            --platform=managed \
+            --region=us-central1 \
+            --allow-unauthenticated
