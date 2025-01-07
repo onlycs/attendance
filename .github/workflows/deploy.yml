@@ -17,6 +17,10 @@ jobs:
       run:
         working-directory: src-api
 
+    permissions:
+      contents: read
+      id-token: write # Required for Google Cloud
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -32,7 +36,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: | 
-            target
+            ./target
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-rust-cache
@@ -77,7 +81,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: | 
-            target
+            ./target
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-rust-cache
