@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE records\n            SET in_progress = false, sign_out = NOW()\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "467836d36cfaa7b1782b14d6b389c3b946f6a5918c7a1fe2ae25d97da1c35856"
+}
