@@ -75,7 +75,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile
+          file: /home/runner/work/attendance/attendance/src-api/Dockerfile
           push: true
           tags: |
             us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
