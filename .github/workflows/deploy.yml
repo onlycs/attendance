@@ -34,6 +34,7 @@ jobs:
 
       - name: Load target cache
         uses: actions/cache/restore@v4
+        id: cache-restore
         with:
           path: | 
             ./target
@@ -84,4 +85,4 @@ jobs:
             ./target
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-rust-cache
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
