@@ -28,11 +28,8 @@ jobs:
           default: true
           override: true
 
-      - name: ls because im so confused
-        run: ls
-
-      - name: Cache target directory
-        uses: actions/cache@v2
+      - name: Load target cache
+        uses: actions/cache/restore@v4
         with:
           path: | 
             target
@@ -73,3 +70,14 @@ jobs:
             --platform=managed \
             --region=us-central1 \
             --allow-unauthenticated
+
+      # always run this, even if any of the previous steps fail
+      - name: Save target cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: | 
+            target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-rust-cache
