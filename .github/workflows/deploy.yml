@@ -33,10 +33,13 @@ jobs:
             /home/runner/work/attendance/attendance/src-api/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-rust-cache
+          key: ${{ runner.os }}-rust-cache-${{ steps.get-rustc.outputs.rustc_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-cache
+            ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Set up Rust
+        id: get-rustc
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -97,4 +100,4 @@ jobs:
             /home/runner/work/attendance/attendance/src-api/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-rust-cache-${{ steps.get-rustc.outputs.rustc_hash }}-${{ hashFiles('**/Cargo.lock') }}
