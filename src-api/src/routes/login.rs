@@ -10,7 +10,7 @@ pub async fn login(password: String, pg: &PgPool) -> Result<String, RouteError> 
     let token = sqlx::query!(
         r#"
         SELECT * FROM tokens
-        WHERE created_at > NOW() - INTERVAL '5 hours'
+        WHERE created_at > NOW() - INTERVAL '10 hours'
         "#
     )
     .fetch_optional(pg)
@@ -24,7 +24,7 @@ pub async fn login(password: String, pg: &PgPool) -> Result<String, RouteError> 
         sqlx::query!(
             r#"
             DELETE FROM tokens
-            WHERE created_at <= NOW() - INTERVAL '5 hours'
+            WHERE created_at <= NOW() - INTERVAL '10 hours'
             "#
         )
         .execute(pg)

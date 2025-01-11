@@ -75,7 +75,7 @@ const RequestMethod: Record<Route, 'GET' | 'POST'> = {
 
 export const Errors = {
 	[500]: <>Problem with the server. Get Angad to fix this</>,
-	[401]: <>Incorrect password or token. Try <Link href="/login">logging in again.</Link></>,
+	[401]: <>Incorrect password or token. You will now sign in again.</>,
 	[404]: <>Not found</>,
 } as Record<number, JSX.Element>;
 

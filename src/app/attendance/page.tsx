@@ -20,9 +20,11 @@ export default function Attendance() {
 	const [force, setForce] = useState(undefined as string | undefined);
 	const [timeout, setResetTimeout] = useState(undefined as any);
 
-	useEffect(() => {
+	const tokencheck = () => {
 		if (!cookies.get('token')) router.push('/login');
-	});
+	};
+
+	useEffect(tokencheck);
 
 	// no but actually
 	const flashbang = (set: 'success' | 'error') => {
@@ -56,6 +58,11 @@ export default function Attendance() {
 			.then(res => {
 				if (!res.ok) {
 					resetError(GetError(res.error!.ecode, res.error!.message));
+
+					if (res.error!.ecode == 401) {
+						cookies.remove('token');
+					}
+
 					return;
 				}
 
@@ -74,7 +81,7 @@ export default function Attendance() {
 			})
 			.then(() => {
 				if (timeout) clearTimeout(timeout);
-				setResetTimeout(setTimeout(() => resetAll(), 1500));
+				setResetTimeout(setTimeout(() => { resetAll(); tokencheck(); }, 1500));
 			})
 			.catch(FetchError(resetError));
 

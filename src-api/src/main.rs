@@ -40,7 +40,7 @@ pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let Some(_) = sqlx::query!(
         r#"
         SELECT * FROM tokens
-        WHERE created_at > NOW() - INTERVAL '5 hours' and token = $1
+        WHERE created_at > NOW() - INTERVAL '10 hours' and token = $1
         "#,
         token
     )
@@ -99,8 +99,7 @@ async fn clear(req: HttpRequest, state: web::Data<AppState>) -> Result<impl Resp
     sqlx::query!(
         r#"
         DELETE FROM records
-        WHERE sign_in - sign_out > INTERVAL '5 hours' 
-            or in_progress = true
+        WHERE in_progress = true
         "#
     )
     .execute(&*state.pg)
