@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { API_URL } from './utils';
 
 interface AuthenticatedRequest {
@@ -37,7 +36,7 @@ export interface CSVResponse {
 }
 
 export interface Error {
-	ecode: number;
+	code: number;
 	message: string;
 }
 
@@ -46,6 +45,7 @@ export interface Requests {
 	'/login': LoginRequest;
 	'/roster': RosterRequest;
 	'/hours.csv': AuthenticatedRequest;
+	'/auth_check': AuthenticatedRequest;
 }
 
 export interface Responses {
@@ -53,6 +53,7 @@ export interface Responses {
 	'/login': LoginResponse;
 	'/roster': RosterResponse;
 	'/hours.csv': CSVResponse;
+	'/auth_check': Record<string, never>;
 }
 
 export interface HttpResult<T> {
@@ -70,7 +71,8 @@ const RequestMethod: Record<Route, 'GET' | 'POST'> = {
 	'/hours': 'GET',
 	'/login': 'POST',
 	'/roster': 'POST',
-	'/hours.csv': 'GET'
+	'/hours.csv': 'GET',
+	'/auth_check': 'POST',
 };
 
 export const Errors = {
@@ -134,7 +136,7 @@ export function tfetch<T extends Route>(route: T, data: Requests[T]): Promise<Ht
 					resolve({
 						ok: false,
 						error: {
-							ecode: res.status,
+							code: res.status,
 							message: await res.text()
 						}
 					});

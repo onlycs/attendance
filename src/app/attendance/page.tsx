@@ -22,6 +22,16 @@ export default function Attendance() {
 
 	const tokencheck = () => {
 		if (!cookies.get('token')) router.push('/login');
+
+		tfetch('/auth_check', { token: cookies.get('token')! })
+			.then(res => {
+				if (!res.ok && res.error!.code == 401) {
+					cookies.remove('token');
+					router.push('/login');
+
+					return;
+				}
+			});
 	};
 
 	useEffect(tokencheck);
@@ -35,6 +45,8 @@ export default function Attendance() {
 		setError('');
 		setSuccess('');
 		theme.setTheme('dark');
+
+		tokencheck();
 	};
 
 	const resetSuccess = (msg: string) => {
@@ -57,9 +69,9 @@ export default function Attendance() {
 		})
 			.then(res => {
 				if (!res.ok) {
-					resetError(GetError(res.error!.ecode, res.error!.message));
+					resetError(GetError(res.error!.code, res.error!.message));
 
-					if (res.error!.ecode == 401) {
+					if (res.error!.code == 401) {
 						cookies.remove('token');
 					}
 
@@ -81,7 +93,7 @@ export default function Attendance() {
 			})
 			.then(() => {
 				if (timeout) clearTimeout(timeout);
-				setResetTimeout(setTimeout(() => { resetAll(); tokencheck(); }, 1500));
+				setResetTimeout(setTimeout(() => { resetAll(); }, 1500));
 			})
 			.catch(FetchError(resetError));
 

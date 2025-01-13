@@ -57,7 +57,7 @@ export default function Student() {
 		tfetch('/hours', { id })
 			.then(res => {
 				if (!res.ok) {
-					setError(GetError(res.error!.ecode, res.error!.message));
+					setError(GetError(res.error!.code, res.error!.message));
 					return;
 				}
 				setHours(res.result!);

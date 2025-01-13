@@ -22,7 +22,7 @@ export default function Teacher() {
 		tfetch('/login', { password })
 			.then(res => {
 				if (!res.ok) {
-					setError(GetError(res.error!.ecode, res.error!.message));
+					setError(GetError(res.error!.code, res.error!.message));
 					return;
 				}
 

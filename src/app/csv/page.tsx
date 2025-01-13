@@ -129,7 +129,7 @@ export default function Csv() {
 		tfetch('/hours.csv', { token: cookies.get('token')! })
 			.then(res => {
 				if (!res.ok) {
-					resetError(GetError(res.error!.ecode, res.error!.message));
+					resetError(GetError(res.error!.code, res.error!.message));
 					return;
 				}
 

@@ -67,6 +67,15 @@ pub fn get_auth_header(req: &HttpRequest) -> Result<String, RouteError> {
     Ok(auth.to_str()?.to_string())
 }
 
+#[post("/auth_check")]
+async fn auth_check(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    authorize(get_auth_header(&req)?, &state.pg).await?;
+    Ok(HttpResponse::Ok().finish())
+}
+
 #[post("/login")]
 async fn login(
     body: web::Json<AuthRequest>,
@@ -193,6 +202,7 @@ async fn main() -> Result<(), InitError> {
             .service(roster)
             .service(csv)
             .service(clear)
+            .service(auth_check)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
