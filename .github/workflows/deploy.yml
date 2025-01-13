@@ -44,7 +44,7 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
