@@ -18,7 +18,7 @@ pub async fn hours(id: String, pg: &PgPool) -> Result<(f64, f64), RouteError> {
             AND sign_out IS NOT NULL 
             AND in_progress = false
             AND EXTRACT(MONTH FROM sign_in) <= 12
-            AND EXTRACT(MONTH FROM sign_in) >= 11
+            AND EXTRACT(MONTH FROM sign_in) >= 9
         "#,
         id
     )

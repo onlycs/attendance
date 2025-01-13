@@ -13,15 +13,10 @@ pub async fn roster(id: String, force: bool, pg: &PgPool) -> Result<RosterRespon
     .await?;
 
     if let Some(record) = record {
-        // get chrono utc now
         let dt = Utc::now().naive_utc();
         let diff = dt - record.sign_in;
 
-        println!("{:?} {:?} {:?}", dt, record.sign_in, diff);
-
         if (diff.num_minutes() < 5) && !force {
-            println!("less than 5 minutes");
-
             return Ok(RosterResponse {
                 is_login: false,
                 needs_force: true,

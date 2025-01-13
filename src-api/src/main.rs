@@ -99,7 +99,9 @@ async fn clear(req: HttpRequest, state: web::Data<AppState>) -> Result<impl Resp
     sqlx::query!(
         r#"
         DELETE FROM records
-        WHERE in_progress = true
+        WHERE 
+            in_progress = true or
+            sign_out - sign_in >= INTERVAL '8 hours'
         "#
     )
     .execute(&*state.pg)
