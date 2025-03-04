@@ -20,7 +20,7 @@ export default function Teacher() {
 		const password = ev.currentTarget.password.value;
 
 		tfetch('/login', { password })
-			.then(res => {
+			.then((res) => {
 				if (!res.ok) {
 					setError(GetError(res.error!.code, res.error!.message));
 					return;
@@ -33,13 +33,20 @@ export default function Teacher() {
 	};
 
 	return (
-		<div className='flex flex-col items-center justify-center'>
+		<div className="flex flex-col items-center justify-center">
 			<div className="text-center text-md font-medium mb-2">
-				Please enter the admin password
+                Please enter the admin password
 			</div>
-			<form className="flex flex-col items-center justify-center" onSubmit={onSubmit}>
-				<Input id="password" className='text-center mt-4' type='password' />
-				<Button className='mt-4 w-64'>Login &rarr;</Button>
+			<form
+				className="flex flex-col items-center justify-center"
+				onSubmit={onSubmit}
+			>
+				<Input
+					id="password"
+					className="text-center mt-4"
+					type="password"
+				/>
+				<Button className="mt-4 w-64">Login &rarr;</Button>
 			</form>
 			<div className="text-center text-md font-medium mt-4 text-red-400">
 				{error}
