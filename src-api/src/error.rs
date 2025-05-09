@@ -73,15 +73,6 @@ pub enum RouteError {
 
     #[error("Invalid token or password")]
     InvalidToken,
-
-    #[error("User already exists")]
-    UserExists,
-
-    #[error("User not found")]
-    UserNotFound,
-
-    #[error("Signed in too recently")]
-    DoubleSignin,
 }
 
 impl ResponseError for RouteError {
@@ -89,9 +80,6 @@ impl ResponseError for RouteError {
         match self {
             RouteError::NoAuth => StatusCode::UNAUTHORIZED,
             RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
-            RouteError::UserExists => StatusCode::CONFLICT,
-            RouteError::UserNotFound => StatusCode::NOT_FOUND,
-            RouteError::DoubleSignin => StatusCode::CONFLICT,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -100,9 +88,6 @@ impl ResponseError for RouteError {
         match self {
             RouteError::NoAuth => HttpResponse::Unauthorized().body(format!("{self}")),
             RouteError::InvalidToken => HttpResponse::Unauthorized().body(format!("{self}")),
-            RouteError::UserExists => HttpResponse::Conflict().body(format!("{self}")),
-            RouteError::UserNotFound => HttpResponse::NotFound().body(format!("{self}")),
-            RouteError::DoubleSignin => HttpResponse::Conflict().body(format!("{self}")),
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }

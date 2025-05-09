@@ -1,7 +1,23 @@
-use crate::{prelude::*, RosterResponse};
+use crate::prelude::*;
 use chrono::Utc;
 
-pub async fn roster(id: String, force: bool, pg: &PgPool) -> Result<RosterResponse, RouteError> {
+#[derive(Debug, Deserialize)]
+pub struct RosterRequest {
+    pub id: String,
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Serialize)]
+pub struct RosterResponse {
+    pub is_login: bool,
+    pub needs_force: bool,
+}
+
+pub async fn record(
+    RosterRequest { id, force }: RosterRequest,
+    pg: &PgPool,
+) -> Result<RosterResponse, RouteError> {
     let record = sqlx::query!(
         r#"
         SELECT id, sign_in FROM records
@@ -55,4 +71,19 @@ pub async fn roster(id: String, force: bool, pg: &PgPool) -> Result<RosterRespon
             needs_force: false,
         })
     }
+}
+
+pub async fn delete_expired(pg: &PgPool) -> Result<(), RouteError> {
+    sqlx::query!(
+        r#"
+        DELETE FROM records
+        WHERE
+            in_progress = true or
+            sign_out - sign_in >= INTERVAL '14 hours'
+        "#
+    )
+    .execute(pg)
+    .await?;
+
+    Ok(())
 }

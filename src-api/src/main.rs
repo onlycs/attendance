@@ -12,176 +12,45 @@ extern crate sqlx;
 extern crate thiserror;
 
 mod error;
-mod model;
+mod http;
 mod prelude;
-mod routes;
 
 use std::sync::Arc;
 
-use crate::model::*;
 use crate::prelude::*;
 
 use actix_cors::Cors;
-use actix_web::get;
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use actix_web::{
-    post,
-    web::{self, Data},
-    App, HttpRequest, HttpResponse, HttpServer, Responder,
-};
+use actix_web::{web::Data, App, HttpServer};
 
-pub async fn authorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
-    let token = token.replacen("Bearer ", "", 1);
-
-    let Some(_) = sqlx::query!(
-        r#"
-        SELECT * FROM tokens
-        WHERE created_at > NOW() - INTERVAL '10 hours' and token = $1
-        "#,
-        token
-    )
-    .fetch_optional(pg)
-    .await?
-    else {
-        if env::var("ADMIN_HASH")? == sha256::digest(&token) {
-            return Ok(());
-        }
-
-        return Err(RouteError::InvalidToken);
-    };
-
-    Ok(())
-}
-
-pub fn get_auth_header(req: &HttpRequest) -> Result<String, RouteError> {
-    let auth_header = req.headers().get("Authorization");
-
-    let Some(auth) = auth_header else {
-        return Err(RouteError::NoAuth);
-    };
-
-    Ok(auth.to_str()?.to_string())
-}
-
-#[post("/auth_check")]
-async fn auth_check(
-    req: HttpRequest,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    authorize(get_auth_header(&req)?, &state.pg).await?;
-    Ok(HttpResponse::Ok().finish())
-}
-
-#[post("/login")]
-async fn login(
-    body: web::Json<AuthRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    let password = body.into_inner().password;
-    let token = routes::login(password, &state.pg).await?;
-
-    Ok(HttpResponse::Ok().json(AuthResponse { token }))
-}
-
-#[post("/roster")]
-async fn roster(
-    req: HttpRequest,
-    body: web::Json<RosterRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    authorize(get_auth_header(&req)?, &state.pg).await?;
-
-    let RosterRequest { id, force } = body.into_inner();
-    let res = routes::roster(id, force, &state.pg).await?;
-
-    Ok(HttpResponse::Ok().json(res))
-}
-
-#[post("/clear")]
-async fn clear(req: HttpRequest, state: web::Data<AppState>) -> Result<impl Responder, RouteError> {
-    authorize(get_auth_header(&req)?, &state.pg).await?;
-
-    sqlx::query!(
-        r#"
-        DELETE FROM records
-        WHERE 
-            in_progress = true or
-            sign_out - sign_in >= INTERVAL '14 hours'
-        "#
-    )
-    .execute(&*state.pg)
-    .await?;
-
-    Ok(HttpResponse::Ok().finish())
-}
-
-#[get("/hours")]
-async fn hours(
-    query: web::Query<HoursRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    let HoursRequest { id } = query.into_inner();
-    let (learning, build) = routes::hours(id, &state.pg).await?;
-
-    Ok(HttpResponse::Ok().json(HoursResponse { learning, build }))
-}
-
-#[get("/hours.csv")]
-async fn csv(
-    query: web::Query<CSVRequest>,
-    state: web::Data<AppState>,
-) -> Result<impl Responder, RouteError> {
-    let CSVRequest { json, token } = query.into_inner();
-
-    authorize(token, &state.pg).await?;
-    let csv = routes::csv(&state.pg).await?;
-
-    if json {
-        Ok(HttpResponse::Ok().json(CSVResponse { csv }))
-    } else {
-        Ok(HttpResponse::Ok().body(csv))
-    }
-}
-
-#[get("/")]
-async fn index() -> impl Responder {
-    HttpResponse::PermanentRedirect()
-        .append_header(("Location", "https://attendance.angad.page/"))
-        .finish()
-}
-
-// Arc makes this safe (static arc == box::leak but you can use it anywhere)
-static mut POOL: Option<Arc<PgPool>> = None;
-
-#[allow(static_mut_refs)]
-async fn get_pool() -> Arc<PgPool> {
-    if let Some(pool) = unsafe { POOL.as_ref() } {
-        Arc::clone(&pool)
-    } else {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&env::var("DATABASE_URL").unwrap())
-            .await
-            .unwrap();
-
-        let pool = Arc::new(pool);
-
-        unsafe { POOL = Some(Arc::clone(&pool)) }
-
-        pool
-    }
+pub struct AppState {
+    pub pg: Arc<PgPool>,
 }
 
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
-    SimpleLogger::new().with_level(LevelFilter::Debug).init()?;
+    SimpleLogger::new()
+        .with_colors(true)
+        .with_threads(true)
+        .with_local_timestamps()
+        .with_timestamp_format(time::macros::format_description!(
+            "[year]-[month]-[day] [hour]:[minute]:[second].[subsecond digits:3]"
+        ))
+        .with_level(LevelFilter::Debug)
+        .init()?;
+
     dotenv().ok();
 
-    let pool = get_pool().await;
+    let pool = Arc::new(
+        PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&env::var("DATABASE_URL").unwrap())
+            .await?,
+    );
 
     // spawn blocking on current thread
     HttpServer::new(move || {
@@ -196,13 +65,12 @@ async fn main() -> Result<(), InitError> {
             .app_data(Data::new(AppState {
                 pg: Arc::clone(&pool),
             }))
-            .service(index)
-            .service(login)
-            .service(hours)
-            .service(roster)
-            .service(csv)
-            .service(clear)
-            .service(auth_check)
+            .service(http::index)
+            .service(http::login)
+            .service(http::student_hours)
+            .service(http::record)
+            .service(http::clear)
+            .service(http::check_token)
     })
     .bind(("0.0.0.0", 8080))?
     .run()

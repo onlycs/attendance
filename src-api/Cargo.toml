@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 actix-cors = "0.7.0"
 actix-web = "4"
+bcrypt = "0.17.0"
 chrono = "0.4.39"
 chrono-tz = "0.10.0"
 cuid = "1.3.3"
@@ -13,7 +14,7 @@ dotenvy = "0.15.7"
 log = "0.4.22"
 serde = { version = "1.0.217", features = ["derive"] }
 sha256 = "1.5.0"
-simple_logger = "5.0.0"
+simple_logger = { version = "5.0.0", features = ["colors", "nightly", "threads"] }
 sqlx = { version = "0.8.3", features = [
 	"runtime-tokio",
 	"tls-native-tls",
@@ -21,3 +22,4 @@ sqlx = { version = "0.8.3", features = [
 	"postgres",
 ] }
 thiserror = { git = "https://github.com/onlycs/thiserror" }
+time = "0.3.41"

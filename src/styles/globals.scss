@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@use 'tailwindcss';
+@config '../../tailwind.config.ts';
 
 @layer base {
 	:root {
@@ -9,33 +8,32 @@
 	}
 
 	.dark {
-		--background: #1e1e1e;
-		--card: #303030;
-		--card-hover: #454545;
+		--drop: #171717;
+		--background: #242424;
+		--card: #323232;
 		--text: #D7D7D7;
-		--hover: #d7d7d725;
+		--hover: #eaeaea20;
+		--select: #1f1f1fc5;
 		--border: #d7d7d775;
 		--text-sub: #A7A7A7;
 	}
 
 	.success {
 		--background: #B3F480;
-		--card: #A2F487;
-		--card-hover: #87f164;
 		--text: #1A1A1A;
-		--hover: #A2F48725;
 		--border: #374d36ac;
-		--ring: #6fee45;
 	}
 
 	.error {
 		--background: #FD9E86;
-		--card: #FB7967;
-		--card-hover: #fa5b45;
+		--text: #4A2F2A;
+		--border: #e40000ac;
+	}
+
+	.info {
+		--background: #76B5FF;
 		--text: #1A1A1A;
-		--hover: #fda892;
-		--border: #4d3636ac;
-		--ring: #f94026;
+		--border: #2a4d75ac;
 	}
 }
 
@@ -61,7 +59,7 @@
 	}
 
 	.step:before {
-		@apply absolute w-9 h-9 bg-muted rounded-full font-mono font-medium text-center text-base inline-flex items-center justify-center -indent-px border-4 border-background;
+		@apply absolute w-9 h-9 rounded-full font-mono font-medium text-center text-base inline-flex items-center justify-center -indent-px border-4 border-background;
 		@apply ml-[-50px] mt-[-4px];
 		content: counter(step);
 	}
@@ -88,21 +86,22 @@ body {
 }
 
 html,
-body,
-main {
+body {
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
-}
-
-a {
-	text-decoration: underline;
 }
 
 html {
 	color-scheme: dark;
 }
 
-* {
-	transition: background-color 0.3s ease-out, color 0.3s linear;
+body {
+	justify-content: center;
+	align-items: center;
+	display: flex;
+}
+
+:not(svg) {
+	transition: background-color 0.15s ease-out, color 0.1s linear;
 }

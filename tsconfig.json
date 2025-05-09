@@ -40,14 +40,18 @@
 			],
 			"@/*": [
 				"./src/*"
-			],
-		}
+			]
+		},
+		"target": "ESNext"
 	},
 	"include": [
 		"next-env.d.ts",
 		"**/*.ts",
 		"**/*.tsx",
-		".next/types/**/*.ts"
+		".next/types/**/*.ts",
+		"eslint.config.js",
+		"next.config.mjs",
+		"postcss.config.mjs",
 	],
 	"exclude": [
 		"node_modules"
