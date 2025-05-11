@@ -1,6 +1,7 @@
 'use client';
 
 import { CardAnim, CardAnimInv } from '@app/admin/page';
+import { StudentIdKey, useRequireCookies } from '@lib/storage';
 import { FocusCards } from '@ui/focus-cards';
 import { AnimatePresence } from 'framer-motion';
 import { CalendarClock, HourglassIcon, LogOutIcon } from 'lucide-react';
@@ -11,12 +12,15 @@ import { useEffect } from 'react';
 export default function Student() {
     const router = useRouter();
     const cookies = useCookies();
+    const canLoad = useRequireCookies([{ key: StudentIdKey }], cookies, router);
 
     useEffect(() => {
         router.prefetch('/student/hours');
         router.prefetch('/student/request');
         router.prefetch('/');
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!canLoad) return <></>;
 
     return (
         <div className='flex flex-col items-center justify-center w-full h-full'>
@@ -40,7 +44,7 @@ export default function Student() {
                             icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
                             motion: CardAnim,
                             onClick() {
-                                cookies.remove('studentId');
+                                cookies.remove(StudentIdKey);
                                 router.push('/');
                             },
                         },

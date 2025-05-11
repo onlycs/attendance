@@ -8,7 +8,7 @@ import { Label } from '@ui/label';
 import { Separator } from '@ui/separator';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
 import { motion, TargetAndTransition, useAnimationControls } from 'framer-motion';
-import { useStatefulPromise } from '@lib/statefulpromise';
+import { useStatefulPromise } from '@lib/stateful-promise';
 import { ApiClient, apiToast } from '@lib/api';
 import { cn } from '@lib/utils';
 import { MaybeLoading } from '@components/util/suspenseful';
@@ -17,6 +17,7 @@ import { useMd } from '@lib/md';
 import { defaultExt, AnimDefault } from '@lib/anim';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { toast } from 'sonner';
+import { EncryptionKey, StudentIdKey, TokenKey, useRequireCookies, useSession } from '@lib/storage';
 
 interface IconProps {
     className?: string;
@@ -43,6 +44,14 @@ function LabeledIcon({ className, children, label }: IconProps) {
 export default function Home() {
     const router = useRouter();
     const cookies = useCookies();
+    const canLoad = useRequireCookies(
+        [
+            { key: TokenKey, redirectTo: '/admin', redirectOnMissing: false },
+            { key: StudentIdKey, redirectTo: '/student', redirectOnMissing: false },
+        ],
+        cookies,
+        router,
+    );
 
     // -- animations
     const topctl = useAnimationControls();
@@ -80,6 +89,7 @@ export default function Home() {
     const [above, setAbove] = useState('');
     const [aboveDots, setAboveDots] = useState('');
     const [below, setBelow] = useState('');
+    const { set: setEncryptionKey } = useSession(EncryptionKey);
 
     // -- fetching data
     const [adminToken, adminSignin] = useStatefulPromise(
@@ -145,7 +155,9 @@ export default function Home() {
                 };
 
                 const token = res.value.token;
-                cookies.set('token', token, { expires: new Date(res.value.expires) });
+
+                setEncryptionKey(password);
+                cookies.set(TokenKey, token, { expires: new Date(res.value.expires) });
 
                 runOutboundAnimation().then(() => {
                     router.push('/admin');
@@ -171,7 +183,7 @@ export default function Home() {
                     return;
                 }
 
-                cookies.set('studentId', id);
+                cookies.set(StudentIdKey, id);
 
                 setInOutbound(true);
                 runOutboundAnimation().then(() => {
@@ -180,6 +192,14 @@ export default function Home() {
             });
         }
     };
+
+    // -- prefetching
+    useEffect(() => {
+        router.prefetch('/admin');
+        router.prefetch('/student');
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!canLoad) return <></>;
 
     return (
         <div className='flex flex-row gap-[3vw] w-full'>

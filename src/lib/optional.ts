@@ -19,6 +19,10 @@ export class Option<T> {
         return new OptionNone<T>();
     }
 
+    static ofNullable<T>(value: T | null | undefined): Option<T> {
+        return value ? Option.Some(value) : Option.None();
+    }
+
     isSome(): this is OptionSome<T> {
         return this.value !== null;
     }

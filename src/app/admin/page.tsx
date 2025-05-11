@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from '@lib/storage';
 import { FocusCards } from '@ui/focus-cards';
 import { AnimatePresence } from 'framer-motion';
 import { ClockIcon, LogOutIcon, Table2Icon } from 'lucide-react';
@@ -24,6 +25,7 @@ export const CardAnimInv = {
 export default function Home() {
     const router = useRouter();
     const cookies = useCookies();
+    const { delete: deleteEnckey } = useSession('enckey');
 
     useEffect(() => {
         router.prefetch('/admin/editor');
@@ -54,6 +56,7 @@ export default function Home() {
                             motion: CardAnim,
                             onClick() {
                                 cookies.remove('token');
+                                deleteEnckey();
                                 router.push('/');
                             },
                         },
