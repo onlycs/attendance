@@ -1,5 +1,6 @@
 'use client';
 
+import { PasswordOverlay } from '@components/forms/password';
 import { useSession } from '@lib/storage';
 import { FocusCards } from '@ui/focus-cards';
 import { AnimatePresence } from 'framer-motion';
@@ -35,6 +36,8 @@ export default function Home() {
 
     return (
         <div className='flex flex-col items-center justify-center w-full h-full'>
+            <PasswordOverlay />
+
             <AnimatePresence>
                 <FocusCards
                     cards={[

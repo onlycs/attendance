@@ -6,7 +6,6 @@ import { ReactNode, useEffect, useState } from 'react';
 import { GraduationCap, UserIcon } from 'lucide-react';
 import { Label } from '@ui/label';
 import { Separator } from '@ui/separator';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
 import { motion, TargetAndTransition, useAnimationControls } from 'framer-motion';
 import { useStatefulPromise } from '@lib/stateful-promise';
 import { ApiClient, apiToast } from '@lib/api';
@@ -15,9 +14,10 @@ import { MaybeLoading } from '@components/util/suspenseful';
 import { useCookies } from 'next-client-cookies';
 import { useMd } from '@lib/md';
 import { defaultExt, AnimDefault } from '@lib/anim';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { toast } from 'sonner';
 import { EncryptionKey, StudentIdKey, TokenKey, useRequireCookies, useSession } from '@lib/storage';
+import { InputPassword } from '@components/forms/password';
+import { InputStudentId } from '@components/forms/studentId';
 
 interface IconProps {
     className?: string;
@@ -87,7 +87,6 @@ export default function Home() {
     // -- form management
     const [active, setActive] = useState<'top' | 'bottom' | 'none'>('none');
     const [above, setAbove] = useState('');
-    const [aboveDots, setAboveDots] = useState('');
     const [below, setBelow] = useState('');
     const { set: setEncryptionKey } = useSession(EncryptionKey);
 
@@ -131,43 +130,27 @@ export default function Home() {
     });
 
     // -- form change handlers
-    const handleAboveChange = (value: string) => {
-        const dot = '●';
-        let password;
+    const submitAbove = (password: string) => {
+        setInOutbound(true);
 
-        if (value.endsWith(dot) || value == '') {
-            password = above.slice(0, value.length - above.length);
-            setAbove(password);
-            setAboveDots(value.replace(/./g, dot));
-        } else {
-            password = above + value.slice(-1);
-            setAbove(password);
-            setAboveDots(value.replace(/./g, dot));
-        }
+        adminSignin(password).then((res) => {
+            if (res.isErr()) {
+                setInOutbound(false);
+                return;
+            };
 
-        if (value.length == 8) {
-            setInOutbound(true);
+            const token = res.value.token;
 
-            adminSignin(password).then((res) => {
-                if (res.isErr()) {
-                    setInOutbound(false);
-                    return;
-                };
+            setEncryptionKey(password);
+            cookies.set(TokenKey, token, { expires: new Date(res.value.expires) });
 
-                const token = res.value.token;
-
-                setEncryptionKey(password);
-                cookies.set(TokenKey, token, { expires: new Date(res.value.expires) });
-
-                runOutboundAnimation().then(() => {
-                    router.push('/admin');
-                }).catch(console.error);
-            });
-        }
+            runOutboundAnimation().then(() => {
+                router.push('/admin');
+            }).catch(console.error);
+        });
     };
 
-    const handleBelowChange = (id: string) => {
-        setBelow(id);
+    const submitBelow = (id: string) => {
         if (id.length == 5) {
             setInOutbound(true);
 
@@ -217,31 +200,19 @@ export default function Home() {
                         <UserIcon className='hidden md:flex' />
                     </LabeledIcon>
 
-                    <InputOTP
-                        id='top'
-                        value={aboveDots}
-                        onChange={handleAboveChange}
-                        maxLength={8}
-                        inputMode='text'
+                    <InputPassword
+                        value={above}
+                        setValue={setAbove}
+                        submit={submitAbove}
                         onFocus={() => {
                             setActive('top');
                             setBelow('');
                         }}
                         onBlur={() => setActive('none')}
-                    >
-                        <InputOTPGroup className='w-full flex justify-center items-center max-md:mb-8'>
-                            <InputOTPSlot index={0} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={1} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={2} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={3} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={4} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={5} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={6} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={7} className='w-14 h-14 max-md:w-12 max-md:h-12' forceUnfocus={inOutbound} />
-                        </InputOTPGroup>
-                    </InputOTP>
+                        className='w-14 h-14 max-md:w-12 max-md:h-12'
+                    />
 
-                    <div className='md:absolute md:translate-x-66'>
+                    <div className='md:absolute md:translate-x-66 max-md:mt-8'>
                         <MaybeLoading
                             state={active === 'top' ? adminToken : undefined}
                             width='2rem'
@@ -260,31 +231,22 @@ export default function Home() {
                     animate={bottomctl}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
                     className='flex md:flex-row max-md:flex-col max-md:mt-18 justify-center items-center'
-                    onFocus={() => {
-                        setActive('bottom');
-                        setAbove('');
-                    }}
-                    onBlur={() => setActive('none')}
                 >
                     <LabeledIcon className='md:absolute md:-translate-x-68' label='Student'>
                         <GraduationCap className='hidden md:flex' />
                     </LabeledIcon>
 
-                    <InputOTP
-                        id='bottom'
+                    <InputStudentId
                         value={below}
-                        onChange={handleBelowChange}
-                        maxLength={5}
-                        pattern={REGEXP_ONLY_DIGITS}
-                    >
-                        <InputOTPGroup className='w-full flex justify-center items-center'>
-                            <InputOTPSlot index={0} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={1} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={2} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={3} className='w-14 h-14 max-md:w-12 max-md:h-12' />
-                            <InputOTPSlot index={4} className='w-14 h-14 max-md:w-12 max-md:h-12' forceUnfocus={inOutbound} />
-                        </InputOTPGroup>
-                    </InputOTP>
+                        setValue={setBelow}
+                        submit={submitBelow}
+                        onFocus={() => {
+                            setActive('bottom');
+                            setAbove('');
+                        }}
+                        onBlur={() => setActive('none')}
+                        className='w-14 h-14 max-md:w-12 max-md:h-12'
+                    />
 
                     <div className='md:absolute md:translate-x-66 max-md:mt-8'>
                         <MaybeLoading
