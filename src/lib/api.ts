@@ -1,16 +1,27 @@
 import { makeApi, makeErrors, makeParameters, Zodios } from '@zodios/core';
-import type { ErrorsToAxios } from '@zodios/core/lib/zodios.types';
+import type { Aliases, Method, MutationMethod, ZodiosAliasRequest, ZodiosBodyByAlias, ZodiosBodyByPath, ZodiosEndpointDefinitionByAlias, ZodiosMatchingErrorsByAlias, ZodiosMatchingErrorsByPath, ZodiosMutationAliasRequest, ZodiosPathsByMethod, ZodiosRequestOptionsByAlias, ZodiosRequestOptionsByPath, ZodiosResponseByAlias, ZodiosResponseByPath } from '@zodios/core/lib/zodios.types';
 import type { TypeOf } from 'zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
 import { ResultAsync } from 'neverthrow';
+import { ReadonlyDeep, RequiredKeys, UndefinedIfNever } from '@zodios/core/lib/utils.types';
+import { toast } from 'sonner';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
-const ErrorSchema = makeErrors([{
-    status: 'default',
-    schema: z.string(),
-}]);
+const ErrorSchema = makeErrors([
+    {
+        status: 401,
+        schema: z.string(),
+    },
+    {
+        status: 404,
+        schema: z.never(),
+    },
+    {
+        status: 500,
+        schema: z.string(),
+    },
+]);
 
 const AuthSchema = makeParameters([{
     name: 'Authorization',
@@ -25,6 +36,7 @@ const HoursSchema = z.object({
 
 const TokenSchema = z.object({
     token: z.string(),
+    expires: z.string(),
 });
 
 const RouterSchema = z.object({
@@ -54,6 +66,13 @@ export const ApiSchema = makeApi([
     },
     {
         method: 'get',
+        path: '/student/:id/exists',
+        alias: 'studentExists',
+        response: z.boolean(),
+        errors: ErrorSchema,
+    },
+    {
+        method: 'get',
         path: '/auth',
         alias: 'checkToken',
         parameters: [...AuthSchema],
@@ -62,15 +81,8 @@ export const ApiSchema = makeApi([
     },
     {
         method: 'get',
-        path: '/hours',
-        alias: 'userHours',
-        parameters: [{
-            name: 'User ID Request',
-            type: 'Query',
-            schema: z.object({
-                id: z.string(),
-            }),
-        }],
+        path: '/student/:id/hours',
+        alias: 'studentHours',
         response: HoursSchema,
         errors: ErrorSchema,
     },
@@ -102,34 +114,129 @@ export const ApiSchema = makeApi([
     },
 ]);
 
-export const ApiClient = new Zodios(API_URL, ApiSchema);
-export const ErrorLinks: Record<number, string> = {
-    [401]: '/login',
-};
+const NonMutableMethods = ['get', 'delete', 'head', 'options'] as Omit<Method, MutationMethod>[];
+
+function isMutation(method: Method): method is MutationMethod {
+    return !NonMutableMethods.includes(method);
+}
+
+type Api = typeof ApiSchema;
+
+type AliasMethod<Alias extends Aliases<Api>> = ZodiosEndpointDefinitionByAlias<Api, Alias>[number]['method'];
+type AliasBody<Alias extends Aliases<Api>> = ZodiosBodyByAlias<Api, Alias>;
+type AliasOptions<Alias extends Aliases<Api>> = ZodiosRequestOptionsByAlias<Api, Alias>;
+type AliasResponse<Alias extends Aliases<Api>> = ZodiosResponseByAlias<Api, Alias>;
+type AliasFunctionGet<Alias extends Aliases<Api>> = ZodiosAliasRequest<AliasOptions<Alias>, AliasResponse<Alias>>;
+type AliasFunctionMut<Alias extends Aliases<Api>> = ZodiosMutationAliasRequest<AliasBody<Alias>, AliasOptions<Alias>, AliasResponse<Alias>>;
+type AliasErrors<Alias extends Aliases<Api>> = FixedError<ZodiosMatchingErrorsByAlias<Api, Alias>>;
+
+type Paths<M extends Method> = ZodiosPathsByMethod<Api, M>;
+type PathMethodBody<M extends Method, Path extends Paths<M>> = ZodiosBodyByPath<Api, M, Path>;
+type PathMethodOptions<M extends Method, Path extends Paths<M>> = ZodiosRequestOptionsByPath<Api, M, Path>;
+type PathMethodResponse<M extends Method, Path extends Paths<M>> = ZodiosResponseByPath<Api, M, Path>;
+type PathMethodErrors<M extends Method, Path extends Paths<M>> = FixedError<ZodiosMatchingErrorsByPath<Api, M, Path>>;
+
+type Optionalize<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+type FixedError<E extends { response: unknown }> = Optionalize<E, 'response'>;
+type MethodError<M extends Method> = PathMethodErrors<M, Paths<M>>;
 
 export type HoursResponse = TypeOf<typeof HoursSchema>;
 export type LoginResponse = TypeOf<typeof TokenSchema>;
 export type RouterResponse = TypeOf<typeof RouterSchema>;
 export type CsvResponse = TypeOf<typeof CsvSchema>;
+export type AnyError = MethodError<Method>;
 
-type AxiosError = ErrorsToAxios<typeof ErrorSchema>[number];
-type Override<T, U> = Omit<T, keyof U> & U;
+export const ApiClient = {
+    client: new Zodios(API_URL, ApiSchema),
 
-export type ApiError = Override<
-    AxiosError,
-    { response?: Override<AxiosError['response'], { status: number }> }
->;
+    fetch<const M extends Method, const Path extends Paths<M>>(
+        method: M,
+        path: Path,
+        ...remainder: M extends MutationMethod
+            ? RequiredKeys<PathMethodOptions<M, Path>> extends never
+                ? [body: ReadonlyDeep<UndefinedIfNever<PathMethodBody<M, Path>>>, options?: ReadonlyDeep<PathMethodOptions<M, Path>>]
+                : [body: ReadonlyDeep<UndefinedIfNever<PathMethodBody<M, Path>>>, options: ReadonlyDeep<PathMethodOptions<M, Path>>]
+            : RequiredKeys<PathMethodOptions<M, Path>> extends never
+                ? [options?: ReadonlyDeep<PathMethodOptions<M, Path>>]
+                : [options: ReadonlyDeep<PathMethodOptions<M, Path>>]
+    ) {
+        const [a, b] = remainder;
 
-export function apiResult<T>(promise: Promise<T>): ResultAsync<T, ApiError> {
-    return ResultAsync.fromPromise(promise, e => e as ApiError);
-}
+        const body = isMutation(method) ? a : undefined;
+        const options = body ? b : a;
 
-export function apiToast(err: ApiError) {
-    if (err.response?.status == 404) {
-        toast.error('Route to API not found. This may be a bug.');
-    } else if (!err.response?.data || err.response.data == '') {
-        toast.error('Failed to connect to the server. Are you online?');
-    } else {
-        toast.error(err.response.data);
+        let res: Promise<PathMethodResponse<M, Path>>;
+        if (isMutation(method)) {
+            res = this.client.request({
+                ...(options ?? {}),
+                method,
+                url: path,
+                data: body,
+            } as any) as any;
+        } else {
+            res = this.client.request({
+                ...(options ?? {}),
+                method,
+                url: path,
+            } as any) as any;
+        }
+
+        return ResultAsync.fromPromise(
+            res,
+            e => e as PathMethodErrors<M, Path>,
+        );
+    },
+
+    alias<const Alias extends Aliases<Api>>(
+        alias: Alias,
+        ...remainder: AliasMethod<Alias> extends MutationMethod
+            ? RequiredKeys<AliasOptions<Alias>> extends never
+                ? [body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>>, options?: ReadonlyDeep<AliasOptions<Alias>>]
+                : [body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>>, options: ReadonlyDeep<AliasOptions<Alias>>]
+            : RequiredKeys<AliasOptions<Alias>> extends never
+                ? [options?: ReadonlyDeep<AliasOptions<Alias>>]
+                : [options: ReadonlyDeep<AliasOptions<Alias>>]
+    ) {
+        const [a, b] = remainder;
+
+        const body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>> | undefined = isMutation(ApiSchema.find(ep => ep.alias === alias)!.method) ? a as any : undefined;
+        const options = body ? b : a;
+
+        let res: Promise<AliasResponse<Alias>>;
+        if (NonMutableMethods.includes(ApiSchema.find(ep => ep.alias === alias)!.method)) {
+            res = (this.client[alias] as unknown as AliasFunctionGet<Alias>)(options!); // data.options is null iff function takes in null
+        } else {
+            res = (this.client[alias] as unknown as AliasFunctionMut<Alias>)(body!, options!);
+        }
+
+        return ResultAsync.fromPromise(
+            res,
+            e => e as AliasErrors<Alias>,
+        );
+    },
+};
+
+export function apiToast(
+    err: AnyError,
+    checks?: Record<number, boolean>,
+) {
+    if (!err.response) {
+        toast.error('Could not connect to the server. Are you online?');
+        return;
     }
+    if (!checks?.[err.response.status] && checks) return;
+
+    switch (err.response.status as number) {
+        case 404: {
+            toast.error('Could not find data from the server. This is probably a bug');
+            return;
+        }
+        case 500: {
+            toast.error('There was a problem with the server. This is a bug');
+            return;
+        }
+    }
+
+    toast.error(err.response.data);
 }

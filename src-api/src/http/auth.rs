@@ -20,7 +20,6 @@ pub async fn authorize(
     TokenRequest { password }: TokenRequest,
     pg: &PgPool,
 ) -> Result<TokenResponse, RouteError> {
-    info!("{password}");
     if !bcrypt::verify(&password, &env::var("ADMIN_CRYPT")?).unwrap_or(false) {
         return Err(RouteError::InvalidToken);
     }

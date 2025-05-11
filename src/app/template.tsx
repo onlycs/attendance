@@ -20,7 +20,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
 
     return (
         <BackgroundAnimationContext.Provider value={background}>
-            <motion.div animate={controls} className='flex flex-row w-full h-full'>
+            <motion.div animate={controls} className='flex flex-row w-full h-full items-center justify-center'>
                 {children}
             </motion.div>
             <Toaster

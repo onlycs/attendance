@@ -1,7 +1,6 @@
 import eslint from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import tseslint from 'typescript-eslint';
-import globals from 'globals';
 import { FlatCompat } from '@eslint/eslintrc';
 
 const compat = new FlatCompat({
@@ -67,10 +66,13 @@ const config = [
                 '@typescript-eslint/no-unsafe-member-access': 'off',
                 '@typescript-eslint/no-unsafe-argument': 'off',
                 '@typescript-eslint/no-unsafe-call': 'off',
+                '@typescript-eslint/no-explicit-any': 'off',
                 '@typescript-eslint/no-non-null-assertion': 'off',
                 '@typescript-eslint/no-unnecessary-type-assertion': 'off',
                 '@typescript-eslint/restrict-template-expressions': 'off',
+                '@typescript-eslint/no-misused-spread': 'off',
                 '@typescript-eslint/no-deprecated': 'warn',
+                '@typescript-eslint/no-confusing-void-expression': 'off',
                 '@typescript-eslint/no-unused-vars': ['warn', {
                     args: 'all',
                     argsIgnorePattern: '^_',

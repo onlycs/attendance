@@ -56,11 +56,13 @@ export function MaybeLoading({ state, className, ...props }: MaybeLoadingProps) 
     if (state?.inProgress) return <Spinner className={className} {...props} />;
     else return (
         <div
-            className={cn(
-                props.width ? `w-[${props.width}]` : '',
-                props.height ? `h-[${props.height}]` : '',
-                className,
-            )}
+            className={className}
+            style={{
+                width: props.width,
+                height: props.height,
+                opacity: 0,
+                zIndex: -999,
+            }}
         />
     );
 }

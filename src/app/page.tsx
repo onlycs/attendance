@@ -2,47 +2,41 @@
 
 import { useRouter } from 'next/navigation';
 
-import React, { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { GraduationCap, UserIcon } from 'lucide-react';
 import { Label } from '@ui/label';
 import { Separator } from '@ui/separator';
-import { OTPInput, REGEXP_ONLY_DIGITS } from 'input-otp';
-import { InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
-import type { AnimationControls } from 'framer-motion';
-import { motion, useAnimationControls } from 'framer-motion';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
+import { motion, TargetAndTransition, useAnimationControls } from 'framer-motion';
 import { useStatefulPromise } from '@lib/statefulpromise';
-import { ApiClient, apiResult, apiToast } from '@lib/api';
+import { ApiClient, apiToast } from '@lib/api';
 import { cn } from '@lib/utils';
 import { MaybeLoading } from '@components/util/suspenseful';
 import { useCookies } from 'next-client-cookies';
+import { useMd } from '@lib/md';
+import { defaultExt, AnimDefault } from '@lib/anim';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import { toast } from 'sonner';
 
-function LabeledAdmin({ controls }: { controls: AnimationControls }) {
-    return (
-        <motion.div
-            animate={controls}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className='h-[6.5vh] w-[6.5vw] flex flex-col gap-[0.75vh] items-center justify-center'
-        >
-            <UserIcon />
-            <Label htmlFor='admin' className='text-xs'>
-                Admin
-            </Label>
-        </motion.div>
-    );
+interface IconProps {
+    className?: string;
+    children: ReactNode;
+    label: string;
 }
 
-function LabeledStudent({ controls }: { controls: AnimationControls }) {
+function LabeledIcon({ className, children, label }: IconProps) {
     return (
-        <motion.div
-            animate={controls}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className='h-[6.5vh] w-[6.5vw] flex flex-col gap-[0.75vh] items-center justify-center'
+        <div
+            className={cn(
+                'w-16 h-16 max-md:w-12 max-md:h-12 flex flex-col md:gap-2 items-center justify-center',
+                className,
+            )}
         >
-            <GraduationCap />
-            <Label htmlFor='student' className='text-xs'>
-                Student
+            {children}
+            <Label className='text-xs max-md:text-xl'>
+                {label}
             </Label>
-        </motion.div>
+        </div>
     );
 }
 
@@ -50,28 +44,85 @@ export default function Home() {
     const router = useRouter();
     const cookies = useCookies();
 
+    // -- animations
     const topctl = useAnimationControls();
     const bottomctl = useAnimationControls();
     const barctl = useAnimationControls();
-    const adminctl = useAnimationControls();
-    const studentctl = useAnimationControls();
     const headerctl = useAnimationControls();
-
-    const [active, setActive] = useState<'top' | 'bottom'>('top');
-    const [mouse, setMouse] = useState(true);
     const [inOutbound, setInOutbound] = useState(false);
 
+    // -- reactive animation switching
+    const whileTop = useMd<TargetAndTransition[]>({
+        sm: [{ y: '5rem' }, {}, { y: '30rem' }],
+        md: [
+            { y: '2.75rem', scale: 1.25, transition: { duration: 0.25 } },
+            { opacity: 0.35, y: '3rem', scale: 0.85, transition: { duration: 0.25 } },
+            { opacity: 0.35, y: '2.75rem', scale: 0.85, transition: { duration: 0.25 } },
+        ],
+    });
+
+    const whileBottom = useMd<TargetAndTransition[]>({
+        sm: [{ x: '40rem' }, {}, { y: '-15rem' }],
+        md: [
+            { opacity: 0.35, y: '-2.75rem', scale: 0.85, transition: { duration: 0.25 } },
+            { opacity: 0.35, y: '-3rem', scale: 0.85, transition: { duration: 0.25 } },
+            { y: '-2.75rem', scale: 1.25, transition: { duration: 0.25 } },
+        ],
+    });
+
+    const whileNone = useMd<TargetAndTransition[]>({
+        sm: [AnimDefault, AnimDefault, AnimDefault],
+        md: [{ transition: { duration: 0.25 } }, { transition: { duration: 0.25 } }, { transition: { duration: 0.25 } }],
+    });
+
+    // -- form management
+    const [active, setActive] = useState<'top' | 'bottom' | 'none'>('none');
     const [above, setAbove] = useState('');
     const [aboveDots, setAboveDots] = useState('');
     const [below, setBelow] = useState('');
 
-    const [tokenInfo, signin] = useStatefulPromise(
-        (password: string) => apiResult(ApiClient.login({ password })),
+    // -- fetching data
+    const [adminToken, adminSignin] = useStatefulPromise(
+        (password: string) => ApiClient.alias('login', { password }),
         apiToast,
     );
 
+    const [studentExists, checkStudent] = useStatefulPromise(
+        (id: string) => ApiClient.alias('studentExists', { params: { id } }),
+        apiToast,
+    );
+
+    // -- animation runners: outbound
+    const runOutboundAnimation = () => {
+        const transition = { duration: 0.5, ease: 'easeInOut' } as const;
+        const promises: Promise<void>[] = [];
+
+        promises.push(headerctl.start({ y: '-5rem', opacity: 0 }, transition));
+        promises.push(barctl.start({ opacity: 0 }, transition));
+        promises.push(bottomctl.start({ y: '50rem', opacity: 0 }, transition));
+        promises.push(topctl.start({ y: '-50rem', opacity: 0 }, transition));
+
+        return new Promise(res => setTimeout(res, transition.duration * 1000));
+    };
+
+    // -- animation runners: active form
+    useEffect(() => {
+        if (inOutbound) return;
+
+        const [top, bar, bottom] = {
+            'top': whileTop,
+            'bottom': whileBottom,
+            'none': whileNone,
+        }[active];
+
+        topctl.start(defaultExt(top)).catch(console.error);
+        barctl.start(defaultExt(bar)).catch(console.error);
+        bottomctl.start(defaultExt(bottom)).catch(console.error);
+    });
+
+    // -- form change handlers
     const handleAboveChange = (value: string) => {
-        const dot = '•';
+        const dot = '●';
         let password;
 
         if (value.endsWith(dot) || value == '') {
@@ -87,57 +138,48 @@ export default function Home() {
         if (value.length == 8) {
             setInOutbound(true);
 
-            signin(password).then((res) => {
+            adminSignin(password).then((res) => {
                 if (res.isErr()) {
                     setInOutbound(false);
                     return;
                 };
 
                 const token = res.value.token;
-                cookies.set('token', token);
+                cookies.set('token', token, { expires: new Date(res.value.expires) });
 
-                const transition = { duration: 0.5, ease: 'easeInOut' } as const;
-                const promises: Promise<void>[] = [];
-
-                promises.push(adminctl.start({ scale: 0.65, x: '-1vw', opacity: 0 }, transition));
-                promises.push(studentctl.start({ scale: 0.65, x: '-1vw', opacity: 0 }, transition));
-                promises.push(headerctl.start({ y: '-5rem', opacity: 0 }, transition));
-                promises.push(barctl.start({ opacity: 0 }, transition));
-                promises.push(bottomctl.start({ y: '50vh', opacity: 0 }, transition));
-                promises.push(topctl.start({ y: '-50vh', opacity: 0 }, transition));
-
-                Promise.all(promises).then(() => {
-                    router.push('/home');
+                runOutboundAnimation().then(() => {
+                    router.push('/admin');
                 }).catch(console.error);
             });
         }
     };
 
-    useEffect(() => {
-        if (inOutbound) return;
+    const handleBelowChange = (id: string) => {
+        setBelow(id);
+        if (id.length == 5) {
+            setInOutbound(true);
 
-        topctl.start({ opacity: 1, y: 0 }).catch(console.error);
-        bottomctl.start({ opacity: 1, y: 0 }).catch(console.error);
-        barctl.start({ opacity: 1 }).catch(console.error);
-    });
+            checkStudent(id).then((res) => {
+                if (res.isErr()) {
+                    setInOutbound(false);
+                    return;
+                }
 
-    useEffect(() => {
-        if (inOutbound) return;
+                if (!res.value) {
+                    toast.warning('You don\'t have any hours yet! Check back once you\'ve signed in at least once');
+                    setInOutbound(false);
+                    return;
+                }
 
-        if (active == 'top') {
-            adminctl.start({ x: '10vw', y: '3.25vh', scale: 1.25, opacity: 1 }).catch(console.error);
-            studentctl.start({ x: '0', y: '3.125vh', scale: 0.65, opacity: 0.25 }).catch(console.error);
-            barctl.start({ y: '4.25vh', scale: 0.75, opacity: 0.5 }).catch(console.error);
-            bottomctl.start({ y: '3.525vh', scale: 0.75, opacity: 0.5 }).catch(console.error);
-            topctl.start({ y: '3.125vh', scale: 1.75 }).catch(console.error);
-        } else {
-            adminctl.start({ x: '0', y: '-3.125vh', scale: 0.65, opacity: 0.25 }).catch(console.error);
-            studentctl.start({ x: '18vw', y: '-3.25vh', scale: 1.25, opacity: 1 }).catch(console.error);
-            barctl.start({ y: '-4.25vh', scale: 0.75, opacity: 0.5 }).catch(console.error);
-            topctl.start({ y: '-3.125vh', scale: 0.75, opacity: 0.5 }).catch(console.error);
-            bottomctl.start({ y: '-3.525vh', scale: 1.75 }).catch(console.error);
+                cookies.set('studentId', id);
+
+                setInOutbound(true);
+                runOutboundAnimation().then(() => {
+                    router.push('/student');
+                }).catch(console.error);
+            });
         }
-    });
+    };
 
     return (
         <div className='flex flex-row gap-[3vw] w-full'>
@@ -145,96 +187,92 @@ export default function Home() {
                 <Label className='text-2xl font-bold'>Log In</Label>
             </motion.div>
 
-            <div
-                className={cn(
-                    'absolute w-screen top-0',
-                    active == 'top' ? 'h-[54vh]' : 'h-[46vh]',
-                )}
-                onMouseEnter={() => { if (mouse) setActive('top'); }}
-            />
-
-            <div
-                className={cn(
-                    'absolute w-screen bottom-0',
-                    active == 'bottom' ? 'h-[54vh]' : 'h-[46vh]',
-                )}
-                onMouseEnter={() => { if (mouse) setActive('bottom'); }}
-            />
-
-            <div className='flex flex-col w-[10vw] justify-center items-center'>
-                <LabeledAdmin controls={adminctl} />
-                <LabeledStudent controls={studentctl} />
-            </div>
-
-            <div className='flex flex-col gap-[1.5vh] items-center justify-center w-[90vw] mr-[11.25vw]'>
+            <div className='flex flex-col gap-[1.5vh] items-center justify-center w-full'>
                 <motion.div
-                    initial={{ opacity: 0, y: -25 }}
                     animate={topctl}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    className='flex flex-row justify-center items-center gap-[1.5vw]'
+                    className='flex md:flex-row max-md:flex-col max-md:mb-18 justify-center items-center'
                 >
-                    <OTPInput
+                    <LabeledIcon className='md:absolute md:-translate-x-68' label='Admin'>
+                        <UserIcon className='hidden md:flex' />
+                    </LabeledIcon>
+
+                    <InputOTP
+                        id='top'
                         value={aboveDots}
                         onChange={handleAboveChange}
                         maxLength={8}
+                        inputMode='text'
                         onFocus={() => {
-                            setMouse(false);
                             setActive('top');
+                            setBelow('');
                         }}
-                        onBlur={() => { setMouse(true); }}
+                        onBlur={() => setActive('none')}
                     >
-                        <InputOTPGroup className='w-full flex justify-center items-center'>
-                            <InputOTPSlot index={0} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={1} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={2} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={3} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={4} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={5} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={6} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={7} className='w-[3.25vh] h-[3.25vh]' forceUnfocus={inOutbound} />
+                        <InputOTPGroup className='w-full flex justify-center items-center max-md:mb-8'>
+                            <InputOTPSlot index={0} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={1} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={2} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={3} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={4} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={5} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={6} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={7} className='w-14 h-14 max-md:w-12 max-md:h-12' forceUnfocus={inOutbound} />
                         </InputOTPGroup>
-                    </OTPInput>
-                    <div className='absolute ml-[31.5vw]'>
+                    </InputOTP>
+
+                    <div className='md:absolute md:translate-x-66'>
                         <MaybeLoading
-                            state={active == 'top' ? tokenInfo : undefined}
-                            width='1.75vh'
-                            height='1.75vh'
+                            state={active === 'top' ? adminToken : undefined}
+                            width='2rem'
+                            height='2rem'
                         />
                     </div>
                 </motion.div>
                 <motion.div
-                    initial={{ opacity: 0 }}
                     animate={barctl}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    className='w-82'
+                    className='max-md:hidden w-82'
                 >
                     <Separator />
                 </motion.div>
                 <motion.div
-                    initial={{ opacity: 0, y: 25 }}
                     animate={bottomctl}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    className='flex flex-row justify-center'
+                    className='flex md:flex-row max-md:flex-col max-md:mt-18 justify-center items-center'
+                    onFocus={() => {
+                        setActive('bottom');
+                        setAbove('');
+                    }}
+                    onBlur={() => setActive('none')}
                 >
-                    <OTPInput
+                    <LabeledIcon className='md:absolute md:-translate-x-68' label='Student'>
+                        <GraduationCap className='hidden md:flex' />
+                    </LabeledIcon>
+
+                    <InputOTP
+                        id='bottom'
                         value={below}
-                        onChange={setBelow}
+                        onChange={handleBelowChange}
                         maxLength={5}
                         pattern={REGEXP_ONLY_DIGITS}
-                        onFocus={() => {
-                            setMouse(false);
-                            setActive('bottom');
-                        }}
-                        onBlur={() => { setMouse(true); }}
                     >
                         <InputOTPGroup className='w-full flex justify-center items-center'>
-                            <InputOTPSlot index={0} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={1} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={2} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={3} className='w-[3.25vh] h-[3.25vh]' />
-                            <InputOTPSlot index={4} className='w-[3.25vh] h-[3.25vh]' forceUnfocus={inOutbound} />
+                            <InputOTPSlot index={0} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={1} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={2} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={3} className='w-14 h-14 max-md:w-12 max-md:h-12' />
+                            <InputOTPSlot index={4} className='w-14 h-14 max-md:w-12 max-md:h-12' forceUnfocus={inOutbound} />
                         </InputOTPGroup>
-                    </OTPInput>
+                    </InputOTP>
+
+                    <div className='md:absolute md:translate-x-66 max-md:mt-8'>
+                        <MaybeLoading
+                            state={active === 'bottom' ? studentExists : undefined}
+                            width='2rem'
+                            height='2rem'
+                        />
+                    </div>
                 </motion.div>
             </div>
         </div>

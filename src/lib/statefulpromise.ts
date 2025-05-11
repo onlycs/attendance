@@ -7,7 +7,7 @@ export interface StatefulPromiseInfo<T> {
     current: Option<T>;
 }
 
-export function useStatefulPromise<T, E, A = void>(promise: (arg: A) => ResultAsync<T, E>, onError: (e: E) => void) {
+export function useStatefulPromise<T, E, A = void>(promise: (arg: A) => ResultAsync<T, E>, onError: (e: E) => void, onOk?: (o: T) => void) {
     const [state, setState] = useState<StatefulPromiseInfo<T>>({
         inProgress: false,
         current: None(),
@@ -22,6 +22,7 @@ export function useStatefulPromise<T, E, A = void>(promise: (arg: A) => ResultAs
                     onError(t.error);
                 } else {
                     setState({ inProgress: false, current: Some(t.value) });
+                    onOk?.(t.value);
                 }
 
                 return t;

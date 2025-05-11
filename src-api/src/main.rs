@@ -68,6 +68,7 @@ async fn main() -> Result<(), InitError> {
             .service(http::index)
             .service(http::login)
             .service(http::student_hours)
+            .service(http::student_exists)
             .service(http::record)
             .service(http::clear)
             .service(http::check_token)

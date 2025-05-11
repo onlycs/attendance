@@ -101,7 +101,3 @@ body {
 	align-items: center;
 	display: flex;
 }
-
-:not(svg) {
-	transition: background-color 0.15s ease-out, color 0.1s linear;
-}

@@ -1,20 +1,12 @@
 use crate::prelude::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct HoursRequest {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HoursResponse {
     pub learning_hours: f64,
     pub build_hours: f64,
 }
 
-pub async fn hours(
-    HoursRequest { id }: HoursRequest,
-    pg: &PgPool,
-) -> Result<HoursResponse, RouteError> {
+pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError> {
     sqlx::query!(
         r#"
         DELETE FROM records
@@ -78,4 +70,18 @@ pub async fn hours(
         learning_hours: learning_mins / 60.0,
         build_hours: build_mins / 60.0,
     })
+}
+
+pub async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
+    let student = sqlx::query!(
+        r#"
+        SELECT * FROM records
+        WHERE student_id = $1
+        "#,
+        id
+    )
+    .fetch_optional(pg)
+    .await?;
+
+    Ok(student.is_some())
 }

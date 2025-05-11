@@ -1,12 +1,11 @@
 mod auth;
-mod hours;
 mod roster;
+mod student;
 
 use crate::prelude::*;
 use crate::AppState;
 use actix_web::delete;
 use actix_web::get;
-use hours::HoursRequest;
 use roster::RosterRequest;
 
 use actix_web::{
@@ -60,12 +59,22 @@ pub(crate) async fn clear(
     Ok(HttpResponse::Ok().finish())
 }
 
-#[get("/hours")]
+#[get("/student/{id}/hours")]
 pub(crate) async fn student_hours(
-    query: web::Query<HoursRequest>,
+    path: web::Path<String>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    let res = hours::hours(query.into_inner(), &state.pg).await?;
+    let res = student::hours(path.into_inner(), &state.pg).await?;
+
+    Ok(HttpResponse::Ok().json(res))
+}
+
+#[get("/student/{id}/exists")]
+pub(crate) async fn student_exists(
+    path: web::Path<String>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    let res = student::exists(path.into_inner(), &state.pg).await?;
 
     Ok(HttpResponse::Ok().json(res))
 }
