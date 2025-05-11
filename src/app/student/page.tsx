@@ -25,19 +25,19 @@ export default function Student() {
                     cards={[
                         {
                             title: 'Check Hours',
-                            icon: <HourglassIcon className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} />,
+                            icon: <HourglassIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
                             motion: CardAnim,
                             onClick: () => router.push('/student/hours'),
                         },
                         {
                             title: 'Change Request',
-                            icon: <CalendarClock className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} />,
+                            icon: <CalendarClock className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
                             motion: CardAnimInv,
                             onClick: () => router.push('/student/request'),
                         },
                         {
                             title: 'Log Out',
-                            icon: <LogOutIcon className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} color='red' />,
+                            icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
                             motion: CardAnim,
                             onClick() {
                                 cookies.remove('studentId');

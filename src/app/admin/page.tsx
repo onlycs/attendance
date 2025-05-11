@@ -38,19 +38,19 @@ export default function Home() {
                     cards={[
                         {
                             title: 'Hours Editor',
-                            icon: <Table2Icon className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} />,
+                            icon: <Table2Icon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
                             motion: CardAnim,
                             onClick: () => router.push('/admin/editor'),
                         },
                         {
                             title: 'Attendance',
-                            icon: <ClockIcon className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} />,
+                            icon: <ClockIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
                             motion: CardAnimInv,
                             onClick: () => router.push('/attendance'),
                         },
                         {
                             title: 'Log Out',
-                            icon: <LogOutIcon className='size-24 mb-6 md:size-32 md:mb-0' strokeWidth={1} color='red' />,
+                            icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
                             motion: CardAnim,
                             onClick() {
                                 cookies.remove('token');
