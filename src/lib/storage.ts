@@ -112,7 +112,7 @@ export function useRequireStorage(requirements: CookieRequirements[]) {
         }
 
         setCanLoad(true);
-    }, [sessions.value, sessions.loaded]); // eslint-disable-line
+    }, [sessions.value, sessions.loaded, cookies]); // eslint-disable-line
 
     return canLoad;
 }

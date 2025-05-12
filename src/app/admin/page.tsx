@@ -30,17 +30,18 @@ export default function Home() {
                 targets={[
                     {
                         title: 'Hours Editor',
-                        icon: <Table2Icon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                        icon: <Table2Icon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} />,
                         link: '/admin/editor',
                     },
                     {
                         title: 'Attendance',
-                        icon: <ClockIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                        icon: <ClockIcon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} />,
                         link: '/attendance',
                     },
                     {
                         title: 'Log Out',
-                        icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
+                        icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
+                        link: '/',
                         onClick() {
                             cookies.remove('token');
                             deleteEnckey();

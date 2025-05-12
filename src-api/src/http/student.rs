@@ -23,8 +23,7 @@ pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError>
         WHERE student_id = $1 
             AND sign_out IS NOT NULL 
             AND in_progress = false
-            AND EXTRACT(MONTH FROM sign_in) <= 12
-            AND EXTRACT(MONTH FROM sign_in) >= 9
+            AND EXTRACT(MONTH FROM sign_in) >= 8
         "#,
         id
     )

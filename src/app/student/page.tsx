@@ -25,17 +25,17 @@ export default function Student() {
             targets={[
                 {
                     title: 'Check Hours',
-                    icon: <HourglassIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                    icon: <HourglassIcon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} />,
                     link: '/student/hours',
                 },
                 {
                     title: 'Change Request',
-                    icon: <CalendarClock className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                    icon: <CalendarClock className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} />,
                     link: '/student/request',
                 },
                 {
                     title: 'Log Out',
-                    icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
+                    icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
                     onClick: () => cookies.remove(StudentIdKey),
                     link: '/',
                 },
