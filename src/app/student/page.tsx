@@ -1,9 +1,7 @@
 'use client';
 
-import { CardAnim, CardAnimInv } from '@app/admin/page';
-import { StudentIdKey, useRequireCookies } from '@lib/storage';
-import { FocusCards } from '@ui/focus-cards';
-import { AnimatePresence } from 'framer-motion';
+import { ThreeBtn } from '@components/pages/threebtn';
+import { StudentIdKey, useRequireStorage } from '@lib/storage';
 import { CalendarClock, HourglassIcon, LogOutIcon } from 'lucide-react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
@@ -12,7 +10,7 @@ import { useEffect } from 'react';
 export default function Student() {
     const router = useRouter();
     const cookies = useCookies();
-    const canLoad = useRequireCookies([{ key: StudentIdKey }], cookies, router);
+    const canLoad = useRequireStorage([{ key: StudentIdKey }]);
 
     useEffect(() => {
         router.prefetch('/student/hours');
@@ -23,34 +21,25 @@ export default function Student() {
     if (!canLoad) return <></>;
 
     return (
-        <div className='flex flex-col items-center justify-center w-full h-full'>
-            <AnimatePresence>
-                <FocusCards
-                    cards={[
-                        {
-                            title: 'Check Hours',
-                            icon: <HourglassIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
-                            motion: CardAnim,
-                            onClick: () => router.push('/student/hours'),
-                        },
-                        {
-                            title: 'Change Request',
-                            icon: <CalendarClock className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
-                            motion: CardAnimInv,
-                            onClick: () => router.push('/student/request'),
-                        },
-                        {
-                            title: 'Log Out',
-                            icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
-                            motion: CardAnim,
-                            onClick() {
-                                cookies.remove(StudentIdKey);
-                                router.push('/');
-                            },
-                        },
-                    ]}
-                />
-            </AnimatePresence>
-        </div>
+        <ThreeBtn
+            targets={[
+                {
+                    title: 'Check Hours',
+                    icon: <HourglassIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                    link: '/student/hours',
+                },
+                {
+                    title: 'Change Request',
+                    icon: <CalendarClock className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} />,
+                    link: '/student/request',
+                },
+                {
+                    title: 'Log Out',
+                    icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-32 lg:size-36 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
+                    onClick: () => cookies.remove(StudentIdKey),
+                    link: '/',
+                },
+            ]}
+        />
     );
 }

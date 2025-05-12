@@ -73,6 +73,7 @@ const config = [
                 '@typescript-eslint/no-misused-spread': 'off',
                 '@typescript-eslint/no-deprecated': 'warn',
                 '@typescript-eslint/no-confusing-void-expression': 'off',
+                '@typescript-eslint/array-type': ['warn', { default: 'array-simple' }],
                 '@typescript-eslint/no-unused-vars': ['warn', {
                     args: 'all',
                     argsIgnorePattern: '^_',

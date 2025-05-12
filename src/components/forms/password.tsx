@@ -86,6 +86,7 @@ export function PasswordOverlay() {
             }
 
             setEncKey(password);
+            setModalOpen(false);
         });
     };
 

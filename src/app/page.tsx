@@ -15,7 +15,7 @@ import { useCookies } from 'next-client-cookies';
 import { useMd } from '@lib/md';
 import { defaultExt, AnimDefault } from '@lib/anim';
 import { toast } from 'sonner';
-import { EncryptionKey, StudentIdKey, TokenKey, useRequireCookies, useSession } from '@lib/storage';
+import { EncryptionKey, StudentIdKey, TokenKey, useRequireStorage, useSession } from '@lib/storage';
 import { InputPassword } from '@components/forms/password';
 import { InputStudentId } from '@components/forms/studentId';
 
@@ -44,14 +44,10 @@ function LabeledIcon({ className, children, label }: IconProps) {
 export default function Home() {
     const router = useRouter();
     const cookies = useCookies();
-    const canLoad = useRequireCookies(
-        [
-            { key: TokenKey, redirectTo: '/admin', redirectOnMissing: false },
-            { key: StudentIdKey, redirectTo: '/student', redirectOnMissing: false },
-        ],
-        cookies,
-        router,
-    );
+    const canLoad = useRequireStorage([
+        { key: TokenKey, redirectTo: '/admin', redirectIf: 'found' },
+        { key: StudentIdKey, redirectTo: '/student', redirectIf: 'found' },
+    ]);
 
     // -- animations
     const topctl = useAnimationControls();
@@ -104,7 +100,7 @@ export default function Home() {
     // -- animation runners: outbound
     const runOutboundAnimation = () => {
         const transition = { duration: 0.5, ease: 'easeInOut' } as const;
-        const promises: Promise<void>[] = [];
+        const promises: Array<Promise<void>> = [];
 
         promises.push(headerctl.start({ y: '-5rem', opacity: 0 }, transition));
         promises.push(barctl.start({ opacity: 0 }, transition));
