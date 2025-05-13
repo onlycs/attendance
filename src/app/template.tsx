@@ -20,7 +20,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
 
     return (
         <BackgroundAnimationContext.Provider value={background}>
-            <motion.div animate={controls} className='flex flex-row w-full h-full items-center justify-center'>
+            <motion.div animate={controls} className='flex flex-row w-full h-full items-center justify-center' data-vaul-drawer-wrapper=''>
                 {children}
             </motion.div>
             <Toaster

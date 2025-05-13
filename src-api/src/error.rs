@@ -73,6 +73,12 @@ pub enum RouteError {
 
     #[error("Invalid token or password")]
     InvalidToken,
+
+    #[error("Cannot log build hours between September and December")]
+    NoBuildHours,
+
+    #[error("Cannot log learning hours between January and August")]
+    NoLearningHours,
 }
 
 impl ResponseError for RouteError {

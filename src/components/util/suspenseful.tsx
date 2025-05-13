@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/only-throw-error */
 
 import { StatefulPromiseInfo } from '@lib/stateful-promise';
-import { cn } from '@lib/utils';
 import { Spinner } from '@ui/spinner';
 import { Result } from 'neverthrow';
 import { Suspense, SVGProps, type ReactNode } from 'react';

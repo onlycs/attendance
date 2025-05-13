@@ -2,25 +2,43 @@ import { MaybeLoading } from '@components/util/suspenseful';
 import { ApiClient, apiToast } from '@lib/api';
 import { useStatefulPromise } from '@lib/stateful-promise';
 import { useSession } from '@lib/storage';
-import { Credenza, CredenzaBody, CredenzaContent, CredenzaDescription, CredenzaHeader, CredenzaTitle } from '@ui/credenza';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
-import { useEffect, useState } from 'react';
+import { Credenza, CredenzaBody, CredenzaContent, CredenzaHeader, CredenzaTitle } from '@ui/credenza';
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSlotRef } from '@ui/input-otp';
+import { useCookies } from 'next-client-cookies';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
+
+export interface InputPasswordRef {
+    password: string;
+    setPassword: (value: string) => void;
+}
 
 export interface InputPasswordProps {
-    value: string;
-    setValue: (value: string) => void;
     submit?: (password: string) => void;
     onFocus?: () => void;
     onBlur?: () => void;
-    forceUnfocus?: boolean;
     className?: string;
     autoFocus?: boolean;
 }
 
 const Dot = '●';
 
-export function InputPassword({ value, setValue, submit, onFocus, onBlur, forceUnfocus, className, autoFocus }: InputPasswordProps) {
+export const InputPassword = React.forwardRef<InputPasswordRef, InputPasswordProps>((props, ref) => {
     const [dots, setDots] = useState('');
+    const [value, setValuePrimitive] = useState('');
+    const lastOtp = useRef<InputOTPSlotRef>(null);
+
+    useImperativeHandle(ref, () => ({
+        password: value,
+        setPassword(value: string) {
+            setValue(value);
+            setDots(value.replace(/./g, Dot));
+        },
+    }));
+
+    const setValue = (newValue: string) => {
+        setValuePrimitive(newValue);
+        setDots(newValue.replace(/./g, Dot));
+    };
 
     const onChange = (newValue: string) => {
         let password;
@@ -34,45 +52,65 @@ export function InputPassword({ value, setValue, submit, onFocus, onBlur, forceU
         }
 
         if (password.length === 8) {
-            submit?.(password);
+            lastOtp.current?.forceFocus(false);
+            props.submit?.(password);
+            lastOtp.current?.forceFocus(undefined);
         }
     };
-
-    useEffect(() => {
-        setDots(value.replace(/./g, Dot));
-    }, [value]);
 
     return (
         <InputOTP
             value={dots}
             onChange={onChange}
-            onFocus={onFocus}
-            onBlur={onBlur}
+            onFocus={props.onFocus}
+            onBlur={props.onBlur}
             maxLength={8}
-            autoFocus={autoFocus}
+            autoFocus={props.autoFocus}
+            inputMode='text'
         >
             <InputOTPGroup>
-                <InputOTPSlot index={0} className={className} />
-                <InputOTPSlot index={1} className={className} />
-                <InputOTPSlot index={2} className={className} />
-                <InputOTPSlot index={3} className={className} />
-                <InputOTPSlot index={4} className={className} />
-                <InputOTPSlot index={5} className={className} />
-                <InputOTPSlot index={6} className={className} />
-                <InputOTPSlot index={7} className={className} forceUnfocus={forceUnfocus} />
+                <InputOTPSlot index={0} className={props.className} />
+                <InputOTPSlot index={1} className={props.className} />
+                <InputOTPSlot index={2} className={props.className} />
+                <InputOTPSlot index={3} className={props.className} />
+                <InputOTPSlot index={4} className={props.className} />
+                <InputOTPSlot index={5} className={props.className} />
+                <InputOTPSlot index={6} className={props.className} />
+                <InputOTPSlot index={7} ref={lastOtp} className={props.className} />
             </InputOTPGroup>
         </InputOTP>
     );
+});
+
+InputPassword.displayName = 'InputPassword';
+
+export interface PasswordOverlayRef extends Partial<InputPasswordRef> {
+    setOpen: (open: boolean) => void;
 }
 
-export function PasswordOverlay() {
+export interface PasswordOverlayProps {
+    redirect?: (to: string) => void;
+}
+
+export const PasswordOverlay = React.forwardRef<PasswordOverlayRef, PasswordOverlayProps>((props, ref) => {
     const { value: enckey, set: setEncKey } = useSession('enckey');
+    const cookies = useCookies();
+
     const [modalOpen, setModalOpen] = useState(false);
-    const [password, setPassword] = useState('');
+
+    const passwordRef = useRef<InputPasswordRef>(null);
     const [passwordOk, checkPassword] = useStatefulPromise(
         (password: string) => ApiClient.alias('login', { password }),
         apiToast,
     );
+
+    useImperativeHandle(ref, () => ({
+        setOpen(open: boolean) {
+            setModalOpen(open);
+        },
+        ...passwordRef.current,
+    }));
+
     useEffect(() => {
         if (!enckey.isSome()) setModalOpen(true);
         else setModalOpen(false);
@@ -81,7 +119,7 @@ export function PasswordOverlay() {
     const handlePasswordSubmit = (password: string) => {
         checkPassword(password).then((res) => {
             if (!res.isOk()) {
-                setPassword('');
+                passwordRef.current?.setPassword('');
                 return;
             }
 
@@ -90,28 +128,32 @@ export function PasswordOverlay() {
         });
     };
 
+    const handleCancel = (open: boolean) => {
+        if (open || !props.redirect) return;
+
+        cookies.remove('token');
+        props.redirect('/');
+        setModalOpen(false);
+    };
+
     return (
-        <Credenza open={modalOpen}>
+        <Credenza open={modalOpen} onOpenChange={handleCancel}>
             <CredenzaContent>
                 <CredenzaHeader>
-                    <CredenzaTitle>Enter Password</CredenzaTitle>
-                    <CredenzaDescription>
-                        Please enter the admin password to continue
-                    </CredenzaDescription>
+                    <CredenzaTitle>Enter Admin Password</CredenzaTitle>
                 </CredenzaHeader>
                 <CredenzaBody>
-                    <div className='flex flex-col w-full items-center justify-center mt-4 max-md:mb-6'>
+                    <div className='flex flex-col w-full items-center justify-center mt-4 max-md:mb-8'>
                         <InputPassword
-                            value={password}
-                            setValue={setPassword}
+                            ref={passwordRef}
                             submit={handlePasswordSubmit}
                             className='w-11 h-11 max-md:w-9 max-md:h-9'
                         />
-                        <div className='absolute translate-x-54'>
+                        <div className='absolute translate-x-54 max-md:translate-x-44'>
                             <MaybeLoading
                                 state={passwordOk}
-                                width='2rem'
-                                height='2rem'
+                                width='1.75rem'
+                                height='1.75rem'
                             />
                         </div>
                     </div>
@@ -119,4 +161,6 @@ export function PasswordOverlay() {
             </CredenzaContent>
         </Credenza>
     );
-}
+});
+
+PasswordOverlay.displayName = 'PasswordOverlay';

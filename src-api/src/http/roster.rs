@@ -1,29 +1,52 @@
 use crate::prelude::*;
-use chrono::Utc;
+use chrono::{Datelike, Local, Utc};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "hour_type", rename_all = "lowercase")]
+pub enum HourType {
+    #[serde(rename = "build")]
+    Build,
+    #[serde(rename = "learning")]
+    Learning,
+    #[serde(rename = "demo")]
+    Demo,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct RosterRequest {
     pub id: String,
+    pub hour_type: HourType,
     #[serde(default)]
     pub force: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Copy, Serialize)]
 pub struct RosterResponse {
     pub is_login: bool,
     pub needs_force: bool,
 }
 
 pub async fn record(
-    RosterRequest { id, force }: RosterRequest,
+    RosterRequest {
+        id,
+        force,
+        hour_type,
+    }: RosterRequest,
     pg: &PgPool,
 ) -> Result<RosterResponse, RouteError> {
+    if hour_type == HourType::Build && Local::now().naive_local().month() < 9 {
+        return Err(RouteError::NoBuildHours);
+    }
+
     let record = sqlx::query!(
         r#"
         SELECT id, sign_in FROM records
-        WHERE student_id = $1 and in_progress = true
+        WHERE student_id = $1 
+            AND in_progress = true 
+            AND hour_type = $2
         "#,
-        id
+        id,
+        hour_type as HourType,
     )
     .fetch_optional(pg)
     .await?;
@@ -32,7 +55,7 @@ pub async fn record(
         let dt = Utc::now().naive_utc();
         let diff = dt - record.sign_in;
 
-        if (diff.num_minutes() < 5) && !force {
+        if (diff.num_minutes() < 3) && !force {
             return Ok(RosterResponse {
                 is_login: false,
                 needs_force: true,
@@ -57,11 +80,12 @@ pub async fn record(
     } else {
         sqlx::query!(
             r#"
-            INSERT INTO records (id, student_id, sign_in)
-            VALUES ($1, $2, NOW())
+            INSERT INTO records (id, student_id, sign_in, hour_type)
+            VALUES ($1, $2, NOW(), $3)
             "#,
             cuid2(),
-            id
+            id,
+            hour_type as HourType,
         )
         .execute(pg)
         .await?;

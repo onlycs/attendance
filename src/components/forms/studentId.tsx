@@ -1,43 +1,58 @@
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSlotRef } from '@ui/input-otp';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import React, { useImperativeHandle, useState } from 'react';
+
+export interface InputStudentIdRef {
+    studentId: string;
+    setStudentId: (value: string) => void;
+}
 
 export interface InputStudentIdProps {
-    value: string;
-    setValue: (value: string) => void;
     submit?: (id: string) => void;
     onFocus?: () => void;
     onBlur?: () => void;
-    forceUnfocus?: boolean;
     className?: string;
     autoFocus?: boolean;
 }
 
-export function InputStudentId({ value, setValue, submit, onFocus, onBlur, forceUnfocus, className, autoFocus }: InputStudentIdProps) {
+export const InputStudentId = React.forwardRef<InputStudentIdRef, InputStudentIdProps>((props, ref) => {
+    const [value, setValue] = useState('');
+    const lastOtp = React.useRef<InputOTPSlotRef>(null);
+
     const onChange = (newValue: string) => {
         setValue(newValue);
 
         if (newValue.length === 5) {
-            submit?.(newValue);
+            lastOtp.current?.forceFocus(false);
+            props.submit?.(newValue);
+            lastOtp.current?.forceFocus(undefined);
         }
     };
+
+    useImperativeHandle(ref, () => ({
+        studentId: value,
+        setStudentId: setValue,
+    }));
 
     return (
         <InputOTP
             value={value}
             onChange={onChange}
-            onFocus={onFocus}
-            onBlur={onBlur}
+            onFocus={props.onFocus}
+            onBlur={props.onBlur}
             maxLength={5}
             pattern={REGEXP_ONLY_DIGITS}
-            autoFocus={autoFocus}
+            autoFocus={props.autoFocus}
         >
             <InputOTPGroup>
-                <InputOTPSlot index={0} className={className} />
-                <InputOTPSlot index={1} className={className} />
-                <InputOTPSlot index={2} className={className} />
-                <InputOTPSlot index={3} className={className} />
-                <InputOTPSlot index={4} className={className} forceUnfocus={forceUnfocus} />
+                <InputOTPSlot index={0} className={props.className} />
+                <InputOTPSlot index={1} className={props.className} />
+                <InputOTPSlot index={2} className={props.className} />
+                <InputOTPSlot index={3} className={props.className} />
+                <InputOTPSlot index={4} className={props.className} />
             </InputOTPGroup>
         </InputOTP>
     );
-}
+});
+
+InputStudentId.displayName = 'InputStudentId';

@@ -82,9 +82,14 @@ const config = [
                     vars: 'all',
                     varsIgnorePattern: '^_',
                 }],
+                '@typescript-eslint/no-unnecessary-condition': 'warn',
+                '@typescript-eslint/no-empty-function': 'off',
+                'no-constant-condition': 'warn',
 
                 '@stylistic/jsx-quotes': ['warn', 'prefer-single'],
                 '@stylistic/brace-style': ['warn', '1tbs', { allowSingleLine: true }],
+
+                'react/display-name': 'warn',
             },
         },
     ),

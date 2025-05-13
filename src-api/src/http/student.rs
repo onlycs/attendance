@@ -74,7 +74,7 @@ pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError>
 pub async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
     let student = sqlx::query!(
         r#"
-        SELECT * FROM records
+        SELECT student_id FROM records
         WHERE student_id = $1
         "#,
         id

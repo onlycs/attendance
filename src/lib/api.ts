@@ -6,7 +6,8 @@ import { ResultAsync } from 'neverthrow';
 import { ReadonlyDeep, RequiredKeys, UndefinedIfNever } from '@zodios/core/lib/utils.types';
 import { toast } from 'sonner';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+// export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+export const API_URL = 'http://10.8.0.6:8080';
 
 const ErrorSchema = makeErrors([
     {
@@ -114,7 +115,7 @@ export const ApiSchema = makeApi([
     },
 ]);
 
-const NonMutableMethods = ['get', 'delete', 'head', 'options'] as Omit<Method, MutationMethod>[];
+const NonMutableMethods = ['get', 'delete', 'head', 'options'] as Array<Omit<Method, MutationMethod>>;
 
 function isMutation(method: Method): method is MutationMethod {
     return !NonMutableMethods.includes(method);

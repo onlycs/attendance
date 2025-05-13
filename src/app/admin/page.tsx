@@ -1,17 +1,20 @@
 'use client';
 
-import { PasswordOverlay } from '@components/forms/password';
-import { ThreeBtn } from '@components/pages/threebtn';
+import { PasswordOverlay, PasswordOverlayRef } from '@components/forms/password';
+import { ThreeBtn, ThreeBtnRef } from '@components/pages/threebtn';
 import { TokenKey, useRequireStorage, useSession } from '@lib/storage';
 import { ClockIcon, LogOutIcon, Table2Icon } from 'lucide-react';
 import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function Home() {
     const router = useRouter();
     const cookies = useCookies();
     const canLoad = useRequireStorage([{ key: TokenKey }]);
+    const layout = useRef<ThreeBtnRef>(null);
+    const overlay = useRef<PasswordOverlayRef>(null);
+
     const { delete: deleteEnckey } = useSession('enckey');
 
     useEffect(() => {
@@ -24,9 +27,10 @@ export default function Home() {
 
     return (
         <div className='flex flex-col items-center justify-center w-full h-full'>
-            <PasswordOverlay />
+            <PasswordOverlay redirect={layout.current?.outbound} ref={overlay} />
 
             <ThreeBtn
+                ref={layout}
                 targets={[
                     {
                         title: 'Hours Editor',

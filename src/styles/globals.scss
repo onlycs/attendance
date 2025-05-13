@@ -4,6 +4,8 @@
 @layer base {
 	:root {
 		--radius: 0.5rem;
+		--transition-timing-function: ease-in-out;
+		--transition-duration: 0.25s;
 		--ring: #D7D7D7;
 	}
 
@@ -12,8 +14,8 @@
 		--background: #242424;
 		--card: #323232;
 		--text: #D7D7D7;
-		--hover: #eaeaea20;
-		--select: #1f1f1fc5;
+		--hover: #eaeaea16;
+		--select: #6e6e6e90;
 		--border: #d7d7d775;
 		--text-sub: #A7A7A7;
 	}

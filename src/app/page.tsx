@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { GraduationCap, UserIcon } from 'lucide-react';
 import { Label } from '@ui/label';
 import { Separator } from '@ui/separator';
@@ -16,8 +16,8 @@ import { useMd } from '@lib/md';
 import { defaultExt, AnimDefault } from '@lib/anim';
 import { toast } from 'sonner';
 import { EncryptionKey, StudentIdKey, TokenKey, useRequireStorage, useSession } from '@lib/storage';
-import { InputPassword } from '@components/forms/password';
-import { InputStudentId } from '@components/forms/studentId';
+import { InputPassword, InputPasswordRef } from '@components/forms/password';
+import { InputStudentId, InputStudentIdRef } from '@components/forms/studentId';
 
 interface IconProps {
     className?: string;
@@ -82,8 +82,9 @@ export default function Home() {
 
     // -- form management
     const [active, setActive] = useState<'top' | 'bottom' | 'none'>('none');
-    const [above, setAbove] = useState('');
-    const [below, setBelow] = useState('');
+    const topRef = useRef<InputPasswordRef>(null);
+    const bottomRef = useRef<InputStudentIdRef>(null);
+
     const { set: setEncryptionKey } = useSession(EncryptionKey);
 
     // -- fetching data
@@ -123,7 +124,7 @@ export default function Home() {
         topctl.start(defaultExt(top)).catch(console.error);
         barctl.start(defaultExt(bar)).catch(console.error);
         bottomctl.start(defaultExt(bottom)).catch(console.error);
-    });
+    }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // -- form change handlers
     const submitAbove = (password: string) => {
@@ -197,13 +198,12 @@ export default function Home() {
                     </LabeledIcon>
 
                     <InputPassword
-                        value={above}
-                        setValue={setAbove}
                         submit={submitAbove}
                         onFocus={() => {
                             setActive('top');
-                            setBelow('');
+                            bottomRef.current?.setStudentId('');
                         }}
+                        ref={topRef}
                         onBlur={() => setActive('none')}
                         className='w-14 h-14 max-md:w-12 max-md:h-12'
                     />
@@ -233,13 +233,12 @@ export default function Home() {
                     </LabeledIcon>
 
                     <InputStudentId
-                        value={below}
-                        setValue={setBelow}
                         submit={submitBelow}
                         onFocus={() => {
                             setActive('bottom');
-                            setAbove('');
+                            topRef.current?.setPassword('');
                         }}
+                        ref={bottomRef}
                         onBlur={() => setActive('none')}
                         className='w-14 h-14 max-md:w-12 max-md:h-12'
                     />

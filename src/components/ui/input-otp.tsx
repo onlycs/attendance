@@ -30,19 +30,29 @@ const InputOTPGroup = React.forwardRef<
 ));
 InputOTPGroup.displayName = 'InputOTPGroup';
 
+export interface InputOTPSlotRef extends React.ComponentRef<'div'> {
+    forceFocus: (toFocus: boolean | undefined) => void;
+}
+
 const InputOTPSlot = React.forwardRef<
     React.ComponentRef<'div'>,
-  React.ComponentPropsWithoutRef<'div'> & { index: number; forceUnfocus?: boolean }
->(({ index, className, forceUnfocus, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<'div'> & { index: number }
+>(({ index, className, ...props }, ref) => {
     const inputOTPContext = React.useContext(OTPInputContext);
     const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index];
+    const [unfocus, setUnfocus] = React.useState<boolean | undefined>(undefined);
+
+    React.useImperativeHandle(ref, () => ({
+        ...(ref as React.RefObject<HTMLDivElement>).current,
+        forceFocus: setUnfocus,
+    }));
 
     return (
         <div
             ref={ref}
             className={cn(
                 'relative flex h-9 w-9 items-center justify-center border-y border-r border-input text-md shadow-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md',
-                isActive && !(forceUnfocus ?? false) && 'z-10 ring-1 ring-ring',
+                isActive && !(unfocus ?? false) && 'z-10 ring-1 ring-ring',
                 className,
             )}
             {...props}
