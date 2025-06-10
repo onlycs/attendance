@@ -12,11 +12,11 @@ import { ApiClient, apiToast } from "@lib/api";
 import { useMd } from "@lib/md";
 import { useStatefulPromise } from "@lib/stateful-promise";
 import {
-	EncryptionKey,
-	StudentIdKey,
-	TokenKey,
-	useRequireStorage,
-	useSession,
+    EncryptionKey,
+    StudentIdKey,
+    TokenKey,
+    useRequireStorage,
+    useSession,
 } from "@lib/storage";
 import { cn } from "@lib/utils";
 import { Label } from "@ui/label";
@@ -160,6 +160,7 @@ export default function Home() {
 
 		adminSignin(password).then((res) => {
 			if (res.isErr()) {
+                topRef.current?.setPassword("");
 				setInOutbound(false);
 				return;
 			}

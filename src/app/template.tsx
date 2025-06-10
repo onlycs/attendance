@@ -13,6 +13,8 @@ export default function Template({ children }: { children: React.ReactNode }) {
 						icon: "left-1",
 					},
 				}}
+                richColors
+                position="bottom-center"
 			/>
 		</>
 	);

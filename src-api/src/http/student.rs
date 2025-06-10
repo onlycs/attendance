@@ -23,6 +23,8 @@ impl HoursResponse {
 }
 
 pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError> {
+    debug!("Fetching hours for student {id}");
+
     super::roster::delete_expired(pg).await?;
 
     let records = sqlx::query!(
@@ -50,6 +52,8 @@ pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError>
 }
 
 pub async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
+    debug!("Checking if student {id} exists");
+
     let student = sqlx::query!(
         r#"
         SELECT student_id FROM records
@@ -59,6 +63,8 @@ pub async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
     )
     .fetch_optional(pg)
     .await?;
+
+    debug!("Student {id} exists: {}", student.is_some());
 
     Ok(student.is_some())
 }

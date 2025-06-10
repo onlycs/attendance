@@ -83,7 +83,7 @@ export function useRequireStorage(requirements: CookieRequirements[]) {
 				return wantsMissing === !cookies.get(req.key);
 			}
 
-			return wantsMissing === sessions.value[req.key].isNone();
+			return wantsMissing === !sessions.value[req.key].isSome();
 		});
 
 		if (missing) {

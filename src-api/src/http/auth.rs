@@ -20,10 +20,10 @@ pub async fn authorize(
     TokenRequest { password }: TokenRequest,
     pg: &PgPool,
 ) -> Result<TokenResponse, RouteError> {
-    trace!("Got authentication request");
+    debug!("Got authentication request");
 
     if !bcrypt::verify(&password, &env::var("ADMIN_CRYPT")?).unwrap_or(false) {
-        debug!("Authentication failed: invalid password");
+        info!("Authentication failed: invalid password");
         return Err(RouteError::InvalidToken);
     }
 
@@ -37,7 +37,7 @@ pub async fn authorize(
     .await?;
 
     let token = if let Some(token) = token {
-        trace!("Found usable token, returning...");
+        debug!("Found usable token, returning...");
 
         let dt = token.created_at + TimeDelta::hours(12);
         let fmt = dt.format(DATEFMT).to_string();
@@ -47,7 +47,7 @@ pub async fn authorize(
             expires: fmt,
         })
     } else {
-        trace!("Must generate new token, previous one was too old");
+        debug!("Must generate new token, previous one was too old");
 
         let token = cuid2();
 
@@ -83,7 +83,7 @@ pub async fn authorize(
 }
 
 pub async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {
-    trace!("Got a token check request");
+    debug!("Got a token check request");
 
     let token = sqlx::query!(
         r#"
@@ -105,6 +105,7 @@ pub async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteErr
             expires: fmt,
         })
     } else {
+        info!("Token check failed: invalid token");
         Err(RouteError::InvalidToken)
     }
 }

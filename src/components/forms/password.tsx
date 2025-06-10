@@ -3,11 +3,11 @@ import { ApiClient, apiToast } from "@lib/api";
 import { useStatefulPromise } from "@lib/stateful-promise";
 import { EncryptionKey, TokenKey, useSession } from "@lib/storage";
 import {
-	Credenza,
-	CredenzaBody,
-	CredenzaContent,
-	CredenzaHeader,
-	CredenzaTitle,
+    Credenza,
+    CredenzaBody,
+    CredenzaContent,
+    CredenzaHeader,
+    CredenzaTitle,
 } from "@ui/credenza";
 import type { InputOTPSlotRef } from "@ui/input-otp";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@ui/input-otp";
@@ -27,39 +27,22 @@ export interface InputPasswordProps {
 	autoFocus?: boolean;
 }
 
-const Dot = "●";
-
 export const InputPassword = React.forwardRef<
 	InputPasswordRef,
 	InputPasswordProps
 >((props, ref) => {
-	const [dots, setDots] = useState("");
-	const [value, setValuePrimitive] = useState("");
+	const [value, setValue] = useState("");
 	const lastOtp = useRef<InputOTPSlotRef>(null);
 
 	useImperativeHandle(ref, () => ({
 		password: value,
 		setPassword(value: string) {
 			setValue(value);
-			setDots(value.replace(/./g, Dot));
 		},
 	}));
 
-	const setValue = (newValue: string) => {
-		setValuePrimitive(newValue);
-		setDots(newValue.replace(/./g, Dot));
-	};
-
-	const onChange = (newValue: string) => {
-		let password: string;
-
-		if (newValue.endsWith(Dot)) {
-			password = value.slice(0, newValue.length - value.length);
-			setValue(password);
-		} else {
-			password = value + newValue.slice(-1);
-			setValue(password);
-		}
+	const onChange = (password: string) => {
+		setValue(password);
 
 		if (password.length === 8) {
 			lastOtp.current?.forceFocus(false);
@@ -70,23 +53,22 @@ export const InputPassword = React.forwardRef<
 
 	return (
 		<InputOTP
-			value={dots}
+			value={value}
 			onChange={onChange}
 			onFocus={props.onFocus}
 			onBlur={props.onBlur}
 			maxLength={8}
 			autoFocus={props.autoFocus}
-			inputMode="text"
 		>
 			<InputOTPGroup>
-				<InputOTPSlot index={0} className={props.className} />
-				<InputOTPSlot index={1} className={props.className} />
-				<InputOTPSlot index={2} className={props.className} />
-				<InputOTPSlot index={3} className={props.className} />
-				<InputOTPSlot index={4} className={props.className} />
-				<InputOTPSlot index={5} className={props.className} />
-				<InputOTPSlot index={6} className={props.className} />
-				<InputOTPSlot index={7} ref={lastOtp} className={props.className} />
+				<InputOTPSlot index={0} className={props.className} dots />
+				<InputOTPSlot index={1} className={props.className} dots />
+				<InputOTPSlot index={2} className={props.className} dots />
+				<InputOTPSlot index={3} className={props.className} dots />
+				<InputOTPSlot index={4} className={props.className} dots />
+				<InputOTPSlot index={5} className={props.className} dots />
+				<InputOTPSlot index={6} className={props.className} dots />
+				<InputOTPSlot index={7} ref={lastOtp} className={props.className} dots />
 			</InputOTPGroup>
 		</InputOTP>
 	);

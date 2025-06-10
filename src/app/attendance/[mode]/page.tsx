@@ -5,35 +5,36 @@ import { InputStudentId } from "@components/forms/studentId";
 import { useRecolor } from "@components/util/recolor";
 import { MaybeLoading } from "@components/util/suspenseful";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { AnyError, HourType, RosterAction } from "@lib/api";
+import type { AnyError, HourType } from "@lib/api";
 import { ApiClient, apiToast } from "@lib/api";
 import * as crypt from "@lib/crypt";
 import { JsonDb, StudentData } from "@lib/jsondb";
+import { None, Option, Some } from "@lib/optional";
 import { useStatefulPromise } from "@lib/stateful-promise";
 import {
-	EncryptionKey,
-	TokenKey,
-	useRequireStorage,
-	useSession,
+    EncryptionKey,
+    TokenKey,
+    useRequireStorage,
+    useSession,
 } from "@lib/storage";
 import { makeWebsocket } from "@lib/zodws/api";
 import { Button } from "@ui/button";
 import {
-	Credenza,
-	CredenzaBody,
-	CredenzaContent,
-	CredenzaDescription,
-	CredenzaFooter,
-	CredenzaHeader,
-	CredenzaTitle,
+    Credenza,
+    CredenzaBody,
+    CredenzaContent,
+    CredenzaDescription,
+    CredenzaFooter,
+    CredenzaHeader,
+    CredenzaTitle,
 } from "@ui/credenza";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@ui/form";
 import { Input } from "@ui/input";
 import { Label } from "@ui/label";
@@ -42,11 +43,11 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { useCookies } from "next-client-cookies";
 import { useParams } from "next/navigation";
 import React, {
-	useEffect,
-	useImperativeHandle,
-	useMemo,
-	useRef,
-	useState,
+    useEffect,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -230,7 +231,10 @@ const Modals = React.forwardRef<ModalsRef, ModalsProps>((props, ref) => {
 						/>
 					</CredenzaBody>
 					<CredenzaFooter className="h-10 flex flex-row max-md:h-20">
-						<Button className="w-full h-full" variant="error">
+						<Button className="w-full h-full" variant="error" onClick={() => {
+                            setRegister(false);
+                            props.clearStudentId();
+                        }}>
 							I entered my ID wrong
 						</Button>
 					</CredenzaFooter>
@@ -257,17 +261,21 @@ export default function Roster() {
 		([id, force]: [string, boolean]) => {
 			return new ResultAsync(
 				(async () => {
-					const exists = await ApiClient.alias("studentExists", {
-						params: { id },
-					});
+                    if (!studentData.isSome()) {
+                        return ok({
+                            register: false,
+                            denied: true,
+                            action: "login",  
+                        });
+                    }
 
-					if (!exists.isOk()) return err(exists.error as AnyError);
-					if (!exists.value)
-						return ok({
-							register: true,
-							denied: false,
-							action: "login" as RosterAction,
-						});
+                    if (!studentData.value.get({ id })) {
+                        return ok({
+                            register: true,
+                            denied: false,
+                            action: "login",
+                        });
+                    }
 
 					const res = await ApiClient.alias(
 						"roster",
@@ -284,24 +292,24 @@ export default function Roster() {
 	);
 
 	// websocketing
-	const [studentData, setStudentData] = useState<JsonDb<
-		typeof StudentData
-	> | null>(null);
+	const [studentData, setStudentData] = useState<Option<JsonDb<typeof StudentData>>>(None);
+    
 	// biome-ignore lint/correctness/useExhaustiveDependencies: websocket is stable, no need to recreate
 	const ws = useMemo(() => {
 		return makeWebsocket({
 			messages: {
 				StudentData: (_, data) => {
 					if (!data) {
-						setStudentData(new JsonDb(StudentData, []));
+						setStudentData(Some(new JsonDb(StudentData, [])));
 					} else {
 						crypt
 							.decrypt(data, password.unwrap(""))
-							.then((decrypted) =>
-								setStudentData(
-									new JsonDb(StudentData, JSON.parse(decrypted || "[]")),
-								),
-							)
+							.then((decrypted) => {
+                                console.log("Decrypted student data", JSON.parse(decrypted || "[]"));
+                                setStudentData(
+									Some(new JsonDb(StudentData, JSON.parse(decrypted || "[]"))),
+								);
+                            })
 							.catch(toast.error);
 					}
 				},
@@ -315,8 +323,8 @@ export default function Roster() {
 	const modals = useRef<ModalsRef>(null);
 	const recolor = useRecolor();
 
-	const roster = (force = false) => {
-		const studentId = idForm.current?.studentId;
+	const roster = (id?: string, force = false) => {
+		const studentId = id ?? idForm.current?.studentId;
 
 		if (studentId === undefined) {
 			toast.error("Form is not ready yet.");
@@ -332,7 +340,7 @@ export default function Roster() {
 			}
 
 			if (res.value.denied) {
-				modals.current?.showRegister();
+				modals.current?.showForce();
 				return;
 			}
 
@@ -340,9 +348,11 @@ export default function Roster() {
 
 			switch (res.value.action) {
 				case "login":
-					return recolor("success");
+					toast.success("You have successfully signed in!");
+                    break;
 				case "logout":
-					return recolor("error");
+                    toast.success("You have successfully signed out!");
+                    break;
 			}
 		});
 	};
@@ -352,7 +362,7 @@ export default function Roster() {
 	};
 
 	const register = (data: z.TypeOf<typeof RegisterFormSchema>) => {
-		if (!studentData) {
+		if (!studentData.isSome()) {
 			toast.error("Student data is not loaded yet.");
 			return;
 		}
@@ -362,12 +372,12 @@ export default function Roster() {
 			return;
 		}
 
-		studentData.insert({
+		studentData.value.insert({
 			id: idForm.current.studentId,
 			...data,
 		});
 
-		const serialized = studentData.serialize();
+		const serialized = studentData.value.serialize();
 
 		if (!password.isSome()) {
 			return;
@@ -389,8 +399,8 @@ export default function Roster() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: websocket is not a dependency
 	useEffect(() => {
 		ws.send("Subscribe", "StudentData");
-	}, []); // eslint-disable-line
-
+	}, []); 
+    
 	if (!canLoad) {
 		return <></>;
 	}
@@ -398,7 +408,7 @@ export default function Roster() {
 	return (
 		<>
 			<Modals
-				roster={roster}
+				roster={(force) => roster(undefined, force)}
 				clearStudentId={clearId}
 				onRegister={register}
 				ref={modals}
@@ -411,7 +421,7 @@ export default function Roster() {
 			<InputStudentId
 				ref={idForm}
 				className="w-24 h-24 text-2xl"
-				submit={() => roster()}
+				submit={(id) => roster(id)}
 			/>
 
 			<div className="md:absolute md:translate-x-66 max-md:mt-8">

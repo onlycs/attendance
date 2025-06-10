@@ -41,11 +41,15 @@ pub async fn record(
     }: RosterRequest,
     pg: &PgPool,
 ) -> Result<RosterResponse, RouteError> {
+    debug!("Received roster request: {hour_type:?} hours for {id}");
+
     if hour_type == HourType::Build && Utc::now().with_timezone(&Eastern).month() > 9 {
+        warn!("Build hours are not available after September");
         return Err(RouteError::NoBuildHours);
     }
 
     if hour_type == HourType::Learning && Utc::now().with_timezone(&Eastern).month() < 9 {
+        warn!("Learning hours are not available before September");
         return Err(RouteError::NoLearningHours);
     }
 
@@ -67,11 +71,15 @@ pub async fn record(
         let diff = dt - record.sign_in;
 
         if (diff.num_minutes() < 3) && !force {
+            info!("Logout denied: student {id} has been signed in for less than 3 minutes");
+
             return Ok(RosterResponse {
                 action: RosterAction::Logout,
                 denied: true,
             });
         }
+
+        debug!("Logging out student {id}");
 
         sqlx::query!(
             r#"
@@ -89,6 +97,8 @@ pub async fn record(
             denied: false,
         })
     } else {
+        debug!("Logging in student {id}");
+
         sqlx::query!(
             r#"
             INSERT INTO records (id, student_id, sign_in, hour_type)

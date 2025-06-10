@@ -14,10 +14,6 @@ abstract class OptionBase<T> {
 	abstract unwrap(or?: ValueOrProducer<T>): T;
 	abstract match<U>(ok: (value: T) => U, err: () => U): U;
 
-	isNone(): this is OptionNone<T> {
-		return !this.isSome();
-	}
-
 	static ofNullable<T>(value: T | null | undefined): Option<T> {
 		if (value == null || value === undefined) return None;
 		return Some(value);
@@ -25,7 +21,7 @@ abstract class OptionBase<T> {
 }
 
 class OptionSome<T> extends OptionBase<T> {
-	constructor(private readonly value: T) {
+	constructor(public readonly value: T) {
 		super();
 	}
 
