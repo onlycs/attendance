@@ -25,7 +25,7 @@ impl Session {
         let mut ids = IDS.write().await;
 
         // if this happens, what the actual fuck
-        if ids.len() == u64::MAX as usize {
+        if ids.len() as u64 == u64::MAX {
             error!("Ran out of session ids... how the fuck is the server still on");
             process::exit(1);
         }

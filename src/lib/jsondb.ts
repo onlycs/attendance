@@ -102,7 +102,6 @@ export class JsonDb<Table extends DbTable> {
 		toParse: object[] | string = [],
 	) {
 		if (!Array.isArray(toParse)) {
-			// biome-ignore lint/style/noParameterAssign: This is a valid use case
 			toParse = JSON.parse(toParse);
 		}
 

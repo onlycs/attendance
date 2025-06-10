@@ -46,7 +46,7 @@
 		"zod": "^3.25.57"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.0.0-beta.6",
 		"@tailwindcss/postcss": "^4.1.8",
 		"@types/node": "^24.0.0",
 		"@types/react": "^19.1.7",
@@ -58,6 +58,8 @@
 		"typescript": "^5.8.3"
 	},
 	"packageManager": "pnpm@9.10.0+sha512.73a29afa36a0d092ece5271de5177ecbf8318d454ecd701343131b8ebc0c1a91c487da46ab77c8e596d6acf1461e3594ced4becedf8921b074fbd8653ed7051c",
-	"trustedDependencies": ["@vercel/speed-insights"],
+	"trustedDependencies": [
+		"@vercel/speed-insights"
+	],
 	"type": "module"
 }

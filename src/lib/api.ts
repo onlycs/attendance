@@ -1,4 +1,4 @@
-import { Zodios, makeApi, makeErrors, makeParameters } from "@zodios/core";
+import { makeApi, makeErrors, makeParameters, Zodios } from "@zodios/core";
 import type {
 	ReadonlyDeep,
 	RequiredKeys,

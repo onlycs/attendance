@@ -16,7 +16,7 @@ pub struct TokenResponse {
     pub expires: String,
 }
 
-pub async fn authorize(
+pub(super) async fn authorize(
     TokenRequest { password }: TokenRequest,
     pg: &PgPool,
 ) -> Result<TokenResponse, RouteError> {
@@ -82,7 +82,7 @@ pub async fn authorize(
     token
 }
 
-pub async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {
+pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {
     debug!("Got a token check request");
 
     let token = sqlx::query!(
@@ -110,7 +110,7 @@ pub async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteErr
     }
 }
 
-pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
+pub(super) async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = sqlx::query!(
         r#"
         SELECT token FROM tokens
@@ -129,7 +129,7 @@ pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
     Ok(())
 }
 
-pub fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
+pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
     let auth_header = req.headers().get("Authorization");
 
     let Some(auth) = auth_header else {

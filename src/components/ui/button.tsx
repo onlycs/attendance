@@ -1,8 +1,7 @@
-import * as React from "react";
-
 import { cn } from "@lib/utils";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import { type HTMLMotionProps, motion } from "framer-motion";
+import * as React from "react";
 
 const ButtonVariants = cva("relative p-2 rounded-md text-sm", {
 	variants: {

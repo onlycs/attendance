@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import type { InputPasswordRef } from "@components/forms/password";
 import { InputPassword } from "@components/forms/password";
 import type { InputStudentIdRef } from "@components/forms/studentId";
@@ -24,6 +22,7 @@ import { Separator } from "@ui/separator";
 import type { TargetAndTransition } from "framer-motion";
 import { motion, useAnimationControls } from "framer-motion";
 import { GraduationCap, UserIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCookies } from "next-client-cookies";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";

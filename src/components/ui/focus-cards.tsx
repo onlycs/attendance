@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { type HTMLMotionProps, motion } from "framer-motion";
 import React, { type ReactNode, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export const Card = React.memo(
 	({

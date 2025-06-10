@@ -1,8 +1,6 @@
 {
-	"organizeImports": {
-		"enabled": true
-	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"files": {
-		"ignore": ["node_modules", ".next"]
+		"includes": ["**", "!**/node_modules", "!**/.next"]
 	}
 }

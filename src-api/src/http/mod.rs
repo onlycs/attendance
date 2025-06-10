@@ -1,6 +1,6 @@
-mod auth;
-mod roster;
-mod student;
+pub mod auth;
+pub mod roster;
+pub mod student;
 
 use actix_web::{
     web::{self},

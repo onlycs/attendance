@@ -49,22 +49,12 @@ export function makeApi<Api extends ZodWsApi>(api: Narrow<Api>): Api {
 export type ClientMessage<
 	Api extends ZodWsApi,
 	Name extends ClientMessageNames<Api>,
-> = FilterArrayByValue<
-	Api["clientMsgs"],
-	{
-		name: Name;
-	}
->[number];
+> = FilterArrayByValue<Api["clientMsgs"], { name: Name }>[number];
 
 export type ServerMessage<
 	Api extends ZodWsApi,
 	Name extends ServerMessageNames<Api>,
-> = FilterArrayByValue<
-	Api["serverMsgs"],
-	{
-		name: Name;
-	}
->[number];
+> = FilterArrayByValue<Api["serverMsgs"], { name: Name }>[number];
 
 export type ClientMessageNames<Api extends ZodWsApi> =
 	Api["clientMsgs"][number]["name"];

@@ -33,7 +33,7 @@ pub struct RosterResponse {
     pub denied: bool,
 }
 
-pub async fn record(
+pub(super) async fn record(
     RosterRequest {
         id,
         force,
@@ -118,7 +118,7 @@ pub async fn record(
     }
 }
 
-pub async fn delete_expired(pg: &PgPool) -> Result<(), RouteError> {
+pub(super) async fn delete_expired(pg: &PgPool) -> Result<(), RouteError> {
     sqlx::query!(
         r#"
         DELETE FROM records

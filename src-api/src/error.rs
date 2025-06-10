@@ -84,16 +84,16 @@ pub enum RouteError {
 impl ResponseError for RouteError {
     fn status_code(&self) -> StatusCode {
         match self {
-            RouteError::NoAuth => StatusCode::UNAUTHORIZED,
-            RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
+            RouteError::NoAuth | RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
     fn error_response(&self) -> HttpResponse<BoxBody> {
         match self {
-            RouteError::NoAuth => HttpResponse::Unauthorized().body(format!("{self}")),
-            RouteError::InvalidToken => HttpResponse::Unauthorized().body(format!("{self}")),
+            RouteError::NoAuth | RouteError::InvalidToken => {
+                HttpResponse::Unauthorized().body(format!("{self}"))
+            }
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }

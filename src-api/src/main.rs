@@ -1,29 +1,14 @@
 #![feature(never_type, error_generic_member_access)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::similar_names)]
 
-extern crate actix_cors;
-extern crate actix_web;
-extern crate actix_ws;
-extern crate bcrypt;
-extern crate chrono;
-extern crate chrono_tz;
-extern crate cuid;
-extern crate dotenvy;
-extern crate futures_util;
-extern crate itertools;
 #[macro_use]
 extern crate log;
-extern crate serde;
-extern crate serde_json;
-extern crate serde_with;
-extern crate simple_logger;
-extern crate sqlx;
-extern crate thiserror;
-extern crate time;
 
-mod error;
-mod http;
-mod prelude;
-mod ws;
+pub mod error;
+pub mod http;
+pub mod prelude;
+pub mod ws;
 
 use std::sync::Arc;
 

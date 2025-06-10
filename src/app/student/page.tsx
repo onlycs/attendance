@@ -3,8 +3,8 @@
 import { ThreeBtn } from "@components/pages/threebtn";
 import { StudentIdKey, useRequireStorage } from "@lib/storage";
 import { CalendarClock, HourglassIcon, LogOutIcon } from "lucide-react";
-import { useCookies } from "next-client-cookies";
 import { useRouter } from "next/navigation";
+import { useCookies } from "next-client-cookies";
 import { useEffect } from "react";
 
 export default function Student() {

@@ -2,7 +2,6 @@
 
 import type { InputStudentIdRef } from "@components/forms/studentId";
 import { InputStudentId } from "@components/forms/studentId";
-import { useRecolor } from "@components/util/recolor";
 import { MaybeLoading } from "@components/util/suspenseful";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { AnyError, HourType } from "@lib/api";
@@ -39,9 +38,9 @@ import {
 import { Input } from "@ui/input";
 import { Label } from "@ui/label";
 import { AsteriskIcon } from "lucide-react";
-import { ResultAsync, err, ok } from "neverthrow";
-import { useCookies } from "next-client-cookies";
+import { err, ok, ResultAsync } from "neverthrow";
 import { useParams } from "next/navigation";
+import { useCookies } from "next-client-cookies";
 import React, {
 	useEffect,
 	useImperativeHandle,
@@ -329,7 +328,6 @@ export default function Roster() {
 	// ui
 	const idForm = useRef<InputStudentIdRef>(null);
 	const modals = useRef<ModalsRef>(null);
-	const recolor = useRecolor();
 
 	const roster = (id?: string, force = false) => {
 		const studentId = id ?? idForm.current?.studentId;

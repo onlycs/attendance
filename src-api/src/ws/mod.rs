@@ -56,7 +56,7 @@ pub enum WsError {
     Send,
 }
 
-pub async fn ws(
+pub(crate) async fn ws(
     req: HttpRequest,
     stream: web::Payload,
     state: web::Data<AppState>,
@@ -121,16 +121,17 @@ pub async fn ws(
             .await;
 
             if let Err(error) = result {
-                session
-                    .text(
-                        serde_json::to_string(&ServerMessage::Error {
-                            message: format!("{error}"),
-                            meta: error,
-                        })
-                        .unwrap(),
-                    )
-                    .await
-                    .unwrap()
+                let Ok(res) = serde_json::to_string(&ServerMessage::Error {
+                    message: format!("{error}"),
+                    meta: error,
+                }) else {
+                    warn!("Failed to serialize error message.");
+                    continue;
+                };
+
+                if session.text(res).await.is_err() {
+                    warn!("Websocket closed while sending error, ignoring.");
+                }
             }
         }
     });

@@ -3,7 +3,7 @@
 import type { StatefulPromiseInfo } from "@lib/stateful-promise";
 import { Spinner } from "@ui/spinner";
 import type { Result } from "neverthrow";
-import { type ReactNode, type SVGProps, Suspense } from "react";
+import { type ReactNode, Suspense, type SVGProps } from "react";
 
 export interface SuspensefulProps<T, E> {
 	Loading: () => ReactNode;
@@ -20,7 +20,7 @@ export function makeResource<T, E>(
 	promise: Promise<Result<T, E>>,
 ): Resource<T, E> {
 	let status: "pending" | "fulfilled" | "rejected" = "pending";
-	let result: Result<T, E> | undefined = undefined;
+	let result: Result<T, E> | undefined;
 	const suspender = promise.then((res) => {
 		status = "fulfilled";
 		result = res;

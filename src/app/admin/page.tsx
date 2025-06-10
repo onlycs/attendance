@@ -44,7 +44,7 @@ export default function Home() {
 								strokeWidth={1}
 							/>
 						),
-						link: "/admin/editor",
+						link: "/editor",
 					},
 					{
 						title: "Attendance",
