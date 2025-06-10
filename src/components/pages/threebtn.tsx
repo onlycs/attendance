@@ -19,15 +19,9 @@ const CardAnim = {
 		hover: { scale: 1.05, y: -10, transition: { duration: 0.1 } },
 	},
 
-	initial: "above",
-	whileInView: "center",
+	initial: "center",
 	whileHover: "hover",
-	transition: { duration: 0.25, ease: "easeInOut" },
-};
-
-const CardAnimInv = {
-	...CardAnim,
-	initial: "below",
+	transition: { duration: 0.15, ease: "easeInOut" },
 };
 
 export interface ThreeBtnProps {
@@ -55,26 +49,31 @@ export const ThreeBtn = React.forwardRef<ThreeBtnRef, ThreeBtnProps>(
 
 		// biome-ignore lint/correctness/useExhaustiveDependencies: animation controllers are not dependencies
 		useEffect(() => {
+			fwdController.set("above");
+			bwdController.set("below");
+
 			fwdController.start("center").catch(console.error);
 			bwdController.start("center").catch(console.error);
 		}, []);
 
-		useImperativeHandle(ref, () => ({
-			outbound: (url: string) => {
-				fwdController.set("center");
-				bwdController.set("center");
+		// biome-ignore lint/correctness/useExhaustiveDependencies: animations are not dependencies, neither is the router
+		useImperativeHandle(
+			ref,
+			() => ({
+				outbound: (url: string) => {
+					fwdController.set("center");
+					bwdController.set("center");
 
-				fwdController.start("below").catch(console.error);
-				bwdController.start("above").catch(console.error);
+					fwdController.start("below").catch(console.error);
+					bwdController.start("above").catch(console.error);
 
-				setTimeout(() => {
-					fwdController.set("below");
-					bwdController.set("above");
-
-					router.push(url);
-				}, CardAnim.transition.duration * 1000);
-			},
-		}));
+					setTimeout(() => {
+						router.push(url);
+					}, CardAnim.transition.duration * 1000);
+				},
+			}),
+			[],
+		);
 
 		const outbound = (url: string) => {
 			fwdController.set("center");
@@ -92,7 +91,7 @@ export const ThreeBtn = React.forwardRef<ThreeBtnRef, ThreeBtnProps>(
 		};
 
 		const bwdAnim = {
-			...CardAnimInv,
+			...CardAnim,
 			animate: bwdController,
 		};
 

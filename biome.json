@@ -1,5 +1,8 @@
 {
-  "organizeImports": {
-    "enabled": false
-  }
+	"organizeImports": {
+		"enabled": true
+	},
+	"files": {
+		"ignore": ["node_modules", ".next"]
+	}
 }

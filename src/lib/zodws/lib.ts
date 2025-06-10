@@ -94,15 +94,15 @@ export interface WsClientHooks<Api extends ZodWsApi> {
 }
 
 export class ZodWsClient<Api extends ZodWsApi> {
-	public readonly socket: WebSocket;
+	readonly socket: WebSocket;
 	private ready = false;
 	private queue: string[] = [];
 
 	constructor(
-		public readonly api: Api,
-		public readonly url: string,
+		readonly api: Api,
+		readonly url: string,
 		private readonly hooks: WsClientHooks<Api>,
-		public readonly protocols?: string | string[],
+		readonly protocols?: string | string[],
 	) {
 		this.socket = new WebSocket(url, protocols);
 		this.socket.onmessage = async (ev: MessageEvent) => {

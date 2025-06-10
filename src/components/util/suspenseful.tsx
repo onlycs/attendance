@@ -3,7 +3,7 @@
 import type { StatefulPromiseInfo } from "@lib/stateful-promise";
 import { Spinner } from "@ui/spinner";
 import type { Result } from "neverthrow";
-import { Suspense, type ReactNode, type SVGProps } from "react";
+import { type ReactNode, type SVGProps, Suspense } from "react";
 
 export interface SuspensefulProps<T, E> {
 	Loading: () => ReactNode;

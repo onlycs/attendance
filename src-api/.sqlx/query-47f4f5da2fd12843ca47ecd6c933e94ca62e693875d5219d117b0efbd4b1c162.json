@@ -1,14 +1,12 @@
 {
-  "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO tokens (token)\n            VALUES ($1)\n            ",
-  "describe": {
-    "columns": [],
-    "parameters": {
-      "Left": [
-        "Text"
-      ]
-    },
-    "nullable": []
-  },
-  "hash": "47f4f5da2fd12843ca47ecd6c933e94ca62e693875d5219d117b0efbd4b1c162"
+	"db_name": "PostgreSQL",
+	"query": "\n            INSERT INTO tokens (token)\n            VALUES ($1)\n            ",
+	"describe": {
+		"columns": [],
+		"parameters": {
+			"Left": ["Text"]
+		},
+		"nullable": []
+	},
+	"hash": "47f4f5da2fd12843ca47ecd6c933e94ca62e693875d5219d117b0efbd4b1c162"
 }

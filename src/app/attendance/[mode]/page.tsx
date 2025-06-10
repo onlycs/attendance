@@ -9,45 +9,45 @@ import type { AnyError, HourType } from "@lib/api";
 import { ApiClient, apiToast } from "@lib/api";
 import * as crypt from "@lib/crypt";
 import { JsonDb, StudentData } from "@lib/jsondb";
-import { None, Option, Some } from "@lib/optional";
+import { None, type Option, Some } from "@lib/optional";
 import { useStatefulPromise } from "@lib/stateful-promise";
 import {
-    EncryptionKey,
-    TokenKey,
-    useRequireStorage,
-    useSession,
+	EncryptionKey,
+	TokenKey,
+	useRequireStorage,
+	useSession,
 } from "@lib/storage";
 import { makeWebsocket } from "@lib/zodws/api";
 import { Button } from "@ui/button";
 import {
-    Credenza,
-    CredenzaBody,
-    CredenzaContent,
-    CredenzaDescription,
-    CredenzaFooter,
-    CredenzaHeader,
-    CredenzaTitle,
+	Credenza,
+	CredenzaBody,
+	CredenzaContent,
+	CredenzaDescription,
+	CredenzaFooter,
+	CredenzaHeader,
+	CredenzaTitle,
 } from "@ui/credenza";
 import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
 } from "@ui/form";
 import { Input } from "@ui/input";
 import { Label } from "@ui/label";
 import { AsteriskIcon } from "lucide-react";
-import { err, ok, ResultAsync } from "neverthrow";
+import { ResultAsync, err, ok } from "neverthrow";
 import { useCookies } from "next-client-cookies";
 import { useParams } from "next/navigation";
 import React, {
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-    useState,
+	useEffect,
+	useImperativeHandle,
+	useMemo,
+	useRef,
+	useState,
 } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -231,10 +231,14 @@ const Modals = React.forwardRef<ModalsRef, ModalsProps>((props, ref) => {
 						/>
 					</CredenzaBody>
 					<CredenzaFooter className="h-10 flex flex-row max-md:h-20">
-						<Button className="w-full h-full" variant="error" onClick={() => {
-                            setRegister(false);
-                            props.clearStudentId();
-                        }}>
+						<Button
+							className="w-full h-full"
+							variant="error"
+							onClick={() => {
+								setRegister(false);
+								props.clearStudentId();
+							}}
+						>
 							I entered my ID wrong
 						</Button>
 					</CredenzaFooter>
@@ -261,21 +265,21 @@ export default function Roster() {
 		([id, force]: [string, boolean]) => {
 			return new ResultAsync(
 				(async () => {
-                    if (!studentData.isSome()) {
-                        return ok({
-                            register: false,
-                            denied: true,
-                            action: "login",  
-                        });
-                    }
+					if (!studentData.isSome()) {
+						return ok({
+							register: false,
+							denied: true,
+							action: "login",
+						});
+					}
 
-                    if (!studentData.value.get({ id })) {
-                        return ok({
-                            register: true,
-                            denied: false,
-                            action: "login",
-                        });
-                    }
+					if (!studentData.value.get({ id })) {
+						return ok({
+							register: true,
+							denied: false,
+							action: "login",
+						});
+					}
 
 					const res = await ApiClient.alias(
 						"roster",
@@ -292,8 +296,9 @@ export default function Roster() {
 	);
 
 	// websocketing
-	const [studentData, setStudentData] = useState<Option<JsonDb<typeof StudentData>>>(None);
-    
+	const [studentData, setStudentData] =
+		useState<Option<JsonDb<typeof StudentData>>>(None);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: websocket is stable, no need to recreate
 	const ws = useMemo(() => {
 		return makeWebsocket({
@@ -305,11 +310,14 @@ export default function Roster() {
 						crypt
 							.decrypt(data, password.unwrap(""))
 							.then((decrypted) => {
-                                console.log("Decrypted student data", JSON.parse(decrypted || "[]"));
-                                setStudentData(
+								console.log(
+									"Decrypted student data",
+									JSON.parse(decrypted || "[]"),
+								);
+								setStudentData(
 									Some(new JsonDb(StudentData, JSON.parse(decrypted || "[]"))),
 								);
-                            })
+							})
 							.catch(toast.error);
 					}
 				},
@@ -349,10 +357,10 @@ export default function Roster() {
 			switch (res.value.action) {
 				case "login":
 					toast.success("You have successfully signed in!");
-                    break;
+					break;
 				case "logout":
-                    toast.success("You have successfully signed out!");
-                    break;
+					toast.success("You have successfully signed out!");
+					break;
 			}
 		});
 	};
@@ -399,8 +407,8 @@ export default function Roster() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: websocket is not a dependency
 	useEffect(() => {
 		ws.send("Subscribe", "StudentData");
-	}, []); 
-    
+	}, []);
+
 	if (!canLoad) {
 		return <></>;
 	}

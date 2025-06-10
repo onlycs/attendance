@@ -10,35 +10,35 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum InitError {
     #[error("At {location}: Failed to connect to database:\n{source}")]
-    DbError {
+    Db {
         #[from]
         source: sqlx::Error,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to launch server:\n{source}")]
-    PoolError {
+    Pool {
         #[from]
         source: io::Error,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to init logger:\n{source}")]
-    LogError {
+    Log {
         #[from]
         source: log::SetLoggerError,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to get environment variable:\n{source}")]
-    EnvError {
+    Env {
         #[from]
         source: VarError,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to start dotenv:\n{source}")]
-    DotenvError {
+    Dotenv {
         #[from]
         source: dotenvy::Error,
         location: &'static Location<'static>,
@@ -48,21 +48,21 @@ pub enum InitError {
 #[derive(Error, Debug)]
 pub enum RouteError {
     #[error("At {location}: SQLx failure:\n{source}")]
-    SqlxError {
+    Sqlx {
         #[from]
         source: sqlx::Error,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to convert header to string:\n{source}")]
-    HeaderError {
+    Header {
         #[from]
         source: ToStrError,
         location: &'static Location<'static>,
     },
 
     #[error("At {location}: Failed to get environment variable:\n{source}")]
-    EnvError {
+    Env {
         #[from]
         source: VarError,
         location: &'static Location<'static>,

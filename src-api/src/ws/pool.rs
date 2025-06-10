@@ -37,13 +37,13 @@ impl SubPools {
         Arc::clone(&*INSTANCE)
     }
 
-    pub async fn get<'a>(&'a self, sub: Subscription, pg: &Arc<PgPool>) -> Arc<SubPool> {
+    pub async fn get(&self, sub: Subscription, pg: &Arc<PgPool>) -> Arc<SubPool> {
         Arc::clone(
             self.pools
                 .write()
                 .await
                 .entry(sub)
-                .or_insert_with(|| sub.pool(Arc::clone(&pg))),
+                .or_insert_with(|| sub.pool(Arc::clone(pg))),
         )
     }
 

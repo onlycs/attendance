@@ -98,7 +98,7 @@ export class JsonDb<Table extends DbTable> {
 	private data: Array<DataRow<Table>> = [];
 
 	constructor(
-		public readonly table: Table,
+		readonly table: Table,
 		toParse: object[] | string = [],
 	) {
 		if (!Array.isArray(toParse)) {

@@ -3,11 +3,11 @@ import { ApiClient, apiToast } from "@lib/api";
 import { useStatefulPromise } from "@lib/stateful-promise";
 import { EncryptionKey, TokenKey, useSession } from "@lib/storage";
 import {
-    Credenza,
-    CredenzaBody,
-    CredenzaContent,
-    CredenzaHeader,
-    CredenzaTitle,
+	Credenza,
+	CredenzaBody,
+	CredenzaContent,
+	CredenzaHeader,
+	CredenzaTitle,
 } from "@ui/credenza";
 import type { InputOTPSlotRef } from "@ui/input-otp";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@ui/input-otp";
@@ -59,6 +59,7 @@ export const InputPassword = React.forwardRef<
 			onBlur={props.onBlur}
 			maxLength={8}
 			autoFocus={props.autoFocus}
+			inputMode="text"
 		>
 			<InputOTPGroup>
 				<InputOTPSlot index={0} className={props.className} dots />
@@ -68,7 +69,12 @@ export const InputPassword = React.forwardRef<
 				<InputOTPSlot index={4} className={props.className} dots />
 				<InputOTPSlot index={5} className={props.className} dots />
 				<InputOTPSlot index={6} className={props.className} dots />
-				<InputOTPSlot index={7} ref={lastOtp} className={props.className} dots />
+				<InputOTPSlot
+					index={7}
+					ref={lastOtp}
+					className={props.className}
+					dots
+				/>
 			</InputOTPGroup>
 		</InputOTP>
 	);

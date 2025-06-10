@@ -26,7 +26,12 @@ export default function Home() {
 
 	return (
 		<div className="flex flex-col items-center justify-center w-full h-full">
-			<PasswordOverlay redirect={layout.current?.outbound} ref={overlay} />
+			<PasswordOverlay
+				redirect={(to) => {
+					layout.current?.outbound(to);
+				}}
+				ref={overlay}
+			/>
 
 			<ThreeBtn
 				ref={layout}

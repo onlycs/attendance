@@ -49,7 +49,7 @@ const DialogContent = React.forwardRef<
 			{children}
 			{(closable ?? true) && (
 				<DialogPrimitive.Close className="absolute top-2 right-2" asChild>
-					<Button className="bg-transparent" variant="default">
+					<Button className="bg-transparent" animation="static">
 						<X className="h-4 w-4" />
 					</Button>
 				</DialogPrimitive.Close>

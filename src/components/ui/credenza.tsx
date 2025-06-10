@@ -69,6 +69,9 @@ const Credenza = ({ children, closable, ...props }: RootCredenzaProps) => {
 				{...props}
 				{...(isMobile && { autoFocus: true })}
 				dismissible={closable}
+				onClose={() => {
+					props.onOpenChange?.(false);
+				}}
 			>
 				{children}
 			</Credenza>
@@ -103,7 +106,11 @@ const CredenzaContent = ({ className, children, ...props }: CredenzaProps) => {
 	const CredenzaContent = isMobile ? DrawerContent : DialogContent;
 
 	return (
-		<CredenzaContent className={className} closable={closable} {...props}>
+		<CredenzaContent
+			className={className}
+			closable={isMobile ? undefined : closable}
+			{...props}
+		>
 			{children}
 		</CredenzaContent>
 	);

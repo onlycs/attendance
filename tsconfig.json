@@ -1,10 +1,6 @@
 {
 	"compilerOptions": {
-		"lib": [
-			"dom",
-			"dom.iterable",
-			"esnext"
-		],
+		"lib": ["dom", "dom.iterable", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
 		"strict": true,
@@ -23,24 +19,12 @@
 			}
 		],
 		"paths": {
-			"@app/*": [
-				"./src/app/*"
-			],
-			"@lib/*": [
-				"./src/lib/*"
-			],
-			"@ui/*": [
-				"./src/components/ui/*"
-			],
-			"@components/*": [
-				"./src/components/*"
-			],
-			"@styles/*": [
-				"./src/styles/*"
-			],
-			"@/*": [
-				"./src/*"
-			]
+			"@app/*": ["./src/app/*"],
+			"@lib/*": ["./src/lib/*"],
+			"@ui/*": ["./src/components/ui/*"],
+			"@components/*": ["./src/components/*"],
+			"@styles/*": ["./src/styles/*"],
+			"@/*": ["./src/*"]
 		},
 		"target": "ESNext"
 	},
@@ -51,9 +35,7 @@
 		".next/types/**/*.ts",
 		"eslint.config.js",
 		"next.config.mjs",
-		"postcss.config.mjs",
+		"postcss.config.mjs"
 	],
-	"exclude": [
-		"node_modules"
-	]
+	"exclude": ["node_modules"]
 }

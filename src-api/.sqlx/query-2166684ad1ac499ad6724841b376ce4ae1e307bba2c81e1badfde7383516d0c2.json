@@ -1,28 +1,23 @@
 {
-  "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, sign_in FROM records\n        WHERE student_id = $1 and in_progress = true\n        ",
-  "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 1,
-        "name": "sign_in",
-        "type_info": "Timestamp"
-      }
-    ],
-    "parameters": {
-      "Left": [
-        "Text"
-      ]
-    },
-    "nullable": [
-      false,
-      false
-    ]
-  },
-  "hash": "2166684ad1ac499ad6724841b376ce4ae1e307bba2c81e1badfde7383516d0c2"
+	"db_name": "PostgreSQL",
+	"query": "\n        SELECT id, sign_in FROM records\n        WHERE student_id = $1 and in_progress = true\n        ",
+	"describe": {
+		"columns": [
+			{
+				"ordinal": 0,
+				"name": "id",
+				"type_info": "Text"
+			},
+			{
+				"ordinal": 1,
+				"name": "sign_in",
+				"type_info": "Timestamp"
+			}
+		],
+		"parameters": {
+			"Left": ["Text"]
+		},
+		"nullable": [false, false]
+	},
+	"hash": "2166684ad1ac499ad6724841b376ce4ae1e307bba2c81e1badfde7383516d0c2"
 }

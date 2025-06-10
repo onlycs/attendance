@@ -1,4 +1,4 @@
-import { makeApi, makeErrors, makeParameters, Zodios } from "@zodios/core";
+import { Zodios, makeApi, makeErrors, makeParameters } from "@zodios/core";
 import type {
 	ReadonlyDeep,
 	RequiredKeys,
@@ -26,8 +26,8 @@ import { toast } from "sonner";
 import type { TypeOf } from "zod";
 import { z } from "zod";
 
-export const API_URL =
-	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// biome-ignore lint/style/noNonNullAssertion: API_URL is set in .env.development or .env.production
+export const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 const ErrorSchema = makeErrors([
 	{

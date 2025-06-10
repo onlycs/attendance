@@ -21,7 +21,7 @@ abstract class OptionBase<T> {
 }
 
 class OptionSome<T> extends OptionBase<T> {
-	constructor(public readonly value: T) {
+	constructor(readonly value: T) {
 		super();
 	}
 
