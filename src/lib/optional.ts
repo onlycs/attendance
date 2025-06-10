@@ -1,64 +1,75 @@
 export type ValueOrProducer<T> = T | (() => T);
 
 function isFunction<T>(value: ValueOrProducer<T>): value is () => T {
-    return typeof value === 'function';
+	return typeof value === "function";
 }
 
 function unpack<T>(value: ValueOrProducer<T>): T {
-    return isFunction(value) ? value() : value;
+	return isFunction(value) ? value() : value;
 }
 
-export class Option<T> {
-    protected constructor(protected value: T | null) {}
+abstract class OptionBase<T> {
+	abstract isSome(): this is OptionSome<T>;
+	abstract map<U>(mapper: (value: T) => U): Option<U>;
+	abstract unwrap(or?: ValueOrProducer<T>): T;
+	abstract match<U>(ok: (value: T) => U, err: () => U): U;
 
-    static Some<T>(value: T): Option<T> {
-        return new OptionSome<T>(value);
-    }
+	isNone(): this is OptionNone<T> {
+		return !this.isSome();
+	}
 
-    static None<T>(): Option<T> {
-        return new OptionNone<T>();
-    }
-
-    static ofNullable<T>(value: T | null | undefined): Option<T> {
-        return value ? Option.Some(value) : Option.None();
-    }
-
-    isSome(): this is OptionSome<T> {
-        return this.value !== null;
-    }
-
-    unwrap(defaultValue?: ValueOrProducer<T>): T {
-        if (!this.isSome()) {
-            if (defaultValue) return unpack(defaultValue);
-            throw new Error('Tried to unwrap a None value');
-        }
-        return this.value;
-    }
-
-    map<U>(fn: (value: T) => U): Option<U> {
-        return this.isSome() ? Option.Some(fn(this.value)) : Option.None<U>();
-    }
-
-    match<K>(
-        onSome: (value: T) => K,
-        onNone: () => K,
-    ): K {
-        if (this.isSome()) return onSome(this.value);
-        else return onNone();
-    }
+	static ofNullable<T>(value: T | null | undefined): Option<T> {
+		if (value == null || value === undefined) return None;
+		return Some(value);
+	}
 }
 
-export class OptionSome<T> extends Option<T> {
-    constructor(public value: T) {
-        super(value);
-    }
+class OptionSome<T> extends OptionBase<T> {
+	constructor(private readonly value: T) {
+		super();
+	}
+
+	isSome(): this is OptionSome<T> {
+		return true;
+	}
+
+	map<U>(mapper: (value: T) => U): Option<U> {
+		return new OptionSome(mapper(this.value));
+	}
+
+	unwrap(_?: ValueOrProducer<T>): T {
+		return this.value;
+	}
+
+	match<U>(ok: (value: T) => U, _: () => U): U {
+		return ok(this.value);
+	}
 }
 
-export class OptionNone<T> extends Option<T> {
-    constructor() {
-        super(null);
-    }
+class OptionNone<T> extends OptionBase<T> {
+	isSome(): this is OptionSome<T> {
+		return false;
+	}
+
+	map<U>(_: (value: T) => U): Option<U> {
+		return new OptionNone();
+	}
+
+	unwrap(or?: ValueOrProducer<T> | undefined): T {
+		if (or) return unpack(or);
+		throw new Error("Attempted to unwrap a None value");
+	}
+
+	match<U>(_: (value: T) => U, err: () => U): U {
+		return err();
+	}
 }
 
-export const None = Option.None.bind(Option);
-export const Some = Option.Some.bind(Option);
+export type Option<T> = OptionSome<T> | OptionNone<T>;
+
+// biome-ignore lint/suspicious/noExplicitAny: Any needs to be type-castable to any Option<T>
+export const None = new OptionNone() as Option<any>;
+export const Some = <T>(value: T) => new OptionSome(value) as Option<T>;
+
+export const OptionOf = <T>(value: T | null | undefined): Option<T> =>
+	OptionBase.ofNullable(value) as Option<T>;
