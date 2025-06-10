@@ -1,31 +1,43 @@
-#![feature(never_type)]
+#![feature(never_type, error_generic_member_access)]
 
 extern crate actix_cors;
 extern crate actix_web;
+extern crate actix_ws;
+extern crate bcrypt;
 extern crate chrono;
+extern crate chrono_tz;
 extern crate cuid;
 extern crate dotenvy;
+extern crate futures_util;
+extern crate itertools;
+#[macro_use]
 extern crate log;
 extern crate serde;
+extern crate serde_json;
+extern crate serde_with;
 extern crate simple_logger;
 extern crate sqlx;
 extern crate thiserror;
+extern crate time;
 
 mod error;
 mod http;
 mod prelude;
+mod ws;
 
 use std::sync::Arc;
 
-use crate::prelude::*;
-
 use actix_cors::Cors;
+use actix_web::{
+    web::{self, Data},
+    App, HttpServer,
+};
 use dotenvy::dotenv;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use actix_web::{web::Data, App, HttpServer};
+use crate::prelude::*;
 
 pub struct AppState {
     pub pg: Arc<PgPool>,
@@ -54,6 +66,7 @@ async fn main() -> Result<(), InitError> {
 
     // spawn blocking on current thread
     HttpServer::new(move || {
+        let pg = Arc::clone(&pool);
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
@@ -62,9 +75,7 @@ async fn main() -> Result<(), InitError> {
 
         App::new()
             .wrap(cors)
-            .app_data(Data::new(AppState {
-                pg: Arc::clone(&pool),
-            }))
+            .app_data(Data::new(AppState { pg }))
             .service(http::index)
             .service(http::login)
             .service(http::student_hours)
@@ -72,6 +83,7 @@ async fn main() -> Result<(), InitError> {
             .service(http::record)
             .service(http::clear)
             .service(http::check_token)
+            .route("/ws", web::get().to(ws::ws))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

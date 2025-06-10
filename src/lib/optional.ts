@@ -39,12 +39,12 @@ export class Option<T> {
         return this.isSome() ? Option.Some(fn(this.value)) : Option.None<U>();
     }
 
-    match(
-        onSome: (value: T) => void,
-        onNone: () => void,
-    ): void {
-        if (this.isSome()) onSome(this.value);
-        else onNone();
+    match<K>(
+        onSome: (value: T) => K,
+        onNone: () => K,
+    ): K {
+        if (this.isSome()) return onSome(this.value);
+        else return onNone();
     }
 }
 

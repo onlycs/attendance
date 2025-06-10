@@ -5,6 +5,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { Button } from './button';
 
 const Dialog = DialogPrimitive.Root;
 
@@ -31,8 +32,8 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
     React.ComponentRef<typeof DialogPrimitive.Content>,
-    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { closable?: boolean }
+>(({ className, children, closable, ...props }, ref) => (
     <DialogPortal>
         <DialogOverlay />
         <DialogPrimitive.Content
@@ -44,10 +45,15 @@ const DialogContent = React.forwardRef<
             {...props}
         >
             {children}
-            <DialogPrimitive.Close className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'>
-                <X className='h-4 w-4' />
-                <span className='sr-only'>Close</span>
-            </DialogPrimitive.Close>
+            {
+                (closable ?? true) && (
+                    <DialogPrimitive.Close className='absolute top-2 right-2' asChild>
+                        <Button className='bg-transparent' variant='static'>
+                            <X className='h-4 w-4' />
+                        </Button>
+                    </DialogPrimitive.Close>
+                )
+            }
         </DialogPrimitive.Content>
     </DialogPortal>
 ));
@@ -102,7 +108,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DialogPrimitive.Description
         ref={ref}
-        className={cn('text-sm text-muted-foreground', className)}
+        className={cn('text-sm text-sub', className)}
         {...props}
     />
 ));

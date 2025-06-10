@@ -1,74 +1,52 @@
+use super::roster::HourType;
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct HoursResponse {
-    pub learning_hours: f64,
-    pub build_hours: f64,
+    build: f64,
+    learning: f64,
+    demo: f64,
+}
+
+impl HoursResponse {
+    fn type_mut(&mut self, kind: HourType) -> &mut f64 {
+        match kind {
+            HourType::Build => &mut self.build,
+            HourType::Learning => &mut self.learning,
+            HourType::Demo => &mut self.demo,
+        }
+    }
+
+    fn add(&mut self, kind: HourType, amount: f64) {
+        *self.type_mut(kind) += amount;
+    }
 }
 
 pub async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError> {
-    sqlx::query!(
-        r#"
-        DELETE FROM records
-        WHERE sign_in - sign_out > INTERVAL '5 hours'
-        "#
-    )
-    .execute(pg)
-    .await?;
+    super::roster::delete_expired(pg).await?;
 
-    let learning_days = sqlx::query!(
+    let records = sqlx::query!(
         r#"
-        SELECT sign_in, sign_out 
+        SELECT sign_in, sign_out as "sign_out!", hour_type as "hour_type: HourType"
         FROM records
         WHERE student_id = $1 
             AND sign_out IS NOT NULL 
             AND in_progress = false
-            AND EXTRACT(MONTH FROM sign_in) >= 8
         "#,
         id
     )
     .fetch_all(pg)
     .await?;
 
-    let build_hours = sqlx::query!(
-        r#"
-        SELECT sign_in, sign_out FROM records
-        WHERE student_id = $1 
-            AND sign_out IS NOT NULL 
-            AND in_progress = false
-            AND EXTRACT(MONTH FROM sign_in) <= 5
-            AND EXTRACT(MONTH FROM sign_in) >= 1
-        "#,
-        id
-    )
-    .fetch_all(pg)
-    .await?;
+    let mut hours = HoursResponse::default();
 
-    let mut learning_mins = 0.0;
-    let mut build_mins = 0.0;
-
-    for learning_day in learning_days {
-        let sign_in = learning_day.sign_in;
-        let sign_out = learning_day.sign_out.unwrap();
-        let diff = sign_out.signed_duration_since(sign_in);
-        let mins = diff.num_minutes();
-
-        learning_mins += mins as f64;
+    for record in records {
+        let dt = record.sign_out - record.sign_in;
+        let dt = dt.as_seconds_f64() / 60.0 / 60.0;
+        hours.add(record.hour_type, dt);
     }
 
-    for build_day in build_hours {
-        let sign_in = build_day.sign_in;
-        let sign_out = build_day.sign_out.unwrap();
-        let diff = sign_out.signed_duration_since(sign_in);
-        let mins = diff.num_minutes();
-
-        build_mins += mins as f64;
-    }
-
-    Ok(HoursResponse {
-        learning_hours: learning_mins / 60.0,
-        build_hours: build_mins / 60.0,
-    })
+    Ok(hours)
 }
 
 pub async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {

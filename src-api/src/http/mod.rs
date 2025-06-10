@@ -2,17 +2,13 @@ mod auth;
 mod roster;
 mod student;
 
-use crate::prelude::*;
-use crate::AppState;
-use actix_web::delete;
-use actix_web::get;
-use roster::RosterRequest;
-
 use actix_web::{
-    post,
     web::{self},
     HttpRequest, HttpResponse, Responder,
 };
+use roster::RosterRequest;
+
+use crate::{prelude::*, AppState};
 
 #[post("/auth")]
 pub(crate) async fn login(

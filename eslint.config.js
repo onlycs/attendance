@@ -84,7 +84,10 @@ const config = [
                 }],
                 '@typescript-eslint/no-unnecessary-condition': 'warn',
                 '@typescript-eslint/no-empty-function': 'off',
+                '@typescript-eslint/no-extraneous-class': 'warn',
+                '@typescript-eslint/no-unnecessary-type-parameters': 'warn',
                 'no-constant-condition': 'warn',
+                '@typescript-eslint/no-misused-promises': 'off',
 
                 '@stylistic/jsx-quotes': ['warn', 'prefer-single'],
                 '@stylistic/brace-style': ['warn', '1tbs', { allowSingleLine: true }],

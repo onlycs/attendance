@@ -6,8 +6,7 @@ import { ResultAsync } from 'neverthrow';
 import { ReadonlyDeep, RequiredKeys, UndefinedIfNever } from '@zodios/core/lib/utils.types';
 import { toast } from 'sonner';
 
-// export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
-export const API_URL = 'http://10.8.0.6:8080';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 const ErrorSchema = makeErrors([
     {
@@ -24,7 +23,7 @@ const ErrorSchema = makeErrors([
     },
 ]);
 
-const AuthSchema = makeParameters([{
+const AuthParam = makeParameters([{
     name: 'Authorization',
     type: 'Header',
     schema: z.string(),
@@ -40,10 +39,9 @@ const TokenSchema = z.object({
     expires: z.string(),
 });
 
-const RouterSchema = z.object({
-    id: z.string(),
-    learning: z.number(),
-    build: z.number(),
+const RosterSchema = z.object({
+    action: z.enum(['login', 'logout']),
+    denied: z.boolean(),
 });
 
 const CsvSchema = z.object({
@@ -76,7 +74,7 @@ export const ApiSchema = makeApi([
         method: 'get',
         path: '/auth',
         alias: 'checkToken',
-        parameters: [...AuthSchema],
+        parameters: [...AuthParam],
         response: z.object({}),
         errors: ErrorSchema,
     },
@@ -93,23 +91,24 @@ export const ApiSchema = makeApi([
         alias: 'roster',
         parameters: [
             {
-                name: 'rosterRequest',
+                name: 'Roster Request',
                 type: 'Body',
                 schema: z.object({
                     id: z.string(),
+                    kind: z.enum(['learning', 'build', 'demo']),
                     force: z.boolean().default(false),
                 }),
             },
-            ...AuthSchema,
+            ...AuthParam,
         ],
-        response: RouterSchema,
+        response: RosterSchema,
         errors: ErrorSchema,
     },
     {
         method: 'get',
         path: '/hours.csv',
         alias: 'csv',
-        parameters: AuthSchema,
+        parameters: AuthParam,
         response: CsvSchema,
         errors: ErrorSchema,
     },
@@ -144,8 +143,10 @@ type MethodError<M extends Method> = PathMethodErrors<M, Paths<M>>;
 
 export type HoursResponse = TypeOf<typeof HoursSchema>;
 export type LoginResponse = TypeOf<typeof TokenSchema>;
-export type RouterResponse = TypeOf<typeof RouterSchema>;
+export type RouterResponse = TypeOf<typeof RosterSchema>;
 export type CsvResponse = TypeOf<typeof CsvSchema>;
+export type RosterAction = TypeOf<typeof RosterSchema>['action'];
+export type HourType = AliasBody<'roster'>['kind'];
 export type AnyError = MethodError<Method>;
 
 export const ApiClient = {
@@ -201,7 +202,7 @@ export const ApiClient = {
     ) {
         const [a, b] = remainder;
 
-        const body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>> | undefined = isMutation(ApiSchema.find(ep => ep.alias === alias)!.method) ? a as any : undefined;
+        const body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>> = isMutation(ApiSchema.find(ep => ep.alias === alias)!.method) ? a as any : undefined;
         const options = body ? b : a;
 
         let res: Promise<AliasResponse<Alias>>;

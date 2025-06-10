@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use chrono::NaiveDateTime;
 use chrono_tz::US::Eastern;
 
 use crate::prelude::*;
-use std::collections::HashMap;
+
 struct CsvRow {
     total: f64,
     build: f64,

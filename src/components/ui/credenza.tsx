@@ -31,6 +31,7 @@ interface BaseProps {
 
 interface RootCredenzaProps extends BaseProps {
     open?: boolean;
+    closable?: boolean;
     onOpenChange?: (open: boolean) => void;
 }
 
@@ -39,8 +40,9 @@ interface CredenzaProps extends BaseProps {
     asChild?: true;
 }
 
-const CredenzaContext = React.createContext<{ isMobile: boolean }>({
+const CredenzaContext = React.createContext<{ isMobile: boolean; closable: boolean }>({
     isMobile: false,
+    closable: true,
 });
 
 const useCredenzaContext = () => {
@@ -53,13 +55,13 @@ const useCredenzaContext = () => {
     return context;
 };
 
-const Credenza = ({ children, ...props }: RootCredenzaProps) => {
+const Credenza = ({ children, closable, ...props }: RootCredenzaProps) => {
     const isMobile = useIsMobile();
     const Credenza = isMobile ? Drawer : Dialog;
 
     return (
-        <CredenzaContext.Provider value={{ isMobile }}>
-            <Credenza {...props} {...(isMobile && { autoFocus: true })}>
+        <CredenzaContext.Provider value={{ isMobile, closable: closable ?? true }}>
+            <Credenza {...props} {...(isMobile && { autoFocus: true })} dismissible={closable}>
                 {children}
             </Credenza>
         </CredenzaContext.Provider>
@@ -89,11 +91,11 @@ const CredenzaClose = ({ className, children, ...props }: CredenzaProps) => {
 };
 
 const CredenzaContent = ({ className, children, ...props }: CredenzaProps) => {
-    const { isMobile } = useCredenzaContext();
+    const { isMobile, closable } = useCredenzaContext();
     const CredenzaContent = isMobile ? DrawerContent : DialogContent;
 
     return (
-        <CredenzaContent className={className} {...props}>
+        <CredenzaContent className={className} closable={closable} {...props}>
             {children}
         </CredenzaContent>
     );

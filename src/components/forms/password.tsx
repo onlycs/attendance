@@ -1,7 +1,7 @@
 import { MaybeLoading } from '@components/util/suspenseful';
 import { ApiClient, apiToast } from '@lib/api';
 import { useStatefulPromise } from '@lib/stateful-promise';
-import { useSession } from '@lib/storage';
+import { EncryptionKey, TokenKey, useSession } from '@lib/storage';
 import { Credenza, CredenzaBody, CredenzaContent, CredenzaHeader, CredenzaTitle } from '@ui/credenza';
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSlotRef } from '@ui/input-otp';
 import { useCookies } from 'next-client-cookies';
@@ -93,7 +93,7 @@ export interface PasswordOverlayProps {
 }
 
 export const PasswordOverlay = React.forwardRef<PasswordOverlayRef, PasswordOverlayProps>((props, ref) => {
-    const { value: enckey, set: setEncKey } = useSession('enckey');
+    const { value: enckey, set: setEncKey } = useSession(EncryptionKey);
     const cookies = useCookies();
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -131,7 +131,7 @@ export const PasswordOverlay = React.forwardRef<PasswordOverlayRef, PasswordOver
     const handleCancel = (open: boolean) => {
         if (open || !props.redirect) return;
 
-        cookies.remove('token');
+        cookies.remove(TokenKey);
         props.redirect('/');
         setModalOpen(false);
     };

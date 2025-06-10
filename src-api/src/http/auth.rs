@@ -1,5 +1,5 @@
 use actix_web::HttpRequest;
-use chrono::Days;
+use chrono::{Days, TimeDelta};
 
 use crate::prelude::*;
 
@@ -20,7 +20,10 @@ pub async fn authorize(
     TokenRequest { password }: TokenRequest,
     pg: &PgPool,
 ) -> Result<TokenResponse, RouteError> {
+    trace!("Got authentication request");
+
     if !bcrypt::verify(&password, &env::var("ADMIN_CRYPT")?).unwrap_or(false) {
+        debug!("Authentication failed: invalid password");
         return Err(RouteError::InvalidToken);
     }
 
@@ -34,7 +37,9 @@ pub async fn authorize(
     .await?;
 
     let token = if let Some(token) = token {
-        let dt = token.created_at + Days::new(7);
+        trace!("Found usable token, returning...");
+
+        let dt = token.created_at + TimeDelta::hours(12);
         let fmt = dt.format(DATEFMT).to_string();
 
         Ok(TokenResponse {
@@ -42,6 +47,8 @@ pub async fn authorize(
             expires: fmt,
         })
     } else {
+        trace!("Must generate new token, previous one was too old");
+
         let token = cuid2();
 
         sqlx::query!(
@@ -76,10 +83,13 @@ pub async fn authorize(
 }
 
 pub async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {
+    trace!("Got a token check request");
+
     let token = sqlx::query!(
         r#"
         SELECT token, created_at FROM tokens
-        WHERE created_at > NOW() - INTERVAL '10 hours' and token = $1
+        WHERE created_at > NOW() - INTERVAL '10 hours'
+            AND token = $1
         "#,
         token
     )
@@ -103,7 +113,8 @@ pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = sqlx::query!(
         r#"
         SELECT token FROM tokens
-        WHERE created_at > NOW() - INTERVAL '10 hours' and token = $1
+        WHERE token = $1
+            AND created_at > NOW() - INTERVAL '10 hours'
         "#,
         token
     )

@@ -2,26 +2,18 @@
 
 import { PasswordOverlay, PasswordOverlayRef } from '@components/forms/password';
 import { ThreeBtn, ThreeBtnRef } from '@components/pages/threebtn';
-import { TokenKey, useRequireStorage, useSession } from '@lib/storage';
+import { EncryptionKey, TokenKey, useRequireStorage, useSession } from '@lib/storage';
 import { ClockIcon, LogOutIcon, Table2Icon } from 'lucide-react';
 import { useCookies } from 'next-client-cookies';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 export default function Home() {
-    const router = useRouter();
     const cookies = useCookies();
     const canLoad = useRequireStorage([{ key: TokenKey }]);
     const layout = useRef<ThreeBtnRef>(null);
     const overlay = useRef<PasswordOverlayRef>(null);
 
-    const { delete: deleteEnckey } = useSession('enckey');
-
-    useEffect(() => {
-        router.prefetch('/admin/editor');
-        router.prefetch('/attendance');
-        router.prefetch('/');
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const { delete: deleteEnckey } = useSession(EncryptionKey);
 
     if (!canLoad) return <></>;
 
@@ -47,7 +39,7 @@ export default function Home() {
                         icon: <LogOutIcon className='max-md:mb-6 size-24 md:size-28 lg:size-34 xl:size-42 2xl:size-52' strokeWidth={1} color='red' />,
                         link: '/',
                         onClick() {
-                            cookies.remove('token');
+                            cookies.remove(TokenKey);
                             deleteEnckey();
                         },
                     },

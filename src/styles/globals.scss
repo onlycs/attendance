@@ -4,8 +4,8 @@
 @layer base {
 	:root {
 		--radius: 0.5rem;
-		--transition-timing-function: ease-in-out;
-		--transition-duration: 0.25s;
+		--tw-ease: ease-in-out;
+		--tw-duration: 0.15s;
 		--ring: #D7D7D7;
 	}
 
@@ -14,8 +14,8 @@
 		--background: #242424;
 		--card: #323232;
 		--text: #D7D7D7;
-		--hover: #eaeaea16;
-		--select: #6e6e6e90;
+		--hover: #67676733;
+		--select: #cccbcb33;
 		--border: #d7d7d775;
 		--text-sub: #A7A7A7;
 	}
@@ -28,7 +28,10 @@
 
 	.error {
 		--background: #FD9E86;
+		--card: #e36363;
 		--text: #4A2F2A;
+		--select: #ae080863;
+		--hover: #8f1a1a4e;
 		--border: #e40000ac;
 	}
 

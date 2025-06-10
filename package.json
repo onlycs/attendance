@@ -24,6 +24,7 @@
 		"encrypt-rsa": "^3.3.0",
 		"framer-motion": "^12.10.0",
 		"input-otp": "^1.4.2",
+		"jotai": "^2.12.4",
 		"lucide-react": "^0.507.0",
 		"mini-css-extract-plugin": "^2.9.2",
 		"neverthrow": "^8.2.0",

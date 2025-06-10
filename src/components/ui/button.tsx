@@ -1,49 +1,71 @@
 import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
-import { cva, type VariantProps } from 'class-variance-authority';
 
-import { cn } from '@/lib/utils';
+import { HTMLMotionProps, motion } from 'framer-motion';
+import { cn } from '@lib/utils';
+import { cva, VariantProps } from 'class-variance-authority';
 
-const buttonVariants = cva(
-    'w-full h-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+const ButtonVariants = cva(
+    'relative p-2 rounded-md text-sm',
     {
         variants: {
             variant: {
-                filled: 'hover:bg-hover',
+                default: 'bg-card',
+                primary: 'bg-gray-100 text-black',
+                error: 'error bg-background text-text',
             },
-            size: {
-                default: 'h-10 px-4 py-2',
-                wide: 'h-10 w-96 px-6 py-2',
-                xwide: 'h-10 w-[28rem] px-8 py-2',
+            animation: {
+                default: '',
+                static: '',
             },
-        },
-        defaultVariants: {
-            variant: 'filled',
-            size: 'default',
         },
     },
 );
 
-export interface ButtonProps
-    extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-    asChild?: boolean;
-}
+export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'>, VariantProps<typeof ButtonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, asChild = false, ...props }, ref) => {
-        const Comp = asChild ? Slot : 'button';
+    ({ className, children, variant = 'default', animation = 'default', ...props }, ref) => {
+        const nonStaticHover = {
+            y: '-0.35rem',
+            scale: 1.025,
+        };
+
+        const nonStaticTap = {
+            scale: 0.975,
+        };
+
+        const whileHover = animation == 'static'
+            ? {}
+            : nonStaticHover;
+
+        const whileTap = animation == 'static'
+            ? {}
+            : nonStaticTap;
+
         return (
-            <div className={cn('rounded-md bg-card text-text', className)}>
-                <Comp
-                    className={cn(buttonVariants({ variant, size }))}
-                    ref={ref}
-                    {...props}
-                />
-            </div>
+            <motion.button
+                ref={ref}
+                className={cn(
+                    ButtonVariants({ variant, animation }),
+                    className,
+                )}
+                whileHover={whileHover}
+                whileTap={whileTap}
+                transition={{
+                    duration: 0.15,
+                    ease: 'easeInOut',
+                }}
+                {...props}
+            >
+                <div className='absolute inset-0 rounded-md transition-all hover:bg-hover hover:active:bg-select' />
+
+                <>
+                    {children}
+                </>
+            </motion.button>
         );
     },
 );
 Button.displayName = 'Button';
 
-export { Button, buttonVariants };
+export { Button };

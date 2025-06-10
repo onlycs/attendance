@@ -4,76 +4,48 @@ import { useCookies } from 'next-client-cookies';
 import { useRouter } from 'next/navigation';
 
 export function useSessions<const T extends string>(keys: T[]) {
-    const [values, setValue] = useState<Record<T, Option<string>>>(keys.reduce(
-        (acc, k) => ({ ...acc, [k]: None() }),
-        {} as Record<T, Option<string>>,
-    ));
-
-    const [effectValues, effectSetter] = useState<Record<T, Option<string> | 'delete'>>(keys.reduce(
-        (acc, k) => ({ ...acc, [k]: None() }),
-        {} as Record<T, Option<string> | 'delete'>,
-    ));
-
-    const [loaded, setLoaded] = useState(false);
-
-    // don't set to values here
-    // we trigger a StorageEvent when we set to sessionStorage
-    // which is listened to in the useEffect below
-    useEffect(() => {
-        for (const key of keys) {
-            const newValue = effectValues[key];
-
-            if (newValue === 'delete') {
-                sessionStorage.removeItem(key);
-                effectSetter(prev => ({ ...prev, [key]: None() }));
-                continue;
-            }
-
-            if (newValue.isSome()) {
-                sessionStorage.setItem(key, newValue.value);
-                effectSetter(prev => ({ ...prev, [key]: None() }));
-                continue;
-            }
-        }
-    }, [effectValues]); // eslint-disable-line react-hooks/exhaustive-deps
+    const [values, setValues] = useState<Record<T, Option<string>>>(() =>
+        keys.reduce((acc, k) => {
+            const stored = typeof window !== 'undefined' ? sessionStorage.getItem(k) : null;
+            acc[k] = Option.ofNullable(stored);
+            return acc;
+        }, {} as Record<T, Option<string>>),
+    );
 
     useEffect(() => {
-        const store = (key: string) => {
-            const storedValue = sessionStorage.getItem(key);
-            setValue(prev => ({ ...prev, [key]: Option.ofNullable(storedValue) })); // map null => undefined
+        const onStorage = (e: StorageEvent) => {
+            if (e.key && keys.includes(e.key as T)) {
+                setValues(prev => ({
+                    ...prev,
+                    [e.key as T]: Option.ofNullable(e.newValue),
+                }));
+            }
         };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, [keys]);
 
-        for (const key of keys) {
-            store(key);
-        }
+    const set = (key: T, value: string) => {
+        sessionStorage.setItem(key, value);
+        setValues(prev => ({ ...prev, [key]: Some(value) }));
+    };
 
-        setLoaded(true);
-
-        const listener = (e: StorageEvent) => {
-            if (!e.key || !e.newValue) return;
-            store(e.key);
-        };
-
-        window.addEventListener('storage', listener);
-
-        return () => {
-            window.removeEventListener('storage', listener);
-        };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const del = (key: T) => {
+        sessionStorage.removeItem(key);
+        setValues(prev => ({ ...prev, [key]: None() }));
+    };
 
     return {
-        loaded,
         value: values,
-        set: (key: T, value: string) => effectSetter(prev => ({ ...prev, [key]: Some(value) })),
-        delete: (key: T) => effectSetter(prev => ({ ...prev, [key]: 'delete' })),
+        set,
+        delete: del,
     };
 }
 
 export function useSession(key: string) {
-    const { value, set, delete: del, loaded } = useSessions([key]);
+    const { value, set, delete: del } = useSessions([key]);
 
     return {
-        loaded,
         value: value[key],
         set: (value: string) => set(key, value),
         delete: () => del(key),
@@ -101,7 +73,7 @@ export function useRequireStorage(requirements: CookieRequirements[]) {
 
             if (isCookie) {
                 return wantsMissing == !cookies.get(req.key);
-            } else if (sessions.loaded) {
+            } else {
                 return wantsMissing == !sessions.value[req.key].isSome();
             }
         });
@@ -112,7 +84,7 @@ export function useRequireStorage(requirements: CookieRequirements[]) {
         }
 
         setCanLoad(true);
-    }, [sessions.value, sessions.loaded, cookies]); // eslint-disable-line
+    }, [sessions.value, cookies]); // eslint-disable-line
 
     return canLoad;
 }

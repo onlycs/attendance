@@ -1,3 +1,5 @@
+'use client';
+
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSlotRef } from '@ui/input-otp';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import React, { useImperativeHandle, useState } from 'react';
