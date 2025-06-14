@@ -9,6 +9,7 @@ use crate::prelude::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Subscription {
     StudentData,
+    Hours,
 }
 
 impl Subscription {
@@ -16,42 +17,6 @@ impl Subscription {
         let (add_tx, mut add_rx) = mpsc::unbounded_channel::<Session>();
         let (remove_tx, mut remove_rx) = mpsc::unbounded_channel();
         let (update_tx, mut update_rx) = mpsc::unbounded_channel::<String>();
-
-        let get_data = async |pg: &PgPool| {
-            let data = match self {
-                Self::StudentData => sqlx::query!(
-                    r#"
-                    SELECT student_data FROM cryptstore
-                    WHERE id
-                    "#
-                )
-                .fetch_optional(pg)
-                .await?
-                .map(|record| record.student_data)
-                .unwrap_or_default(),
-            };
-
-            Ok::<_, sqlx::Error>(data)
-        };
-
-        let put_data = async |pg: &PgPool, data: &str| match self {
-            Self::StudentData => {
-                sqlx::query!(
-                    r#"
-                    UPDATE cryptstore
-                    SET student_data = $1
-                    WHERE id
-                    "#,
-                    data
-                )
-                .execute(pg)
-                .await
-            }
-        };
-
-        let message = match self {
-            Self::StudentData => ServerMessage::StudentData,
-        };
 
         let task = rt::spawn(async move {
             let subscriptions_add = Arc::new(RwLock::new(HashMap::new()));
@@ -67,11 +32,21 @@ impl Subscription {
                         continue;
                     };
 
-                    let Ok(sub_data) = get_data(&pool_add).await else {
-                        continue;
-                    };
+                    // send an initial response with the current data
+                    let data = sqlx::query!(
+                        r#"
+                        SELECT student_data FROM cryptstore
+                        WHERE id
+                        "#
+                    )
+                    .fetch_optional(&*pool_add)
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|record| record.student_data)
+                    .unwrap_or_default();
 
-                    if let Err(err) = session.send(message(sub_data)).await {
+                    if let Err(err) = session.send(ServerMessage::StudentData(data)).await {
                         error!("[SubPool {self:?}] Failed to send initial subscription response:\n{err}");
                     }
 
@@ -95,12 +70,24 @@ impl Subscription {
                         continue;
                     };
 
-                    if let Err(err) = put_data(&pool_update, &data).await {
+                    if let Err(err) = sqlx::query!(
+                        r#"
+                        UPDATE cryptstore
+                        SET student_data = $1
+                        WHERE id
+                        "#,
+                        data
+                    )
+                    .execute(&*pool_update)
+                    .await
+                    {
                         error!("[SubPool {self:?}] Failed to update data in database:\n{err}");
                     }
 
                     for session in subscriptions_update.write().await.values_mut() {
-                        if let Err(err) = session.send(message(data.clone())).await {
+                        if let Err(err) =
+                            session.send(ServerMessage::StudentData(data.clone())).await
+                        {
                             error!("[SubPool {self:?}] Failed to send update message:\n{err}");
                         }
                     }

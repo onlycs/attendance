@@ -1,3 +1,4 @@
+mod editor;
 mod message;
 mod pool;
 mod session;

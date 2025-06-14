@@ -23,13 +23,6 @@ pub enum InitError {
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to init logger:\n{source}")]
-    Log {
-        #[from]
-        source: log::SetLoggerError,
-        location: &'static Location<'static>,
-    },
-
     #[error("At {location}: Failed to get environment variable:\n{source}")]
     Env {
         #[from]

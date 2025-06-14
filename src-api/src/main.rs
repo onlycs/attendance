@@ -1,9 +1,9 @@
-#![feature(never_type, error_generic_member_access)]
+#![feature(never_type, error_generic_member_access, let_chains)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::similar_names)]
 
 #[macro_use]
-extern crate log;
+extern crate tracing;
 
 pub mod error;
 pub mod http;
@@ -18,9 +18,8 @@ use actix_web::{
     App, HttpServer,
 };
 use dotenvy::dotenv;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use tracing::level_filters::LevelFilter;
 
 use crate::prelude::*;
 
@@ -30,16 +29,16 @@ pub struct AppState {
 
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
-    SimpleLogger::new()
-        .with_colors(true)
-        .with_threads(true)
-        .with_local_timestamps()
-        .with_timestamp_format(time::macros::format_description!(
-            "[year]-[month]-[day] [hour]:[minute]:[second].[subsecond digits:3]"
-        ))
-        .with_level(LevelFilter::Debug)
-        .with_module_level("sqlx", LevelFilter::Info)
-        .init()?;
+    tracing_subscriber::fmt()
+        .pretty()
+        .with_max_level(if cfg!(debug_assertions) {
+            LevelFilter::DEBUG
+        } else {
+            LevelFilter::INFO
+        })
+        .with_thread_names(true)
+        .with_level(true)
+        .init();
 
     dotenv().ok();
 
