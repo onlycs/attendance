@@ -2,6 +2,7 @@ mod editor;
 mod message;
 mod pool;
 mod session;
+mod student_data;
 mod subscription;
 
 use std::{backtrace::Backtrace, panic::Location};
@@ -14,7 +15,7 @@ use pool::SubPools;
 use session::Session;
 use thiserror::Error;
 
-use crate::{prelude::*, ws::message::ServerMessage, AppState};
+use crate::{http::auth, prelude::*, ws::message::ServerMessage, AppState};
 
 #[serde_as]
 #[derive(Error, Debug, Serialize)]
@@ -55,6 +56,9 @@ pub enum WsError {
 
     #[error("Failed to send a message to subscription pool")]
     Send,
+
+    #[error("Failed to authenticate")]
+    Auth,
 }
 
 pub(crate) async fn ws(
@@ -88,12 +92,18 @@ pub(crate) async fn ws(
                         );
 
                         match message {
-                            ClientMessage::Subscribe(sub) => SubPools::instance()
-                                .get(sub, &state.pg)
-                                .await
-                                .add
-                                .send(session.clone())
-                                .map_err(|_| WsError::Send)?,
+                            ClientMessage::Subscribe { sub, token } => {
+                                auth::check_throw(token, &state.pg)
+                                    .await
+                                    .map_err(|_| WsError::Auth)?;
+
+                                SubPools::instance()
+                                    .get(sub, &state.pg)
+                                    .await
+                                    .add
+                                    .send(session.clone())
+                                    .map_err(|_| WsError::Send)?;
+                            }
                             ClientMessage::Update { sub, value } => SubPools::instance()
                                 .get(sub, &state.pg)
                                 .await

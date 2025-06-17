@@ -110,7 +110,7 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, R
     }
 }
 
-pub(super) async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
+pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
     let token = sqlx::query!(
         r#"
         SELECT token FROM tokens

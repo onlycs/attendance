@@ -1,6 +1,6 @@
 #![feature(never_type, error_generic_member_access, let_chains)]
 #![warn(clippy::pedantic)]
-#![allow(clippy::similar_names)]
+#![allow(clippy::similar_names, clippy::missing_errors_doc)]
 
 #[macro_use]
 extern crate tracing;

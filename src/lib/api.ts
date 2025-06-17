@@ -71,6 +71,8 @@ const CsvSchema = z.object({
 	csv: z.string(),
 });
 
+export const HourTypeSchema = z.enum(["learning", "build", "demo"]);
+
 export const ApiSchema = makeApi([
 	{
 		method: "post",
@@ -120,7 +122,7 @@ export const ApiSchema = makeApi([
 				type: "Body",
 				schema: z.object({
 					id: z.string(),
-					kind: z.enum(["learning", "build", "demo"]),
+					kind: HourTypeSchema,
 					force: z.boolean().default(false),
 				}),
 			},
@@ -203,7 +205,7 @@ export type LoginResponse = TypeOf<typeof TokenSchema>;
 export type RouterResponse = TypeOf<typeof RosterSchema>;
 export type CsvResponse = TypeOf<typeof CsvSchema>;
 export type RosterAction = TypeOf<typeof RosterSchema>["action"];
-export type HourType = AliasBody<"roster">["kind"];
+export type HourType = TypeOf<typeof HourTypeSchema>;
 export type AnyError = MethodError<Method>;
 
 export const ApiClient = {

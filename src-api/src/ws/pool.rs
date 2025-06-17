@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use tokio::sync::{mpsc::UnboundedSender, RwLock};
 
 use super::{session::Session, subscription::Subscription};
-use crate::ws::WsError;
+use crate::ws::{editor, student_data, WsError};
 
 #[derive(Debug)]
 pub struct SubPool {
@@ -43,7 +43,10 @@ impl SubPools {
                 .write()
                 .await
                 .entry(sub)
-                .or_insert_with(|| sub.pool(Arc::clone(pg))),
+                .or_insert_with(|| match sub {
+                    Subscription::StudentData => student_data::pool(Arc::clone(pg)),
+                    Subscription::Editor => editor::pool(Arc::clone(pg)),
+                }),
         )
     }
 

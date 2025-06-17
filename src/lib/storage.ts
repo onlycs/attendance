@@ -9,7 +9,7 @@ export function useSessions<const T extends string>(keys: T[]) {
 		keys.reduce(
 			(acc, k) => {
 				const stored =
-					typeof window !== "undefined" ? sessionStorage.getItem(k) : null;
+					typeof window === "undefined" ? null : sessionStorage.getItem(k);
 				acc[k] = OptionOf(stored);
 				return acc;
 			},

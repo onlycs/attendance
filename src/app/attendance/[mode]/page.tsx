@@ -309,10 +309,6 @@ export default function Roster() {
 						crypt
 							.decrypt(data, password.unwrap(""))
 							.then((decrypted) => {
-								console.log(
-									"Decrypted student data",
-									JSON.parse(decrypted || "[]"),
-								);
 								setStudentData(
 									Some(new JsonDb(StudentData, JSON.parse(decrypted || "[]"))),
 								);
@@ -404,7 +400,10 @@ export default function Roster() {
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: websocket is not a dependency
 	useEffect(() => {
-		ws.send("Subscribe", "StudentData");
+		ws.send("Subscribe", {
+			token: cookies.get(TokenKey) ?? "unknown",
+			sub: "StudentData",
+		});
 	}, []);
 
 	if (!canLoad) {
