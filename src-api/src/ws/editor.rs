@@ -1,13 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use actix_web::rt;
-use chrono::{NaiveDate, NaiveDateTime};
-use chrono_tz::US;
+use chrono::{DateTime, Local, NaiveDate};
 use serde::{Deserialize, Serialize};
-use serde_with::SerializeDisplay;
 use sqlx::{postgres::PgListener, PgPool};
 use tokio::sync::{mpsc, RwLock};
 
@@ -29,8 +24,8 @@ struct RosterChange {
     operation: Operation,
     id: String,
     student_id: String,
-    sign_in: NaiveDateTime,
-    sign_out: Option<NaiveDateTime>,
+    sign_in: DateTime<Local>,
+    sign_out: Option<DateTime<Local>>,
     kind: HourType,
 }
 
@@ -38,8 +33,8 @@ struct RosterChange {
 pub struct TimeEntry {
     pub id: String,
     pub kind: HourType,
-    pub start: NaiveDateTime,
-    pub end: Option<NaiveDateTime>,
+    pub start: DateTime<Local>,
+    pub end: Option<DateTime<Local>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -60,15 +55,15 @@ pub struct Row {
 pub enum Query {
     Create {
         student_id: String,
-        sign_in: NaiveDateTime,
-        sign_out: Option<NaiveDateTime>,
+        sign_in: DateTime<Local>,
+        sign_out: Option<DateTime<Local>>,
         hour_type: HourType,
     },
 
     Update {
         entry_id: String,
-        sign_in: NaiveDateTime,
-        sign_out: Option<NaiveDateTime>,
+        sign_in: DateTime<Local>,
+        sign_out: Option<DateTime<Local>>,
         hour_type: HourType,
     },
 
@@ -77,18 +72,23 @@ pub enum Query {
     },
 }
 
-async fn init(pg: &PgPool) -> Result<(HashSet<NaiveDate>, HashMap<String, Row>), sqlx::Error> {
+async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sqlx::Error> {
     let initial =
         sqlx::query!(
             r#"
             SELECT id, student_id, sign_in, sign_out, hour_type as "hour_type: HourType" FROM records
-            ORDER BY sign_in
+            ORDER BY sign_in DESC
             "#
         )
             .fetch_all(pg)
             .await?;
 
-    let mut added_dates = HashSet::new();
+    debug!(
+        "Commencing editor initialization ({} records)",
+        initial.len()
+    );
+
+    let mut added_dates = Vec::new();
     let mut rows = HashMap::<String, Row>::new();
 
     for record in initial {
@@ -101,14 +101,17 @@ async fn init(pg: &PgPool) -> Result<(HashSet<NaiveDate>, HashMap<String, Row>),
         let time_out = time_out.map(|t| t.and_utc());
 
         // i want to give them back as local, i.e. America/New_York
-        let time_in = time_in.with_timezone(&US::Eastern);
-        let time_out = time_out.map(|t| t.with_timezone(&US::Eastern));
+        let time_in = time_in.with_timezone(&Local);
+        let time_out = time_out.map(|t| t.with_timezone(&Local));
 
         // keep track of the day this is for
         let day = time_in.date_naive();
 
         // if we haven't seen this day before, we need to add it to every row
-        if added_dates.insert(day) {
+        // days are sorted decending, so if we have seen it, it must be the last one
+        if added_dates.last().is_none_or(|&d| d != day) {
+            added_dates.push(day);
+
             for row in rows.values_mut() {
                 row.dates.push(Cell {
                     date: day,
@@ -119,8 +122,8 @@ async fn init(pg: &PgPool) -> Result<(HashSet<NaiveDate>, HashMap<String, Row>),
 
         let entry = TimeEntry {
             id: record.id,
-            start: time_in.naive_utc(),
-            end: time_out.map(|t| t.naive_utc()),
+            start: time_in,
+            end: time_out,
             kind: record.hour_type,
         };
 
@@ -176,7 +179,7 @@ async fn add_thread(
 #[allow(clippy::too_many_lines)]
 async fn watch_thread(
     pg: Arc<PgPool>,
-    mut dates: HashSet<NaiveDate>,
+    mut dates: Vec<NaiveDate>,
     subs: Arc<RwLock<HashMap<u64, Session>>>,
     data: Arc<RwLock<HashMap<String, Row>>>,
 ) -> Result<!, sqlx::Error> {
@@ -207,7 +210,7 @@ async fn watch_thread(
                     continue;
                 };
 
-                let day = change.sign_in.date();
+                let day = change.sign_in.date_naive();
 
                 let Some(Cell { entries, .. }) = row.dates.iter_mut().find(|cell| cell.date == day)
                 else {
@@ -223,10 +226,14 @@ async fn watch_thread(
                 entries.retain(|entry| entry.start != change.sign_in);
             }
             Operation::Insert => {
-                let day = change.sign_in.date();
+                let day = change.sign_in.date_naive();
                 let mut rows = data.write().await;
 
-                if dates.insert(day) {
+                if !dates.contains(&day) {
+                    dates.push(day);
+                    dates.sort();
+                    dates.reverse();
+
                     // if we haven't seen this day before, we need to add it to every row
                     for row in rows.values_mut() {
                         row.dates.push(Cell {
@@ -277,7 +284,7 @@ async fn watch_thread(
                     continue;
                 };
 
-                let day = change.sign_in.date();
+                let day = change.sign_in.date_naive();
 
                 let Some(Cell { entries, .. }) = row.dates.iter_mut().find(|cell| cell.date == day)
                 else {
@@ -355,8 +362,8 @@ async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>)
                     "#,
                 student_id,
                 sign_out.is_none(),
-                sign_in,
-                sign_out,
+                sign_in.naive_utc(),
+                sign_out.map(|t| t.naive_utc()),
                 hour_type as HourType
             )
             .execute(&*pg)
@@ -374,8 +381,8 @@ async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>)
                     WHERE id = $1
                     "#,
                 entry_id,
-                sign_in,
-                sign_out,
+                sign_in.naive_utc(),
+                sign_out.map(|t| t.naive_utc()),
                 hour_type as HourType
             )
             .execute(&*pg)
@@ -401,47 +408,51 @@ async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>)
     panic!("[Editor] Update thread terminated unexpectedly");
 }
 
+async fn remove_thread(
+    subs: Arc<RwLock<HashMap<u64, Session>>>,
+    mut rx: mpsc::UnboundedReceiver<u64>,
+) -> ! {
+    while let Some(id) = rx.recv().await {
+        subs.write().await.remove(&id);
+    }
+
+    panic!("[Editor] Remove thread terminated unexpectedly");
+}
+
 pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, add_rx) = mpsc::unbounded_channel::<Session>();
-    let (remove_tx, mut remove_rx) = mpsc::unbounded_channel();
+    let (remove_tx, remove_rx) = mpsc::unbounded_channel();
     let (update_tx, update_rx) = mpsc::unbounded_channel::<String>();
 
     let task = rt::spawn(async move {
-        let subscriptions_add = Arc::new(RwLock::new(HashMap::new()));
-        let subscriptions_remove = Arc::clone(&subscriptions_add);
-        let subscriptions_listen = Arc::clone(&subscriptions_add);
+        let subscriptions = Arc::new(RwLock::new(HashMap::new()));
 
         let pool_listen = Arc::clone(&pg);
         let pool_update = Arc::clone(&pg);
 
         let (dates, data) = init(&pg).await.unwrap_or_else(|err| {
             error!("Failed to initialize roster data: {err}");
-            (HashSet::new(), HashMap::new())
+            (Vec::new(), HashMap::new())
         });
 
-        let data_add = Arc::new(RwLock::new(data));
-        let data_listener = Arc::clone(&data_add);
+        let data = Arc::new(RwLock::new(data));
 
         rt::spawn(add_thread(
-            Arc::clone(&subscriptions_add),
+            Arc::clone(&subscriptions),
             add_rx,
-            data_listener.clone(),
+            Arc::clone(&data),
         ));
 
         rt::spawn(watch_thread(
             pool_listen,
             dates,
-            Arc::clone(&subscriptions_listen),
-            data_add,
+            Arc::clone(&subscriptions),
+            Arc::clone(&data),
         ));
 
         rt::spawn(update_thread(pool_update, update_rx));
 
-        rt::spawn(async move {
-            while let Some(to_remove) = remove_rx.recv().await {
-                subscriptions_remove.write().await.remove(&to_remove);
-            }
-        });
+        rt::spawn(remove_thread(Arc::clone(&subscriptions), remove_rx));
     });
 
     Arc::new(SubPool {

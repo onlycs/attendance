@@ -136,5 +136,5 @@ pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
         return Err(RouteError::NoAuth);
     };
 
-    Ok(auth.to_str()?.to_string())
+    Ok(auth.to_str()?.to_string().replace("Bearer ", ""))
 }

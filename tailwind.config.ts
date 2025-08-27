@@ -1,14 +1,9 @@
 import type { Config } from "tailwindcss";
 import theme from "tailwindcss/defaultTheme";
-import animate from "tailwindcss-animate";
 
 const config: Config = {
 	darkMode: "class",
-	content: [
-		"./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-		"./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-		"./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-	],
+	content: ["./src/**/*.vue", "./src/**/*.ts"],
 	theme: {
 		container: {
 			center: true,
@@ -20,8 +15,14 @@ const config: Config = {
 		extend: {
 			colors: {
 				drop: "var(--drop)",
+				"background-dark": "var(--background-dark)",
 				background: "var(--background)",
 				card: "var(--card)",
+				"card-hover": "var(--card-hover)",
+				"card-active": "var(--card-active)",
+				"card-2": "var(--card-2)",
+				"card-2-hover": "var(--card-2-hover)",
+				"card-2-active": "var(--card-2-active)",
 				text: "var(--text)",
 				hover: "var(--hover)",
 				border: "var(--border)",
@@ -60,6 +61,5 @@ const config: Config = {
 			},
 		},
 	},
-	plugins: [animate],
 };
 export default config;

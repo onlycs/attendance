@@ -1,0 +1,41 @@
+<script setup lang="ts">
+defineProps<{ kind: "primary" | "background" | "card" | "card-2" | "error" }>();
+</script>
+
+<template>
+	<button :class="cn('button', $props.kind, $attrs.class as string | undefined)" v-bind="$attrs">
+		<slot />
+	</button>
+</template>
+
+<style scoped>
+@reference "~/style/tailwind.css";
+
+.button {
+	@apply p-3 rounded-lg cursor-pointer;
+	@apply active:scale-95;
+	@apply transition-all duration-300;
+
+	&.primary {
+		@apply bg-white text-black;
+		@apply active:bg-white/80 hover:bg-white/90;
+	}
+
+	&.secondary {
+		@apply bg-card-2 active:bg-card-2-active hover:bg-card-2-hover;
+	}
+
+	&.card {
+		@apply bg-card active:bg-card-active hover:bg-card-hover;
+	}
+
+	&.background {
+		@apply bg-background active:bg-background-dark hover:bg-card-active;
+	}
+
+	&.error {
+		@apply bg-red-500 text-white;
+		@apply active:bg-red-600 hover:bg-red-400;
+	}
+}
+</style>
