@@ -5,6 +5,8 @@ export type {
 	Narrow,
 } from "@zodios/core/lib/utils.types";
 
+import type { Narrow } from "@zodios/core/lib/utils.types";
+
 type UnionToIntersection<U> = (
 	U extends never
 		? never
@@ -45,3 +47,8 @@ export type FixedArray<
 > = R["length"] extends N ? R : FixedArray<T, N, [...R, T]>;
 
 export type CountKeys<T> = TuplifyUnion<keyof T>["length"];
+
+/// Constrain T as much as possible using zodios voodoo magic
+export function narrow<T>(a: Narrow<T>): Narrow<T> {
+	return a;
+}

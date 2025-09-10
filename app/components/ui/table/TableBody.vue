@@ -2,18 +2,17 @@
 const body = inject<Ref<HTMLTableElement | null>>("table-body");
 const container = ref<HTMLDivElement>();
 
-onMounted(() => {
+function scroll(event: WheelEvent) {
 	if (!container.value) return;
+	event.preventDefault();
 
-	container.value.addEventListener("wheel", (event) => {
-		event.preventDefault();
-		container.value!.scrollTop += event.deltaY;
-	});
-});
+	// prevent momentum scrolling
+	container.value.scrollTop += event.deltaY;
+}
 </script>
 
 <template>
-	<div class="body-container" ref="container">
+	<div class="body-container" ref="container" @wheel="scroll">
 		<table ref="body" class="body-table">
 			<tbody>
 				<slot />

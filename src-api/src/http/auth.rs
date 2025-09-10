@@ -83,7 +83,7 @@ pub(super) async fn authorize(
 }
 
 pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {
-    debug!("Got a token check request");
+    debug!("Got a token check request {}", sanitize(&token));
 
     let token = sqlx::query!(
         r#"
@@ -91,7 +91,7 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, R
         WHERE created_at > NOW() - INTERVAL '10 hours'
             AND token = $1
         "#,
-        token
+        sanitize(&token)
     )
     .fetch_optional(pg)
     .await?;
@@ -137,4 +137,8 @@ pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
     };
 
     Ok(auth.to_str()?.to_string().replace("Bearer ", ""))
+}
+
+fn sanitize(token: &str) -> String {
+    token.replace("Bearer ", "")
 }

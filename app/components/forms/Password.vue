@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { REGEXP_ONLY_DIGITS_AND_CHARS as Alphanumeric } from "vue-input-otp";
+import type { OTPInput } from "#components";
 import type { SlotSize } from "../ui/input-otp/Slot.vue";
 
 const PASSWORD_LENGTH = 8;
@@ -11,11 +12,12 @@ export interface PasswordSubmitEvent {
 	stopLoading: () => void;
 }
 
-const props = defineProps<{ size?: SlotSize }>();
+const props = defineProps<{ size?: SlotSize; autofocus?: boolean }>();
 const emit = defineEmits<{ submit: [PasswordSubmitEvent] }>();
 
 const password = ref("");
 const loading = ref(false);
+const slots = ref<HTMLDivElement>();
 
 const icon = {
 	sm: "max-md:size-4 size-6",
@@ -34,6 +36,7 @@ watch(password, (value) => {
 		if (data.isErr()) {
 			apiToast(data.error);
 			loading.value = false;
+			password.value = "";
 			return;
 		}
 
@@ -47,6 +50,14 @@ watch(password, (value) => {
 		});
 	});
 });
+
+onMounted(() => {
+	if (!props.autofocus || !slots.value) return;
+	const parent = slots.value.parentElement as HTMLDivElement;
+	const input = parent.querySelector("input") as HTMLInputElement;
+
+	setTimeout(() => input.focus(), 150); // wtf
+});
 </script>
 
 <template>
@@ -57,7 +68,7 @@ watch(password, (value) => {
 		inputmode="text"
 		:pattern="Alphanumeric"
 	>
-		<div class="flex">
+		<div class="flex" ref="slots">
 			<OTPSlot
 				v-for="(slot, idx) in slots"
 				v-bind="slot"

@@ -39,7 +39,7 @@ impl Session {
         Self { id, session }
     }
 
-    pub async fn send(&mut self, data: ServerMessage) -> Result<(), WsError> {
+    pub async fn send(&mut self, data: ServerMessage<'_>) -> Result<(), WsError> {
         let serialized = serde_json::to_string(&data)?;
         self.session.text(serialized).await?;
         Ok(())

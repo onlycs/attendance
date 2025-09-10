@@ -263,9 +263,7 @@ function adminSubmit(event: PasswordSubmitEvent) {
 
 	event.stopLoading();
 
-	transition.out
-		.trigger()
-		.then(() => router.push("/admin?transition=forwards"));
+	transition.out.trigger().then(() => router.push("/admin"));
 }
 
 onMounted(() => {

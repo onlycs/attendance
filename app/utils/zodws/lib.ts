@@ -1,89 +1,51 @@
 // today, we witness Angad doing some more type gymnastics (ooooh) (aaaaah)
 
-import type { FilterArrayByValue, Narrow } from "@zodios/core/lib/utils.types";
+import type { FilterArrayByValue } from "@zodios/core/lib/utils.types";
 import type { z } from "zod";
 
-export interface ZodWsClientMessage<T = unknown> {
+export interface Message<T = unknown> {
 	name: string;
 	schema: z.ZodType<T>;
 }
 
-export interface ZodWsServerMessage<T = unknown> {
-	name: string;
-	schema: z.Schema<T>;
+export interface WebsocketApi {
+	client: Message[];
+	server: Message[];
 }
 
-export interface ZodWsApi {
-	clientMsgs: ZodWsClientMessage[];
-	serverMsgs: ZodWsServerMessage[];
-}
+export type ClientMessageNames<Api extends WebsocketApi> =
+	Api["client"][number]["name"];
 
-export function makeClientMsg<Message extends ZodWsClientMessage>(
-	message: Narrow<Message>,
-): Message {
-	return message as Message;
-}
-
-export function makeClientMsgs<Messages extends ZodWsClientMessage[]>(
-	messages: Narrow<Messages>,
-): Messages {
-	return messages as Messages;
-}
-
-export function makeServerMsg<Message extends ZodWsServerMessage>(
-	message: Narrow<Message>,
-): Message {
-	return message as Message;
-}
-
-export function makeServerMsgs<Messages extends ZodWsServerMessage[]>(
-	messages: Narrow<Messages>,
-): Messages {
-	return messages as Messages;
-}
-
-export function makeApi<Api extends ZodWsApi>(api: Narrow<Api>): Api {
-	return api as Api;
-}
+export type ServerMessageNames<Api extends WebsocketApi> =
+	Api["server"][number]["name"];
 
 export type ClientMessage<
-	Api extends ZodWsApi,
+	Api extends WebsocketApi,
 	Name extends ClientMessageNames<Api>,
-> = FilterArrayByValue<Api["clientMsgs"], { name: Name }>[number];
+> = FilterArrayByValue<Api["client"], { name: Name }>[number];
 
 export type ServerMessage<
-	Api extends ZodWsApi,
+	Api extends WebsocketApi,
 	Name extends ServerMessageNames<Api>,
-> = FilterArrayByValue<Api["serverMsgs"], { name: Name }>[number];
+> = FilterArrayByValue<Api["server"], { name: Name }>[number];
 
-export type ClientMessageNames<Api extends ZodWsApi> =
-	Api["clientMsgs"][number]["name"];
-export type ServerMessageNames<Api extends ZodWsApi> =
-	Api["serverMsgs"][number]["name"];
+export type ClientMessages<Api extends WebsocketApi> = Api["client"][number];
+export type ServerMessages<Api extends WebsocketApi> = Api["server"][number];
 
-export type ClientMessages<Api extends ZodWsApi> = Api["clientMsgs"][number];
-export type ServerMessages<Api extends ZodWsApi> = Api["serverMsgs"][number];
+export type MessageType<M extends Message> = z.infer<M["schema"]>;
 
-export type MessageType<
-	Message extends ZodWsClientMessage | ZodWsServerMessage,
-> = z.TypeOf<Message["schema"]>;
-
-export interface WsClientHooks<Api extends ZodWsApi> {
+export interface WsClientHooks<Api extends WebsocketApi> {
 	onStatus?: (client: ZodWsClient<Api>, status: "open" | "close") => void;
 	onError?: (client: ZodWsClient<Api>, event: Event) => void;
 	messages: {
-		[Name in ServerMessageNames<Api>]?: MessageType<
-			ServerMessage<Api, Name>
-		> extends never
-			? (client: ZodWsClient<Api>) => void
-			: (
-					client: ZodWsClient<Api>,
-					msg: MessageType<ServerMessage<Api, Name>>,
-				) => void;
+		[Name in ServerMessageNames<Api>]?: (
+			client: ZodWsClient<Api>,
+			msg: MessageType<ServerMessage<Api, Name>>,
+		) => void;
 	};
 }
 
-export class ZodWsClient<Api extends ZodWsApi> {
+export class ZodWsClient<Api extends WebsocketApi> {
 	readonly socket: WebSocket;
 	private ready = false;
 	private queue: string[] = [];
@@ -130,12 +92,17 @@ export class ZodWsClient<Api extends ZodWsApi> {
 			return;
 		}
 
-		const schema = this.api.serverMsgs.find((msg) => msg.name === tag)
-			?.schema as ServerMessages<Api>["schema"] | undefined;
+		const schema = this.api.server.find((msg) => msg.name === tag)?.schema as
+			| ServerMessages<Api>["schema"]
+			| undefined;
 
 		if (!schema) {
 			console.error("ws: Unregistered server message type:", tag);
 			return;
+		}
+
+		if (tag === "EditorData") {
+			console.log(message.data);
 		}
 
 		const res = schema.safeParse(message.data);

@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
-import { z } from "zod";
 import type { Table, TableBody, TableHeader } from "#components";
-import { EditorDataSchema, makeWebsocket } from "~/utils/zodws/api";
+import { Math2 } from "~/utils/math";
+import {
+	makeWebsocket,
+	type Row,
+	type TimeEntry,
+	type UpdateQuery,
+} from "~/utils/zodws/api";
+import { Temporal } from "temporal-polyfill";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
-const editorData = ref<z.infer<typeof EditorDataSchema>>(new Map());
+const editorData = ref<Map<string, Row>>(new Map());
 const studentData = ref(new JsonDb(StudentData, []));
 const ready = computed<boolean>((old) => {
 	return (
@@ -17,12 +23,35 @@ const ready = computed<boolean>((old) => {
 	);
 });
 
+const updates: Ref<UpdateQuery[]> = ref([]);
 const websocket = makeWebsocket({
 	messages: {
-		EditorData: (_, data) => {
-			editorData.value = data;
+		EditorData: (_, q) => {
+			if (q.type === "Full") {
+				editorData.value = q.data;
+			} else if (q.type === "Create") {
+				editorData.value
+					.get(q.studentId)
+					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.entries.set(q.entry.id, q.entry);
+			} else if (q.type === "Update") {
+				const entry = editorData.value
+					.get(q.studentId)
+					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.entries.get(q.id);
 
-			console.log(data);
+				if (!entry) return;
+
+				for (const update of q.updates) {
+					const up = narrow(update);
+					(entry[up.type] as unknown) = update.data;
+				}
+			} else if (q.type === "Delete") {
+				editorData.value
+					.get(q.studentId)
+					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.entries.delete(q.id);
+			}
 		},
 		StudentData: (_, data) => {
 			if (!data) {
@@ -44,6 +73,19 @@ const websocket = makeWebsocket({
 		},
 	},
 });
+
+function onReady(f: () => void) {
+	if (ready.value) {
+		f();
+	} else {
+		const stop = watch(ready, (newVal) => {
+			if (newVal) {
+				stop();
+				f();
+			}
+		});
+	}
+}
 
 function week(date: Date) {
 	const d = new Date(
@@ -82,9 +124,10 @@ const infoHeader = ref<InstanceType<typeof TableHeader>>();
 const infoData = ref<InstanceType<typeof TableBody>>();
 
 const content = ref<InstanceType<typeof Table>>();
+const contentHeader = ref<InstanceType<typeof TableHeader>>();
 const contentData = ref<InstanceType<typeof TableBody>>();
 
-watchEffect(() => {
+const fadeReposition = useThrottleFn(() => {
 	if (
 		!ready.value ||
 		!page.value ||
@@ -103,83 +146,106 @@ watchEffect(() => {
 	const contentEl = content.value.$el as HTMLDivElement;
 	const contentDataEl = contentData.value.$el as HTMLDivElement;
 
-	// scroll sync
-	contentDataEl.addEventListener("wheel", (event) => {
-		contentEl.scrollLeft += event.deltaX;
-		infoDataEl.scrollTop += event.deltaY;
+	const pageBox = pageEl.getBoundingClientRect();
+	const infoHeaderBox = infoHeaderEl.getBoundingClientRect();
+	const infoDataBox = infoDataEl.getBoundingClientRect();
+
+	const contentBox = contentEl.getBoundingClientRect();
+	const contentDataBox = contentDataEl.getBoundingClientRect();
+
+	const top = contentDataEl.scrollTop;
+	const bottom = contentDataEl.scrollHeight - contentDataBox.height - top;
+	const left = contentEl.scrollLeft;
+	const right = contentEl.scrollWidth - contentBox.width - left;
+
+	const padding = infoHeaderBox.left;
+
+	$gsap.set(".hideaway.top", {
+		opacity: top / 64,
+		top: infoHeaderBox.bottom,
+		left: padding,
+		right: padding,
 	});
 
-	infoDataEl.addEventListener("wheel", (event) => {
-		contentDataEl.scrollTop += event.deltaY;
+	$gsap.set(".hideaway.bottom", {
+		opacity: bottom / 64,
+		bottom: window.innerHeight - pageBox.bottom + padding - 1,
+		left: padding,
+		right: padding,
 	});
 
-	// cell height sync
-	const contentCell = contentDataEl.querySelector("td")!;
-	const infoCells = infoDataEl.querySelectorAll("td");
+	$gsap.set(".hideaway.left", {
+		opacity: left / 64,
+		top: infoHeaderBox.top,
+		bottom: window.innerHeight - pageBox.bottom + padding - 1,
+		left: infoDataBox.right,
+	});
+
+	$gsap.set(".hideaway.right", {
+		opacity: right / 64,
+		top: infoHeaderBox.top,
+		bottom: window.innerHeight - pageBox.bottom + padding,
+		right: padding,
+	});
+}, 32);
+
+function infoScroll(ev: WheelEvent) {
+	contentData.value!.$el.scrollTop += ev.deltaY;
+}
+
+function contentScrollY(ev: WheelEvent) {
+	infoData.value!.$el.scrollTop += ev.deltaY;
+}
+
+function contentScrollX(ev: WheelEvent) {
+	content.value!.$el.scrollLeft += ev.deltaX;
+}
+
+onMounted(() => {
+	window.addEventListener("resize", fadeReposition);
+});
+
+onReady(() => {
+	fadeReposition();
+});
+
+watchEffect(() => {
+	if (!contentData.value || !infoData.value) return;
+
+	// sync table row heights
+	const contentCell = contentData.value.$el.querySelector("td")!;
+	const infoCells = infoData.value.$el.querySelectorAll("td");
 	const contentCellBox = contentCell.getBoundingClientRect();
 
 	for (const cell of infoCells) {
 		cell.style.height = `${contentCellBox.height}px`;
 	}
-
-	// shadows
-	const recalculate = () => {
-		const pageBox = pageEl.getBoundingClientRect();
-		const infoHeaderBox = infoHeaderEl.getBoundingClientRect();
-		const infoDataBox = infoDataEl.getBoundingClientRect();
-
-		const contentBox = contentEl.getBoundingClientRect();
-		const contentDataBox = contentDataEl.getBoundingClientRect();
-
-		const top = contentDataEl.scrollTop;
-		const bottom = contentDataEl.scrollHeight - contentDataBox.height - top;
-		const left = contentEl.scrollLeft;
-		const right = contentEl.scrollWidth - contentBox.width - left;
-
-		const padding = infoHeaderBox.left; // trust
-
-		$gsap.set(".hideaway.top", {
-			opacity: top / 64,
-			top: infoHeaderBox.bottom,
-			left: padding,
-			right: padding,
-		});
-
-		$gsap.set(".hideaway.bottom", {
-			opacity: bottom / 64,
-			bottom: window.innerHeight - pageBox.bottom + padding - 1,
-			left: padding,
-			right: padding,
-		});
-
-		$gsap.set(".hideaway.left", {
-			opacity: left / 64,
-			top: infoHeaderBox.top,
-			bottom: window.innerHeight - pageBox.bottom + padding - 1,
-			left: infoDataBox.right,
-		});
-
-		$gsap.set(".hideaway.right", {
-			opacity: right / 64,
-			top: infoHeaderBox.top,
-			bottom: window.innerHeight - pageBox.bottom + padding,
-			right: padding,
-		});
-	};
-
-	contentDataEl.addEventListener("scroll", recalculate);
-	contentEl.addEventListener("scroll", recalculate);
-	window.addEventListener("resize", recalculate);
-
-	// onload
-	recalculate();
 });
 
-// num entry label
-function entries(count: number) {
-	if (count === 0) return "No Entries";
-	if (count === 1) return "1 Entry";
-	return `${count} Entries`;
+// labelling
+function hours(el: number): string {
+	const mins = el * 60;
+
+	if (mins < 15) return Math2.format(mins, "Minute");
+	else return Math2.format(el, "Hour", 2);
+}
+
+function entriesLabel(entries: TimeEntry[]) {
+	if (entries.length === 0) return "No data";
+
+	let sum = new Temporal.Duration();
+
+	for (const entry of entries) {
+		if (!entry.end) continue;
+		sum = sum.add(entry.start.until(entry.end));
+	}
+
+	return hours(sum.total({ unit: "hours" }));
+}
+
+function entryLabel(entry: TimeEntry) {
+	if (!entry.end) return "Ongoing";
+	return hours(entry.start.until(entry.end).total({ unit: "hours" }));
 }
 
 function icon(count: number) {
@@ -188,13 +254,26 @@ function icon(count: number) {
 }
 
 // sorted student data
-const studentDataSorted = computed(() => {
-	return studentData.value.get({}).sort((a, b) => {
+const fullData = computed(() => {
+	const sorted = studentData.value.get({}).sort((a, b) => {
 		if (a.last === b.last) {
 			return a.first.localeCompare(b.first);
 		}
 		return a.last.localeCompare(b.last);
 	});
+
+	const data = sorted.map((data) => ({
+		...data,
+		hashed: Crypt.sha256(data.id),
+		dates: editorData.value.get(Crypt.sha256(data.id))?.cells ?? [],
+	}));
+
+	for (const update of updates.value) {
+		if (update.type === "Create") {
+			const student = data.find(d => d.hashed === update.studentId)!;
+			const date = student.dates.find(d => d.date === update.signIn)
+		}
+	}
 });
 
 onMounted(() => {
@@ -238,7 +317,13 @@ definePageMeta({ layout: "admin-protected" });
 				<Icon name="hugeicons:redo" size="22" />
 				Redo
 			</Button>
+
+			<Button v-if="updates.length > 0" kind="card" class="button">
+				<Icon name="hugeicons:upload-01" size="22" />
+				Push {{ Math2.format(updates.length, "Change") }}
+			</Button>
 		</div>
+
 		<div class="tables">
 			<Table class="info">
 				<TableHeader class="header" ref="infoHeader">
@@ -252,8 +337,8 @@ definePageMeta({ layout: "admin-protected" });
 						Last Name
 					</HeaderCell>
 				</TableHeader>
-				<TableBody class="body" ref="infoData">
-					<DataRow v-for="student in studentDataSorted" :key="student.id">
+				<TableBody class="body" ref="infoData" @wheel="infoScroll">
+					<DataRow v-for="student in fullData" :key="student.id">
 						<DataCell>{{ student.id }}</DataCell>
 						<DataCell>{{ student.first }}</DataCell>
 						<DataCell>{{ student.last }}</DataCell>
@@ -261,37 +346,68 @@ definePageMeta({ layout: "admin-protected" });
 				</TableBody>
 			</Table>
 
-			<Table class="data" ref="content">
-				<TableHeader class="header">
+			<Table class="data" ref="content" @scroll="fadeReposition" @wheel="contentScrollX">
+				<TableHeader class="header" ref="contentHeader">
 					<HeaderCell 
-						v-for="date in [...editorData.entries()][0]![1].dates.map(d => d.date)" 
+						v-for="date in [...editorData.entries()][0]![1].cells.map(d => d.date)" 
 						:key="date.toISOString()"
 						class="date"
 					>
 						{{ dateFmt(date) }}
 					</HeaderCell>
 				</TableHeader>
-				<TableBody class="body" ref="contentData">
+				<TableBody class="body" ref="contentData" @wheel="contentScrollY" @scroll="fadeReposition">
 					<DataRow 
-						v-for="[id, dates] in studentDataSorted.map((student) => {
-							return [
-								student.id,
-								editorData.get(Crypt.sha256(student.id))?.dates ??
-									editorData.values().next().value!.dates,
-							] as const;
-						})" 
-						:key="id"
+						v-for="student in fullData" 
+						:key="student.id"
 					>
-						<DataCell v-for="day in dates" :key="`${id}${day.date.toLocaleString()}`">
+						<DataCell v-for="day in student.dates" :key="`${student.id}${day.date.toLocaleString()}`">
 							<Popover 
 								:trigger="{ 
-									label: entries(day.entries.length), 
-									icon: icon(day.entries.length) 
+									label: entriesLabel(Array.from(day.entries.values())), 
+									icon: icon(day.entries.size) 
 								}" 
 								class="dateinfo"
 							>
-								<div class="entry" v-for="entry in day.entries" :key="entry.id">
-									{{ entry.start.toLocaleDateString() }} - {{ entry.end?.toLocaleDateString() }}
+								<div class="entry" v-for="[id, entry] in day.entries" :key="id">
+									<div class="header">
+										{{ entryLabel(entry) }}
+									</div>
+
+									<div class="body">
+										<div class="label">Hour Type</div>
+										<Select 
+											:options="{
+												'learning': 'Learning',
+												'build': 'Build',
+												'demo': 'Volunteer',
+											}" 
+											:selected="entry.kind"
+											@update:selected="console.log"
+										/>
+
+										<div class="label">Start Time</div>
+										<TimePickerModelSubmit
+											:time="entry.start"
+											@update:time="(data) => {
+												console.log(data);
+												updates.push({
+													type:'Update',
+													id: entry.id,
+													updates: [{
+														type: 'start',
+														data,
+													}]
+												})
+											}"
+										/>
+
+										<div class="label">End Time</div>
+										<TimePicker
+											:time="entry.end"
+											@update:time="console.log"
+										/>
+									</div>
 								</div>
 							</Popover>
 						</DataCell>
@@ -299,6 +415,7 @@ definePageMeta({ layout: "admin-protected" });
 				</TableBody>
 			</Table>
 		</div>
+
 		<div class="hideaway left vertical" />
 		<div class="hideaway right vertical end" />
 		<div class="hideaway top horizontal" />
@@ -396,10 +513,25 @@ definePageMeta({ layout: "admin-protected" });
 
 :deep(.dateinfo) {
 	@apply flex flex-col gap-2 p-2;
-	@apply bg-card rounded-xl;
+	@apply bg-drop rounded-xl;
 
 	.entry {
-		@apply bg-card-2 p-2 rounded-xl;
+		@apply flex flex-col;
+		@apply bg-background rounded-xl;
+		@apply !p-0;
+
+		.header {
+			@apply rounded-lg bg-card p-2;
+		}
+
+		.body {
+			@apply p-2;
+
+			.label {
+				@apply border-b border-b-sub;
+				@apply my-2;
+			}
+		}
 	}
 }
 </style>

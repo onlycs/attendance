@@ -7,6 +7,9 @@ export default defineNuxtConfig({
 			htmlAttrs: {
 				class: "dark",
 			},
+			link: [
+				{ rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" }
+			]
 		},
 	},
 	components: [
@@ -46,5 +49,9 @@ export default defineNuxtConfig({
 			collections: ["hugeicons"]
 		}
 	},
-	compatibilityDate: '2025-08-18'
+	build: {
+		transpile: ['@vuepic/vue-datepicker']
+	},
+	compatibilityDate: '2025-08-18',
+	
 });

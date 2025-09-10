@@ -1,18 +1,14 @@
+import { Temporal } from "temporal-polyfill";
+import { zPlainDate, zZonedDateTime } from "temporal-zod";
 import { z } from "zod";
-import { API_URL, HourTypeSchema } from "../api";
-import {
-	makeApi,
-	makeClientMsg,
-	makeServerMsg,
-	type WsClientHooks,
-	ZodWsClient,
-} from "./lib";
+import { API_URL, type HourType, HourTypeSchema } from "../api";
+import { type WsClientHooks, ZodWsClient } from "./lib";
 
 export const WS_URL = `${API_URL.replaceAll("http", "ws")}/ws`;
 
 const Subscription = z.enum(["StudentData", "Editor"]);
 
-const Subscribe = makeClientMsg({
+const Subscribe = narrow({
 	name: "Subscribe",
 	schema: z.object({
 		token: z.string(),
@@ -20,51 +16,154 @@ const Subscribe = makeClientMsg({
 	}),
 });
 
-const UpdateStudentData = z.object({
+export const UpdateStudentDataSchema = z.object({
 	sub: z.literal("StudentData"),
 	value: z.string(),
 });
 
-const UpdateEditor = z.object({
-	sub: z.literal("Editor"),
-	value: z
-		.object({
+export type UpdateStudentData = z.infer<typeof UpdateStudentDataSchema>;
+
+const SignIn = z.coerce
+	.date()
+	.transform((date) => Temporal.Instant.fromEpochMilliseconds(date.getTime()))
+	.transform((instant) => instant.toZonedDateTimeISO("America/New_York"));
+
+const SignOut = SignIn.optional();
+const NaiveDate = zPlainDate;
+type NaiveDate = z.infer<typeof NaiveDate>;
+
+export const TimeEntrySchema = z.object({
+	id: z.string(),
+	kind: HourTypeSchema,
+	start: SignIn,
+	end: SignOut,
+});
+
+export type TimeEntry = z.infer<typeof TimeEntrySchema>;
+
+export const TimeEntryUpdateSchema = z.union([
+	z.object({
+		type: z.literal("kind"),
+		data: HourTypeSchema,
+	}),
+	z.object({
+		type: z.literal("start"),
+		data: SignIn,
+	}),
+	z.object({
+		type: z.literal("end"),
+		data: SignOut,
+	}),
+]);
+
+export type TimeEntryUpdate = z.infer<typeof TimeEntryUpdateSchema>;
+
+export type UpdateQuery =
+	| {
+			type: "Create";
+			studentId: string;
+			signIn: Date;
+			signOut?: Date;
+			hourType: HourType;
+	  }
+	| {
+			type: "Update";
+			id: string;
+			updates: TimeEntryUpdate[];
+	  }
+	| {
+			type: "Delete";
+			id: string;
+	  }
+	| {
+			type: "Batch";
+			updates: UpdateQuery[];
+	  };
+
+export const UpdateQuerySchema: z.ZodType<UpdateQuery> = z.lazy(() => {
+	return z.union([
+		z.object({
 			type: z.literal("Create"),
 			studentId: z.string(),
-			sign_in: z.date().transform((d) => d.toISOString()),
-			sign_out: z
-				.date()
-				.transform((d) => d.toISOString())
-				.optional(),
-			hour_type: HourTypeSchema,
-		})
-		.or(
-			z.object({
-				type: z.literal("Update"),
-				entryId: z.string(),
-				signIn: z.date().transform((d) => d.toISOString()),
-				signOut: z
-					.date()
-					.transform((d) => d.toISOString())
-					.optional(),
-				hourType: HourTypeSchema,
-			}),
-		)
-		.or(
-			z.object({
-				type: z.literal("Delete"),
-				entryId: z.string(),
-			}),
-		)
-		.transform((value) => JSON.stringify(value)),
+			signIn: SignIn,
+			signOut: SignOut,
+			hourType: HourTypeSchema,
+		}),
+		z.object({
+			type: z.literal("Update"),
+			id: z.string(),
+			updates: z.array(TimeEntryUpdateSchema),
+		}),
+		z.object({
+			type: z.literal("Delete"),
+			id: z.string(),
+		}),
+		z.object({
+			type: z.literal("Batch"),
+			updates: z.array(UpdateQuerySchema),
+		}),
+	]);
 });
 
-const Update = makeClientMsg({
+export const UpdateQueryMessageSchema = z.object({
+	sub: z.literal("Editor"),
+	value: UpdateQuerySchema,
+});
+
+export const CellSchema = z.object({
+	date: NaiveDate,
+	entries: z.preprocess(
+		(val) => new Map(Object.entries(val as Record<string, TimeEntry>)),
+		z.map(z.string(), TimeEntrySchema),
+	),
+});
+
+export type Cell = z.infer<typeof CellSchema>;
+
+export const RowSchema = z.object({
+	id: z.string(),
+	cells: z.array(CellSchema),
+});
+
+export type Row = z.infer<typeof RowSchema>;
+
+export const ReplicateQuerySchema = z.union([
+	z.object({
+		type: z.literal("Full"),
+		data: z.preprocess(
+			(val) => new Map(Object.entries(val as Record<string, Row>)),
+			z.map(z.string(), RowSchema),
+		),
+	}),
+	z.object({
+		type: z.literal("Create"),
+		studentId: z.string(),
+		date: NaiveDate,
+		entry: TimeEntrySchema,
+	}),
+	z.object({
+		type: z.literal("Update"),
+		studentId: z.string(),
+		date: NaiveDate,
+		id: z.string(),
+		updates: z.array(TimeEntryUpdateSchema),
+	}),
+	z.object({
+		type: z.literal("Delete"),
+		studentId: z.string(),
+		date: NaiveDate,
+		id: z.string(),
+	}),
+]);
+
+export type ReplicateQuery = z.infer<typeof ReplicateQuerySchema>;
+
+const Update = narrow({
 	name: "Update",
-	schema: UpdateStudentData.or(UpdateEditor),
+	schema: z.union([UpdateQueryMessageSchema, UpdateStudentDataSchema]),
 });
 
-const StudentDataResponse = makeServerMsg({
+const StudentDataResponse = narrow({
 	name: "StudentData",
 	schema: z.string(),
 });
@@ -75,7 +174,7 @@ const ErrorSchema = z.object({
 	location: z.string().optional(),
 });
 
-const ErrorResponse = makeServerMsg({
+const ErrorResponse = narrow({
 	name: "Error",
 	schema: z.object({
 		message: z.string(),
@@ -83,42 +182,14 @@ const ErrorResponse = makeServerMsg({
 	}),
 });
 
-const EditorTimeEntrySchema = z.object({
-	id: z.string(),
-	kind: HourTypeSchema,
-	start: z.coerce.date(),
-	end: z.coerce.date().optional(),
-});
-
-const EditorCellSchema = z.object({
-	date: z.string().transform((d) => new Date(`${d}T00:00:00`)), // fucking timezones (insert relevant xkcd)
-	entries: z.array(EditorTimeEntrySchema),
-});
-
-const RowSchema = z.object({
-	id: z.string(),
-	dates: z.array(EditorCellSchema),
-});
-
-export const EditorDataSchema = z.preprocess(
-	(val) => {
-		if (typeof val === "string") {
-			return new Map(Object.entries(JSON.parse(val)));
-		} else {
-			return new Map(Object.entries(val as Record<string, unknown>));
-		}
-	},
-	z.map(z.string(), RowSchema),
-);
-
-const EditorDataResponse = makeServerMsg({
+const EditorDataResponse = narrow({
 	name: "EditorData",
-	schema: EditorDataSchema,
+	schema: ReplicateQuerySchema,
 });
 
-const Api = makeApi({
-	clientMsgs: [Subscribe, Update],
-	serverMsgs: [StudentDataResponse, EditorDataResponse, ErrorResponse],
+const Api = narrow({
+	client: [Subscribe, Update],
+	server: [StudentDataResponse, EditorDataResponse, ErrorResponse],
 });
 
 export const makeWebsocket = (hooks: WsClientHooks<typeof Api>) =>

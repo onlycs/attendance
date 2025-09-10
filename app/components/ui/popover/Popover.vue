@@ -71,7 +71,7 @@ watch(open, (open) => {
 </script>
 
 <template>
-	<div class="popover" ref="popover" v-bind="$attrs">
+	<div class="popover" ref="popover" v-if="open" v-bind="$attrs">
 		<slot />
 	</div>
 

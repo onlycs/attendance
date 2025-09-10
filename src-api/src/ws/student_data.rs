@@ -64,6 +64,8 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
                     continue;
                 };
 
+                let data = serde_json::from_str::<String>(&data).unwrap_or_default();
+
                 if let Err(err) = sqlx::query!(
                     r#"
                     UPDATE cryptstore

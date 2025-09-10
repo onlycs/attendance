@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Write, sync::Arc};
 
 use actix_web::rt;
 use chrono::{DateTime, Local, NaiveDate};
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgListener, PgPool};
+use sqlx::{postgres::PgListener, PgExecutor, PgPool};
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
@@ -20,7 +20,7 @@ enum Operation {
 }
 
 #[derive(Deserialize)]
-struct RosterChange {
+struct PgWatchUpdate {
     operation: Operation,
     id: String,
     student_id: String,
@@ -37,22 +37,31 @@ pub struct TimeEntry {
     pub end: Option<DateTime<Local>>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", content = "data")]
+#[serde(rename_all = "lowercase")]
+pub enum TimeEntryUpdate {
+    Kind(HourType),
+    Start(DateTime<Local>),
+    End(Option<DateTime<Local>>),
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Cell {
     pub date: NaiveDate,
-    pub entries: Vec<TimeEntry>,
+    pub entries: HashMap<String, TimeEntry>,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Row {
     pub id: String,
-    pub dates: Vec<Cell>,
+    pub cells: Vec<Cell>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(tag = "type", content = "data")]
-#[serde(rename_all = "camelCase")]
-pub enum Query {
+#[serde(tag = "type")]
+#[serde(rename_all_fields = "camelCase")]
+pub enum UpdateQuery {
     Create {
         student_id: String,
         sign_in: DateTime<Local>,
@@ -61,14 +70,42 @@ pub enum Query {
     },
 
     Update {
-        entry_id: String,
-        sign_in: DateTime<Local>,
-        sign_out: Option<DateTime<Local>>,
-        hour_type: HourType,
+        id: String,
+        updates: Vec<TimeEntryUpdate>,
     },
 
     Delete {
-        entry_id: Option<String>,
+        id: String,
+    },
+
+    Batch(Vec<UpdateQuery>),
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "type")]
+#[serde(rename_all_fields = "camelCase")]
+pub enum ReplicateQuery<'a> {
+    Full {
+        data: &'a HashMap<String, Row>,
+    },
+
+    Create {
+        student_id: String,
+        date: NaiveDate,
+        entry: TimeEntry,
+    },
+
+    Update {
+        student_id: String,
+        date: NaiveDate,
+        id: String,
+        updates: Vec<TimeEntryUpdate>,
+    },
+
+    Delete {
+        student_id: String,
+        date: NaiveDate,
+        id: String,
     },
 }
 
@@ -113,9 +150,9 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
             added_dates.push(day);
 
             for row in rows.values_mut() {
-                row.dates.push(Cell {
+                row.cells.push(Cell {
                     date: day,
-                    entries: vec![],
+                    entries: HashMap::new(),
                 });
             }
         }
@@ -131,19 +168,19 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
         rows.entry(student_id.clone())
             .or_insert_with(|| Row {
                 id: student_id.clone(),
-                dates: added_dates
+                cells: added_dates
                     .iter()
                     .map(|&d| Cell {
                         date: d,
-                        entries: vec![],
+                        entries: HashMap::new(),
                     })
                     .collect(),
             })
-            .dates
+            .cells
             .last_mut()
             .unwrap()
             .entries
-            .push(entry);
+            .insert(entry.id.clone(), entry);
     }
 
     Ok((added_dates, rows))
@@ -157,16 +194,9 @@ async fn add_thread(
     while let Some(mut session) = rx.recv().await {
         // send an initial response with the current data
         let data = data.read().await;
+        let rq = ReplicateQuery::Full { data: &data };
 
-        let data = match serde_json::to_string(&*data) {
-            Ok(data) => data,
-            Err(err) => {
-                error!("[Editor] Failed to serialize initial data: {err}");
-                continue;
-            }
-        };
-
-        if let Err(err) = session.send(ServerMessage::EditorData(data)).await {
+        if let Err(err) = session.send(ServerMessage::EditorData(&rq)).await {
             error!("[Editor] Failed to send initial subscription response: {err}");
         }
 
@@ -191,13 +221,15 @@ async fn watch_thread(
         debug!("Received notification: {payload}");
 
         // parse the payload as a JSON string
-        let change: RosterChange = match serde_json::from_str(payload) {
+        let change: PgWatchUpdate = match serde_json::from_str(payload) {
             Ok(change) => change,
             Err(err) => {
                 error!("Failed to parse roster change: {err}");
                 continue;
             }
         };
+
+        let rq: ReplicateQuery;
 
         match change.operation {
             Operation::Delete => {
@@ -212,7 +244,7 @@ async fn watch_thread(
 
                 let day = change.sign_in.date_naive();
 
-                let Some(Cell { entries, .. }) = row.dates.iter_mut().find(|cell| cell.date == day)
+                let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
                         "Received delete operation for student {} on unknown date: {}",
@@ -223,24 +255,37 @@ async fn watch_thread(
                 };
 
                 // remove the entry for this date
-                entries.retain(|entry| entry.start != change.sign_in);
+                entries.remove(&change.id);
+
+                rq = ReplicateQuery::Delete {
+                    student_id: change.student_id,
+                    date: day,
+                    id: change.id,
+                };
             }
             Operation::Insert => {
                 let day = change.sign_in.date_naive();
                 let mut rows = data.write().await;
 
                 if !dates.contains(&day) {
-                    dates.push(day);
-                    dates.sort();
-                    dates.reverse();
+                    let pos = dates.iter().position(|&d| d < day).unwrap_or(dates.len());
+                    dates.insert(pos, day);
 
                     // if we haven't seen this day before, we need to add it to every row
                     for row in rows.values_mut() {
-                        row.dates.push(Cell {
-                            date: day,
-                            entries: vec![],
-                        });
-                        row.dates.sort_by_key(|cell| cell.date);
+                        let pos = row
+                            .cells
+                            .iter()
+                            .position(|cell| cell.date < day)
+                            .unwrap_or(row.cells.len());
+
+                        row.cells.insert(
+                            pos,
+                            Cell {
+                                date: day,
+                                entries: HashMap::new(),
+                            },
+                        );
                     }
                 }
 
@@ -252,7 +297,7 @@ async fn watch_thread(
                     continue;
                 };
 
-                let Some(Cell { entries, .. }) = row.dates.iter_mut().find(|cell| cell.date == day)
+                let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
                         "Received insert operation for student {} on unknown date: {}",
@@ -271,8 +316,13 @@ async fn watch_thread(
                 };
 
                 // add the entry for this date
-                entries.push(entry);
-                entries.sort_by_key(|e| e.start);
+                entries.insert(entry.id.clone(), entry.clone());
+
+                rq = ReplicateQuery::Create {
+                    student_id: change.student_id,
+                    date: day,
+                    entry,
+                };
             }
             Operation::Update => {
                 let mut rows = data.write().await;
@@ -286,7 +336,7 @@ async fn watch_thread(
 
                 let day = change.sign_in.date_naive();
 
-                let Some(Cell { entries, .. }) = row.dates.iter_mut().find(|cell| cell.date == day)
+                let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
                         "Received update operation for student {} on unknown date: {}",
@@ -298,10 +348,23 @@ async fn watch_thread(
 
                 // find the entry to update
                 // there is no reason for the entry's id to change, future devs beware
-                if let Some(entry) = entries.iter_mut().find(|e| e.id == change.id) {
-                    entry.start = change.sign_in;
-                    entry.end = change.sign_out;
-                    entry.kind = change.kind;
+                let mut updates = vec![];
+
+                if let Some(entry) = entries.get_mut(&change.id) {
+                    if entry.start != change.sign_in {
+                        updates.push(TimeEntryUpdate::Start(change.sign_in));
+                        entry.start = change.sign_in;
+                    }
+
+                    if entry.end != change.sign_out {
+                        updates.push(TimeEntryUpdate::End(change.sign_out));
+                        entry.end = change.sign_out;
+                    }
+
+                    if entry.kind != change.kind {
+                        updates.push(TimeEntryUpdate::Kind(change.kind));
+                        entry.kind = change.kind;
+                    }
                 } else {
                     warn!(
                         "Received update operation for student {} on date {} with unknown id: {}",
@@ -310,24 +373,22 @@ async fn watch_thread(
                         &change.id[..7]
                     );
                 }
+
+                rq = ReplicateQuery::Update {
+                    student_id: change.student_id,
+                    date: day,
+                    id: change.id,
+                    updates,
+                };
             }
         }
-
-        // serialize the updated data
-        let data = match serde_json::to_string(&*data.read().await) {
-            Ok(data) => data,
-            Err(err) => {
-                error!("Failed to serialize updated data: {err}");
-                continue;
-            }
-        };
 
         let mut subs = subs.write().await;
 
         // send the update to all subscribers
         let futures = subs
             .values_mut()
-            .map(|session| session.send(ServerMessage::EditorData(data.clone())));
+            .map(|session| session.send(ServerMessage::EditorData(&rq)));
 
         futures_util::future::join_all(futures)
             .await
@@ -339,23 +400,19 @@ async fn watch_thread(
     panic!("[Editor] Watch thread terminated unexpectedly");
 }
 
-async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>) -> ! {
-    while let Some(message) = rx.recv().await {
-        let query: Query = match serde_json::from_str(&message) {
-            Ok(data) => data,
-            Err(err) => {
-                error!("[Editor] Failed to deserialize message: {err}");
-                continue;
-            }
-        };
-
-        let result = match query {
-            Query::Create {
-                student_id,
-                sign_in,
-                sign_out,
-                hour_type,
-            } => sqlx::query!(
+async fn process_update(
+    pg: impl PgExecutor<'_>,
+    pool: &PgPool,
+    query: UpdateQuery,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match query {
+        UpdateQuery::Create {
+            student_id,
+            sign_in,
+            sign_out,
+            hour_type,
+        } => {
+            sqlx::query!(
                 r#"
                     INSERT INTO records (student_id, in_progress, sign_in, sign_out, hour_type)
                     VALUES ($1, $2, $3, $4, $5);
@@ -366,39 +423,89 @@ async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>)
                 sign_out.map(|t| t.naive_utc()),
                 hour_type as HourType
             )
-            .execute(&*pg)
-            .await
-            .err(),
-            Query::Update {
-                entry_id,
-                sign_in,
-                sign_out,
-                hour_type,
-            } => sqlx::query!(
-                r#"
-                    UPDATE records
-                    SET sign_in = $2, sign_out = $3, hour_type = $4
-                    WHERE id = $1
-                    "#,
-                entry_id,
-                sign_in.naive_utc(),
-                sign_out.map(|t| t.naive_utc()),
-                hour_type as HourType
-            )
-            .execute(&*pg)
-            .await
-            .err(),
-            Query::Delete { entry_id } => sqlx::query!(
+            .execute(pg)
+            .await?;
+        }
+        UpdateQuery::Update {
+            id: entry_id,
+            updates,
+        } => {
+            let mut query = String::from("UPDATE records SET ");
+
+            for (i, update) in updates.iter().enumerate() {
+                if i != 0 {
+                    query.push_str(", ");
+                }
+
+                match update {
+                    TimeEntryUpdate::Kind(kind) => {
+                        write!(&mut query, "hour_type = {kind:?}")
+                    }
+                    TimeEntryUpdate::Start(start) => {
+                        write!(&mut query, "sign_in = '{}'", start.naive_utc())
+                    }
+                    TimeEntryUpdate::End(end) => {
+                        if let Some(end) = end {
+                            write!(
+                                &mut query,
+                                "in_progress = false, sign_out = '{}'",
+                                end.naive_utc()
+                            )
+                        } else {
+                            write!(&mut query, "in_progress = true, sign_out = NULL")
+                        }
+                    }
+                }?;
+            }
+
+            write!(&mut query, " WHERE id = '{entry_id}'")?;
+
+            sqlx::query(&query).execute(pg).await?;
+        }
+        UpdateQuery::Delete { id } => {
+            sqlx::query!(
                 r#"
                     DELETE FROM records
                     WHERE id = $1
                     "#,
-                entry_id
+                id
             )
-            .execute(&*pg)
-            .await
-            .err(),
+            .execute(pg)
+            .await?;
+        }
+        UpdateQuery::Batch(mut queries) => {
+            queries = queries
+                .into_iter()
+                .flat_map(|q| match q {
+                    UpdateQuery::Batch(nested) => nested,
+                    other => vec![other],
+                })
+                .collect();
+
+            let mut tx = pool.begin().await.unwrap();
+
+            for query in queries {
+                Box::pin(process_update(&mut *tx, pool, query)).await?;
+            }
+
+            tx.commit().await?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>) -> ! {
+    while let Some(message) = rx.recv().await {
+        let query: UpdateQuery = match serde_json::from_str(&message) {
+            Ok(data) => data,
+            Err(err) => {
+                error!("[Editor] Failed to deserialize message: {err}");
+                continue;
+            }
         };
+
+        let result = process_update(&*pg, &pg, query).await.err();
 
         if let Some(err) = result {
             error!("[Editor] Failed to update database: {err}");

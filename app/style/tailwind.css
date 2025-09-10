@@ -11,9 +11,7 @@
 		--tw-ease: cubic-bezier(0, 0.55, 0.55, 1);
 		--tw-duration: 0.15s;
 		--ring: #d7d7d7;
-	}
 
-	.dark {
 		--drop: #171717;
 		--background-dark: #1f1f1f;
 		--background: #242424;
@@ -28,7 +26,75 @@
 
 		--text: #d7d7d7;
 		--text-sub: #8c8c8c;
-		--border: #8c8c8c;
+		--border: var(--card-2);
+		--spacing: 0.25rem;
+	}
+
+	.dp__theme_dark {
+		--dp-background-color: var(--card) !important;
+		--dp-hover-color: var(--card-hover) !important;
+
+		--dp-primary-color: var(--drop) !important;
+
+		--dp-disabled-color: var(--drop) !important;
+		--dp-disabled-color-text: var(--text-sub) !important;
+		--dp-primary-disabled-color: var(--drop) !important;
+		
+		--dp-border-color: var(--border) !important;
+		--dp-menu-border-color: var(--border) !important;
+		--dp-border-color-hover: var(--border) !important;
+		--dp-border-color-focus: var(--border) !important;
+
+		--dp-secondary-color: var(--card-2) !important;
+		--dp-cell-size: calc(var(--spacing) * 9) !important;
+
+		--dp-font-family: 
+			0 ui-sans-serif,
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			"Segoe UI",
+			Roboto,
+			"Helvetica Neue",
+			Arial,
+			"Noto Sans",
+			sans-serif,
+			"Apple Color Emoji",
+			"Segoe UI Emoji",
+			"Segoe UI Symbol",
+			"Noto Color Emoji" !important;
+
+		.dp__outer_menu_wrap {
+			border-radius: calc(var(--radius) + 4px) !important;
+		}
+
+		.dp__action_select {
+			--dp-primary-color: white !important;
+			--dp-primary-text-color: black !important;
+		}
+
+		.dp__calendar_header {
+			gap: calc(var(--spacing) * 2) !important;
+		}
+
+		.dp__calendar {
+			display: flex;
+			flex-direction: column;
+			gap: calc(var(--spacing) * 2) !important;
+			margin-top: calc(var(--spacing) * 2) !important;
+
+			.dp__calendar_row {
+				margin: 0 !important;
+			}
+		}
+
+		.dp--tp-wrap {
+			max-width: unset !important;
+		}
+
+		.dp__input_wrap > input {
+			border-radius: calc(var(--radius) + 2px) !important;
+		}
 	}
 
 	.success {

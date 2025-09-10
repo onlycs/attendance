@@ -108,7 +108,7 @@ pub(crate) async fn ws(
                                 .get(sub, &state.pg)
                                 .await
                                 .update
-                                .send(value)
+                                .send(serde_json::to_string(&value)?)
                                 .map_err(|_| WsError::Send)?,
                         }
                     }

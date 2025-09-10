@@ -6,6 +6,8 @@ import {
 	DrawerPortal,
 	DrawerRoot,
 } from "vaul-vue";
+import type { ComponentPublicInstance } from "vue";
+import type { RequireStorage } from "#components";
 import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
 import DefaultLayout from "./Default.vue";
 
@@ -23,7 +25,7 @@ function redirect() {
 	if (ok.value) return;
 
 	layout.value?.transition.out.trigger().then(() => {
-		useCookie(Keys.Token).value = null;
+		useToken().value = null;
 		router.push("/");
 	});
 }

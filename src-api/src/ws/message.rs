@@ -3,12 +3,19 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::{subscription::Subscription, WsError};
+use crate::ws::editor::ReplicateQuery;
 
 #[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum ClientMessage {
-    Subscribe { token: String, sub: Subscription },
-    Update { sub: Subscription, value: String },
+    Subscribe {
+        token: String,
+        sub: Subscription,
+    },
+    Update {
+        sub: Subscription,
+        value: serde_json::Value,
+    },
 }
 
 impl fmt::Debug for ClientMessage {
@@ -22,8 +29,8 @@ impl fmt::Debug for ClientMessage {
 
 #[derive(Serialize)]
 #[serde(tag = "type", content = "data")]
-pub enum ServerMessage {
+pub enum ServerMessage<'a> {
     StudentData(String),
-    EditorData(String),
+    EditorData(&'a ReplicateQuery<'a>),
     Error { message: String, meta: WsError },
 }
