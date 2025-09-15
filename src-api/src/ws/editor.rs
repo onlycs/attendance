@@ -2,12 +2,12 @@ use std::{collections::HashMap, fmt::Write, sync::Arc};
 
 use actix_web::rt;
 use chrono::{DateTime, Local, NaiveDate};
-use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgListener, PgExecutor, PgPool};
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
     http::roster::HourType,
+    prelude::*,
     ws::{message::ServerMessage, pool::SubPool, session::Session},
 };
 
@@ -24,7 +24,9 @@ struct PgWatchUpdate {
     operation: Operation,
     id: String,
     student_id: String,
+    #[serde(with = "chrono_temporal")]
     sign_in: DateTime<Local>,
+    #[serde(with = "chrono_temporal::optional")]
     sign_out: Option<DateTime<Local>>,
     kind: HourType,
 }
@@ -33,7 +35,9 @@ struct PgWatchUpdate {
 pub struct TimeEntry {
     pub id: String,
     pub kind: HourType,
+    #[serde(with = "chrono_temporal")]
     pub start: DateTime<Local>,
+    #[serde(with = "chrono_temporal::optional")]
     pub end: Option<DateTime<Local>>,
 }
 
@@ -42,7 +46,9 @@ pub struct TimeEntry {
 #[serde(rename_all = "lowercase")]
 pub enum TimeEntryUpdate {
     Kind(HourType),
+    #[serde(with = "chrono_temporal")]
     Start(DateTime<Local>),
+    #[serde(with = "chrono_temporal::optional")]
     End(Option<DateTime<Local>>),
 }
 
@@ -64,7 +70,9 @@ pub struct Row {
 pub enum UpdateQuery {
     Create {
         student_id: String,
+        #[serde(with = "chrono_temporal")]
         sign_in: DateTime<Local>,
+        #[serde(with = "chrono_temporal::optional")]
         sign_out: Option<DateTime<Local>>,
         hour_type: HourType,
     },

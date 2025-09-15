@@ -7,4 +7,4 @@ pub use serde::{Deserialize, Serialize};
 pub use serde_with::{serde_as, DisplayFromStr};
 pub use sqlx::PgPool;
 
-pub use crate::error::*;
+pub use crate::{error::*, serde::chrono_temporal};

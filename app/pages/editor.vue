@@ -9,6 +9,7 @@ import {
 	type UpdateQuery,
 } from "~/utils/zodws/api";
 import { Temporal } from "temporal-polyfill";
+import cuid from "cuid";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
@@ -24,6 +25,8 @@ const ready = computed<boolean>((old) => {
 });
 
 const updates: Ref<UpdateQuery[]> = ref([]);
+const undoStack: UpdateQuery[] = [];
+
 const websocket = makeWebsocket({
 	messages: {
 		EditorData: (_, q) => {
@@ -32,12 +35,12 @@ const websocket = makeWebsocket({
 			} else if (q.type === "Create") {
 				editorData.value
 					.get(q.studentId)
-					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.cells.find((c) => c.date)
 					?.entries.set(q.entry.id, q.entry);
 			} else if (q.type === "Update") {
 				const entry = editorData.value
 					.get(q.studentId)
-					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.cells.find((c) => c.date.equals(q.date))
 					?.entries.get(q.id);
 
 				if (!entry) return;
@@ -49,7 +52,7 @@ const websocket = makeWebsocket({
 			} else if (q.type === "Delete") {
 				editorData.value
 					.get(q.studentId)
-					?.cells.find((c) => c.date.getTime() === q.date.getTime())
+					?.cells.find((c) => c.date.equals(q.date))
 					?.entries.delete(q.id);
 			}
 		},
@@ -87,34 +90,19 @@ function onReady(f: () => void) {
 	}
 }
 
-function week(date: Date) {
-	const d = new Date(
-		Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-	);
-	const dayNum = d.getUTCDay() || 7; // Monday = 1, Sunday = 7
-	d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Thursday of current week
-	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-	return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
+function dateFmt(date: Temporal.PlainDate) {
+	const now = Temporal.Now.plainDateISO();
 
-function dateFmt(date: Date) {
-	const now = new Date();
+	if (now.year != date.year)
+		return `${date.toLocaleString(undefined, { month: "long", day: "numeric", year: "numeric" })}`;
 
-	if (now.getFullYear() === date.getFullYear()) {
-		if (week(now) === week(date)) {
-			if (now.getDate() === date.getDate()) {
-				return "Today";
-			} else if (now.getDate() - 1 === date.getDate()) {
-				return "Yesterday";
-			} else {
-				return `This ${date.toLocaleDateString(undefined, { weekday: "long" })}`;
-			}
-		} else {
-			return `${date.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`;
-		}
-	} else {
-		return `${date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}`;
-	}
+	if (now.weekOfYear != date.weekOfYear)
+		return `${date.toLocaleString(undefined, { month: "long", day: "numeric" })}`;
+
+	if (now.day === date.day) return `Today (${date.day}-${date.month}-${date.year})`;
+	if (now.day - 1 === date.day) return `Yesterday (${date.day}-${date.month}-${date.year})`;
+
+	return `This ${date.toLocaleString(undefined, { weekday: "long" })}`;
 }
 
 // table sync and scroll management
@@ -269,11 +257,40 @@ const fullData = computed(() => {
 	}));
 
 	for (const update of updates.value) {
+		if (update.type === "Batch") continue;
+
 		if (update.type === "Create") {
-			const student = data.find(d => d.hashed === update.studentId)!;
-			const date = student.dates.find(d => d.date === update.signIn)
+			const student = data.find((d) => d.hashed === update.studentId)!;
+			const date = student.dates.find((d) =>
+				d.date.equals(update.signIn.toPlainDate()),
+			);
+			const temporaryId = cuid();
+			date?.entries.set(temporaryId, {
+				id: temporaryId,
+				kind: update.hourType,
+				start: update.signIn,
+				end: update.signOut ?? undefined,
+			});
+		} else if (update.type === "Update") {
+			const entry = data
+				.flatMap((s) => s.dates.map((d) => d.entries.get(update.id)))
+				.find((e) => !!e);
+			if (!entry) continue;
+
+			for (const up of update.updates) {
+				const u = narrow(up);
+				(entry[u.type] as unknown) = up.data;
+			}
+		} else {
+			for (const student of data) {
+				for (const date of student.dates) {
+					date.entries.delete(update.id);
+				}
+			}
 		}
 	}
+
+	return data;
 });
 
 onMounted(() => {
@@ -303,19 +320,24 @@ definePageMeta({ layout: "admin-protected" });
 				Exit
 			</Button>
 
-			<Button kind="card" class="button">
+			<Button kind="card" class="button" disabled>
 				<Icon name="hugeicons:download-01" size="22" />
 				Download
 			</Button>
 
-			<Button kind="card" class="button">
+			<Button :disabled="updates.length === 0" kind="card" class="button">
 				<Icon name="hugeicons:undo" size="22" />
 				Undo
 			</Button>
 
-			<Button kind="card" class="button">
+			<Button :disabled="undoStack.length === 0" kind="card" class="button">
 				<Icon name="hugeicons:redo" size="22" />
 				Redo
+			</Button>
+
+			<Button v-if="updates.length > 0" kind="error" class="button">
+				<Icon name="hugeicons:trash-01" size="22" />
+				Discard {{ Math2.format(updates.length, "Change") }}
 			</Button>
 
 			<Button v-if="updates.length > 0" kind="card" class="button">
@@ -350,7 +372,7 @@ definePageMeta({ layout: "admin-protected" });
 				<TableHeader class="header" ref="contentHeader">
 					<HeaderCell 
 						v-for="date in [...editorData.entries()][0]![1].cells.map(d => d.date)" 
-						:key="date.toISOString()"
+						:key="date.toJSON()"
 						class="date"
 					>
 						{{ dateFmt(date) }}
@@ -388,24 +410,32 @@ definePageMeta({ layout: "admin-protected" });
 
 										<div class="label">Start Time</div>
 										<TimePickerModelSubmit
-											:time="entry.start"
+											:time="entry.start.toPlainTime()"
 											@update:time="(data) => {
-												console.log(data);
 												updates.push({
 													type:'Update',
 													id: entry.id,
 													updates: [{
 														type: 'start',
-														data,
+														data: entry.start.with({ ...data }),
 													}]
 												})
 											}"
 										/>
 
 										<div class="label">End Time</div>
-										<TimePicker
-											:time="entry.end"
-											@update:time="console.log"
+										<TimePickerModelSubmit
+											:time="entry.end?.toPlainTime()"
+											@update:time="(data) => {
+												updates.push({
+													type:'Update',
+													id: entry.id,
+													updates: [{
+														type: 'end',
+														data: (entry.end ?? entry.start).with({ ...data }),
+													}]
+												})
+											}"
 										/>
 									</div>
 								</div>

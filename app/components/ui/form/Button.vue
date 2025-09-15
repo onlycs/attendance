@@ -1,9 +1,12 @@
 <script setup lang="ts">
-defineProps<{ kind: "primary" | "background" | "card" | "card-2" | "error" }>();
+defineProps<{
+	kind: "primary" | "background" | "card" | "card-2" | "error";
+	disabled?: boolean;
+}>();
 </script>
 
 <template>
-	<button :class="cn('button', $props.kind, $attrs.class as string | undefined)" v-bind="$attrs">
+	<button :class="cn('button', $props.kind, $attrs.class as string | undefined, disabled && 'disabled')" v-bind="$attrs">
 		<slot />
 	</button>
 </template>
@@ -36,6 +39,11 @@ defineProps<{ kind: "primary" | "background" | "card" | "card-2" | "error" }>();
 	&.error {
 		@apply bg-red-500 text-white;
 		@apply active:bg-red-600 hover:bg-red-400;
+	}
+
+	&.disabled {
+		@apply opacity-50 cursor-not-allowed;
+		@apply active:scale-100;
 	}
 }
 </style>

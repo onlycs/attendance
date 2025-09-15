@@ -1,7 +1,7 @@
 import { Temporal } from "temporal-polyfill";
-import { zPlainDate, zZonedDateTime } from "temporal-zod";
 import { z } from "zod";
 import { API_URL, type HourType, HourTypeSchema } from "../api";
+import { zPlainDate } from "../temporal-zod";
 import { type WsClientHooks, ZodWsClient } from "./lib";
 
 export const WS_URL = `${API_URL.replaceAll("http", "ws")}/ws`;
@@ -62,8 +62,8 @@ export type UpdateQuery =
 	| {
 			type: "Create";
 			studentId: string;
-			signIn: Date;
-			signOut?: Date;
+			signIn: Temporal.ZonedDateTime;
+			signOut?: Temporal.ZonedDateTime;
 			hourType: HourType;
 	  }
 	| {

@@ -8,6 +8,7 @@ extern crate tracing;
 pub mod error;
 pub mod http;
 pub mod prelude;
+pub mod serde;
 pub mod ws;
 
 use std::sync::Arc;
