@@ -183,6 +183,10 @@ export class JsonDb<Table extends DbTable> {
 		return matching;
 	}
 
+	all() {
+		return this.get({});
+	}
+
 	update(
 		filter: DataFilter<Table>,
 		update: MapUpdate<Table> | ValueUpdate<Table> | ReplaceUpdate<Table>,

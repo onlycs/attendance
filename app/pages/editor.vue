@@ -10,38 +10,72 @@ import {
 } from "~/utils/zodws/api";
 import { Temporal } from "temporal-polyfill";
 import cuid from "cuid";
+import type { Reactive } from "vue";
+import "~/style/tailwind.css";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
-const editorData = ref<Map<string, Row>>(new Map());
-const studentData = ref(new JsonDb(StudentData, []));
-const ready = computed<boolean>((old) => {
-	return (
-		(editorData.value.size > 0 && studentData.value.length() > 0) ||
-		(old ?? false)
-	);
-});
+interface Cell {
+	date: Temporal.PlainDate;
+	entries: Reactive<Map<string, Ref<TimeEntry>>>;
+}
 
+interface Student {
+	id: string;
+	first: string;
+	last: string;
+	hashed: string;
+	cells: Cell[];
+}
+
+// organized by hashed student id, not real id
+const tableData: Reactive<Map<string, Student>> = reactive(new Map());
 const updates: Ref<UpdateQuery[]> = ref([]);
 const undoStack: UpdateQuery[] = [];
+
+const studentData = new JsonDb(StudentData, []);
+const ready = ref(false);
 
 const websocket = makeWebsocket({
 	messages: {
 		EditorData: (_, q) => {
 			if (q.type === "Full") {
-				editorData.value = q.data;
+				q.data.entries().forEach(([hashed, row]) => {
+					const cells = row.cells.map((c) => ({
+						date: c.date,
+						entries: reactive(
+							new Map(
+								c.entries.entries().map(([id, entry]) => [id, ref(entry)]),
+							),
+						),
+					}));
+
+					const student = studentData
+						.all()
+						.find((s) => Crypt.sha256(s.id) === hashed)!;
+
+					tableData.set(hashed, {
+						...student,
+						hashed,
+						cells,
+					});
+				});
+
+				setTimeout(() => { ready.value = true }, 500);
 			} else if (q.type === "Create") {
-				editorData.value
+				tableData
 					.get(q.studentId)
-					?.cells.find((c) => c.date)
-					?.entries.set(q.entry.id, q.entry);
+					?.cells.find((c) => c.date.equals(q.date))
+					?.entries.set(q.entry.id, ref(q.entry));
 			} else if (q.type === "Update") {
-				const entry = editorData.value
+				const ref = tableData
 					.get(q.studentId)
 					?.cells.find((c) => c.date.equals(q.date))
 					?.entries.get(q.id);
+
+				const entry = ref?.value;
 
 				if (!entry) return;
 
@@ -49,8 +83,10 @@ const websocket = makeWebsocket({
 					const up = narrow(update);
 					(entry[up.type] as unknown) = update.data;
 				}
+
+				ref.value = { ...entry };
 			} else if (q.type === "Delete") {
-				editorData.value
+				tableData
 					.get(q.studentId)
 					?.cells.find((c) => c.date.equals(q.date))
 					?.entries.delete(q.id);
@@ -58,13 +94,24 @@ const websocket = makeWebsocket({
 		},
 		StudentData: (_, data) => {
 			if (!data) {
-				studentData.value.reset([]);
+				studentData.reset([]);
 				return;
 			}
 
 			Crypt.decrypt(data, password.value!)
 				.then((decrypted) => {
-					studentData.value.reset(JSON.parse(decrypted));
+					studentData.reset(JSON.parse(decrypted));
+
+					for (const student of studentData.all()) {
+						const hashed = Crypt.sha256(student.id);
+						if (!tableData.has(hashed)) {
+							tableData.set(hashed, {
+								...student,
+								hashed,
+								cells: [],
+							});
+						}
+					}
 				})
 				.catch((error) => {
 					console.error("Failed to decrypt student data:", error);
@@ -99,116 +146,13 @@ function dateFmt(date: Temporal.PlainDate) {
 	if (now.weekOfYear != date.weekOfYear)
 		return `${date.toLocaleString(undefined, { month: "long", day: "numeric" })}`;
 
-	if (now.day === date.day) return `Today (${date.day}-${date.month}-${date.year})`;
-	if (now.day - 1 === date.day) return `Yesterday (${date.day}-${date.month}-${date.year})`;
+	if (now.day === date.day)
+		return `Today (${date.day}-${date.month}-${date.year})`;
+	if (now.day - 1 === date.day)
+		return `Yesterday (${date.day}-${date.month}-${date.year})`;
 
 	return `This ${date.toLocaleString(undefined, { weekday: "long" })}`;
 }
-
-// table sync and scroll management
-const page = ref<HTMLDivElement>();
-
-const infoHeader = ref<InstanceType<typeof TableHeader>>();
-const infoData = ref<InstanceType<typeof TableBody>>();
-
-const content = ref<InstanceType<typeof Table>>();
-const contentHeader = ref<InstanceType<typeof TableHeader>>();
-const contentData = ref<InstanceType<typeof TableBody>>();
-
-const fadeReposition = useThrottleFn(() => {
-	if (
-		!ready.value ||
-		!page.value ||
-		!infoHeader.value ||
-		!infoData.value ||
-		!content.value ||
-		!contentData.value
-	)
-		return;
-
-	const pageEl = page.value;
-
-	const infoHeaderEl = infoHeader.value.$el as HTMLDivElement;
-	const infoDataEl = infoData.value.$el as HTMLDivElement;
-
-	const contentEl = content.value.$el as HTMLDivElement;
-	const contentDataEl = contentData.value.$el as HTMLDivElement;
-
-	const pageBox = pageEl.getBoundingClientRect();
-	const infoHeaderBox = infoHeaderEl.getBoundingClientRect();
-	const infoDataBox = infoDataEl.getBoundingClientRect();
-
-	const contentBox = contentEl.getBoundingClientRect();
-	const contentDataBox = contentDataEl.getBoundingClientRect();
-
-	const top = contentDataEl.scrollTop;
-	const bottom = contentDataEl.scrollHeight - contentDataBox.height - top;
-	const left = contentEl.scrollLeft;
-	const right = contentEl.scrollWidth - contentBox.width - left;
-
-	const padding = infoHeaderBox.left;
-
-	$gsap.set(".hideaway.top", {
-		opacity: top / 64,
-		top: infoHeaderBox.bottom,
-		left: padding,
-		right: padding,
-	});
-
-	$gsap.set(".hideaway.bottom", {
-		opacity: bottom / 64,
-		bottom: window.innerHeight - pageBox.bottom + padding - 1,
-		left: padding,
-		right: padding,
-	});
-
-	$gsap.set(".hideaway.left", {
-		opacity: left / 64,
-		top: infoHeaderBox.top,
-		bottom: window.innerHeight - pageBox.bottom + padding - 1,
-		left: infoDataBox.right,
-	});
-
-	$gsap.set(".hideaway.right", {
-		opacity: right / 64,
-		top: infoHeaderBox.top,
-		bottom: window.innerHeight - pageBox.bottom + padding,
-		right: padding,
-	});
-}, 32);
-
-function infoScroll(ev: WheelEvent) {
-	contentData.value!.$el.scrollTop += ev.deltaY;
-}
-
-function contentScrollY(ev: WheelEvent) {
-	infoData.value!.$el.scrollTop += ev.deltaY;
-}
-
-function contentScrollX(ev: WheelEvent) {
-	content.value!.$el.scrollLeft += ev.deltaX;
-}
-
-onMounted(() => {
-	window.addEventListener("resize", fadeReposition);
-});
-
-onReady(() => {
-	fadeReposition();
-});
-
-watchEffect(() => {
-	if (!contentData.value || !infoData.value) return;
-
-	// sync table row heights
-	const contentCell = contentData.value.$el.querySelector("td")!;
-	const infoCells = infoData.value.$el.querySelectorAll("td");
-	const contentCellBox = contentCell.getBoundingClientRect();
-
-	for (const cell of infoCells) {
-		cell.style.height = `${contentCellBox.height}px`;
-	}
-});
 
 // labelling
 function hours(el: number): string {
@@ -241,62 +185,134 @@ function icon(count: number) {
 	return "hugeicons:arrow-down-01";
 }
 
-// sorted student data
-const fullData = computed(() => {
-	const sorted = studentData.value.get({}).sort((a, b) => {
-		if (a.last === b.last) {
-			return a.first.localeCompare(b.first);
-		}
-		return a.last.localeCompare(b.last);
-	});
+// functionality
+const scrollX = ref(0);
+const scrollY = ref(0);
+const table = ref<HTMLCanvasElement>();
 
-	const data = sorted.map((data) => ({
-		...data,
-		hashed: Crypt.sha256(data.id),
-		dates: editorData.value.get(Crypt.sha256(data.id))?.cells ?? [],
-	}));
+watch([ready, table, () => tableData.size], ([isReady, canvas, _]) => {
+	/*
+	 * self-doc for handling borders:
+	 * any element with a border (e.g.) to the right will place the
+	 * border inside itself, and the element to the right will not
+	 * be offset. borders between two touching elements will be assigned
+	 * to the top/left element, so boxes should have a border on the
+	 * bottom/right but not top/left
+	 *
+	 * thank you for listening to my ted talk
+	 */
 
-	for (const update of updates.value) {
-		if (update.type === "Batch") continue;
-
-		if (update.type === "Create") {
-			const student = data.find((d) => d.hashed === update.studentId)!;
-			const date = student.dates.find((d) =>
-				d.date.equals(update.signIn.toPlainDate()),
-			);
-			const temporaryId = cuid();
-			date?.entries.set(temporaryId, {
-				id: temporaryId,
-				kind: update.hourType,
-				start: update.signIn,
-				end: update.signOut ?? undefined,
-			});
-		} else if (update.type === "Update") {
-			const entry = data
-				.flatMap((s) => s.dates.map((d) => d.entries.get(update.id)))
-				.find((e) => !!e);
-			if (!entry) continue;
-
-			for (const up of update.updates) {
-				const u = narrow(up);
-				(entry[u.type] as unknown) = up.data;
-			}
-		} else {
-			for (const student of data) {
-				for (const date of student.dates) {
-					date.entries.delete(update.id);
-				}
-			}
-		}
+	const Colors = {
+		drop: "#171717",
+		backgroundDark: "#1f1f1f",
+		background: "#242424",
+		card: "#303030",
+		cardHover: "#3d3d3d",
+		cardActive: "#282828",
+		card2: "#565656",
+		card2Hover: "#636363",
+		card2Active: "#494949",
 	}
 
-	return data;
+	const PAD_X = Convert.remToPx(1); // px-4 py-2 equivalent
+	const PAD_Y = Convert.remToPx(0.5);
+	const ROW_HEIGHT = 52; // from before, tbd
+
+	console.log("causing" , ready.value, table.value, tableData.size);
+
+	if (!isReady || !canvas) return;
+	const ctx = canvas.getContext("2d")!;
+
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	/*
+	 * canvas units aren't the same as pixels for some reason
+	 * so we have to do this fun dance to make it look good
+	 */
+	const dpr = window.devicePixelRatio || 1;
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width * dpr;
+	canvas.height = rect.height * dpr;
+	ctx.scale(dpr, dpr);
+
+	/*
+	 * set the font correctly, we are going to be
+	 * measuring text sizes. 1.125rem = lg = header
+	 */
+	ctx.font = "1.125rem 'JetBrains Mono', monospace";
+
+	/*
+	 * student info header is always fixed-in-place
+	 * i do want to find the longest first, last name however
+	 * to size the column properly. comparing the size of the text
+	 * rather than the length of the string
+	 */
+	const firstWidth = Math.max(
+		...Array.from(tableData.values()).map(
+			(s) => ctx.measureText(s.first).width,
+		),
+		ctx.measureText("First Name").width
+	);
+	const lastWidth = Math.max(
+		...Array.from(tableData.values()).map((s) => ctx.measureText(s.last).width),
+		ctx.measureText("Last Name").width
+	);
+	const idWidth = ctx.measureText("Student ID").width;
+
+	console.log(idWidth, firstWidth, lastWidth);
+
+	// name header is 100% will never move
+	let cumWidth = new Accumulate();
+
+	function setText() {
+		ctx.fillStyle = "#fff";
+	}
+
+	function setRect(fill: string, stroke: string) {
+		ctx.fillStyle = fill;
+		ctx.strokeStyle = stroke;
+	}
+
+	ctx.beginPath();
+	setRect(Colors.card, Colors.card2Hover);
+	ctx.rect(0, 0, cumWidth.add(idWidth + 2 * PAD_X), ROW_HEIGHT);
+	ctx.fill();
+	ctx.stroke();
+
+	ctx.beginPath();
+	setText();
+	ctx.fillText("Student ID", PAD_X, ROW_HEIGHT / 2);
+
+	setRect(Colors.card, Colors.card2Hover);
+	ctx.rect(cumWidth.value, 0, cumWidth.add(firstWidth + 2 * PAD_X), ROW_HEIGHT);
+	ctx.fill();
+	ctx.stroke();
+
+	ctx.rect(cumWidth.value, 0, cumWidth.add(lastWidth + 2 * PAD_X), ROW_HEIGHT);
+	ctx.fill();
+	ctx.stroke();
+
+
+	// name section is always fixed-in-place so can render independent of scrollX
+
+	watch([scrollY], ([y]) => {});
+
+	watch([scrollX, scrollY], ([x, y]) => {});
 });
 
-onMounted(() => {
+onMounted(async () => {
 	if (!token.value) {
 		return;
 	}
+
+	const font = new FontFace(
+		"JetBrains Mono",
+		"url('https://raw.githubusercontent.com/JetBrains/JetBrainsMono/refs/heads/master/fonts/webfonts/JetBrainsMono-Regular.woff2') format('woff2')",
+		{ style: "normal", weight: "400" },
+	);
+
+	await font.load();
+	document.fonts.add(font);
 
 	websocket.send("Subscribe", {
 		sub: "Editor",
@@ -313,7 +329,7 @@ definePageMeta({ layout: "admin-protected" });
 </script>
 
 <template>
-	<div class="page" v-if="ready" ref="page">
+	<div class="page" v-if="ready">
 		<div class="utilities">
 			<Button kind="card" class="button exit">
 				<Icon name="hugeicons:logout-02" size="22" />
@@ -346,104 +362,8 @@ definePageMeta({ layout: "admin-protected" });
 			</Button>
 		</div>
 
-		<div class="tables">
-			<Table class="info">
-				<TableHeader class="header" ref="infoHeader">
-					<HeaderCell>
-						Student ID
-					</HeaderCell>
-					<HeaderCell>
-						First Name
-					</HeaderCell>
-					<HeaderCell>
-						Last Name
-					</HeaderCell>
-				</TableHeader>
-				<TableBody class="body" ref="infoData" @wheel="infoScroll">
-					<DataRow v-for="student in fullData" :key="student.id">
-						<DataCell>{{ student.id }}</DataCell>
-						<DataCell>{{ student.first }}</DataCell>
-						<DataCell>{{ student.last }}</DataCell>
-					</DataRow>
-				</TableBody>
-			</Table>
-
-			<Table class="data" ref="content" @scroll="fadeReposition" @wheel="contentScrollX">
-				<TableHeader class="header" ref="contentHeader">
-					<HeaderCell 
-						v-for="date in [...editorData.entries()][0]![1].cells.map(d => d.date)" 
-						:key="date.toJSON()"
-						class="date"
-					>
-						{{ dateFmt(date) }}
-					</HeaderCell>
-				</TableHeader>
-				<TableBody class="body" ref="contentData" @wheel="contentScrollY" @scroll="fadeReposition">
-					<DataRow 
-						v-for="student in fullData" 
-						:key="student.id"
-					>
-						<DataCell v-for="day in student.dates" :key="`${student.id}${day.date.toLocaleString()}`">
-							<Popover 
-								:trigger="{ 
-									label: entriesLabel(Array.from(day.entries.values())), 
-									icon: icon(day.entries.size) 
-								}" 
-								class="dateinfo"
-							>
-								<div class="entry" v-for="[id, entry] in day.entries" :key="id">
-									<div class="header">
-										{{ entryLabel(entry) }}
-									</div>
-
-									<div class="body">
-										<div class="label">Hour Type</div>
-										<Select 
-											:options="{
-												'learning': 'Learning',
-												'build': 'Build',
-												'demo': 'Volunteer',
-											}" 
-											:selected="entry.kind"
-											@update:selected="console.log"
-										/>
-
-										<div class="label">Start Time</div>
-										<TimePickerModelSubmit
-											:time="entry.start.toPlainTime()"
-											@update:time="(data) => {
-												updates.push({
-													type:'Update',
-													id: entry.id,
-													updates: [{
-														type: 'start',
-														data: entry.start.with({ ...data }),
-													}]
-												})
-											}"
-										/>
-
-										<div class="label">End Time</div>
-										<TimePickerModelSubmit
-											:time="entry.end?.toPlainTime()"
-											@update:time="(data) => {
-												updates.push({
-													type:'Update',
-													id: entry.id,
-													updates: [{
-														type: 'end',
-														data: (entry.end ?? entry.start).with({ ...data }),
-													}]
-												})
-											}"
-										/>
-									</div>
-								</div>
-							</Popover>
-						</DataCell>
-					</DataRow>
-				</TableBody>
-			</Table>
+		<div class="table-container">
+			<canvas ref="table" class="table" />
 		</div>
 
 		<div class="hideaway left vertical" />
@@ -508,29 +428,25 @@ definePageMeta({ layout: "admin-protected" });
 	@apply w-full h-full;
 }
 
-.tables {
+.table-container {
 	@apply flex flex-row px-2 pb-2;
 	@apply flex-1 min-h-0;
 
-	@apply overflow-scroll overscroll-none;
-
-	scrollbar-width: none;
-}
-
-.container-fixed {
-	@apply flex-none;
+	.table {
+		@apply w-full h-full;
+	}
 }
 
 .utilities {
 	@apply flex flex-row items-center;
 	@apply w-full p-2 gap-2;
-}
 
-.button {
-	@apply flex flex-row items-center gap-2;
+	.button {
+		@apply flex flex-row items-center gap-2;
 
-	&.exit {
-		@apply text-red-500;
+		&.exit {
+			@apply text-red-500;
+		}
 	}
 }
 
@@ -540,81 +456,10 @@ definePageMeta({ layout: "admin-protected" });
 
 	@apply text-4xl font-semibold text-center;
 }
-
-:deep(.dateinfo) {
-	@apply flex flex-col gap-2 p-2;
-	@apply bg-drop rounded-xl;
-
-	.entry {
-		@apply flex flex-col;
-		@apply bg-background rounded-xl;
-		@apply !p-0;
-
-		.header {
-			@apply rounded-lg bg-card p-2;
-		}
-
-		.body {
-			@apply p-2;
-
-			.label {
-				@apply border-b border-b-sub;
-				@apply my-2;
-			}
-		}
-	}
-}
 </style>
 
 <style>
 @reference '~/style/tailwind.css';
-
-.info {
-	.header table, .body table {
-		@apply !rounded-r-none;
-		@apply !border-r-4 !border-r-card-2;
-	}
-
-	th {
-		@apply !bg-card-hover;
-	}
-
-	tr:nth-child(odd) td {
-		@apply !bg-card-active;
-	}
-
-	tr:nth-child(even) td {
-		@apply !bg-card;
-	}
-}
-
-.data {
-	@apply flex-1;
-	@apply overflow-x-scroll overscroll-none;
-
-	scrollbar-width: none;
-
-	.header table, .body table {
-		@apply !rounded-l-none;
-		@apply !border-l-0;
-	}
-
-	th {
-		@apply !bg-card;
-	}
-
-	tr:nth-child(even) td {
-		@apply !bg-card-active;
-	}
-
-	tr:nth-child(odd) td {
-		@apply !bg-background-dark;
-	}
-
-	td > div {
-		@apply !p-2;
-	}
-}
 
 #content {
 	@apply overflow-y-scroll overscroll-none;
