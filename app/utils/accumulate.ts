@@ -1,11 +1,14 @@
 export class Accumulate {
 	private total: number;
+	private last: number;
 
 	constructor(initial: number = 0) {
 		this.total = initial;
+		this.last = initial;
 	}
 
-	add(value: number): number {
+	add_diff(value: number): number {
+		this.last = this.total;
 		this.total += value;
 		return value;
 	}
@@ -16,5 +19,9 @@ export class Accumulate {
 
 	get value(): number {
 		return this.total;
+	}
+
+	get prev(): number {
+		return this.last;
 	}
 }

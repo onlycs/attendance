@@ -101,10 +101,6 @@ export class ZodWsClient<Api extends WebsocketApi> {
 			return;
 		}
 
-		if (tag === "EditorData") {
-			console.log(message.data);
-		}
-
 		const res = schema.safeParse(message.data);
 
 		if (!res.success) {

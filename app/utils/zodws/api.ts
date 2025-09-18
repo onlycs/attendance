@@ -30,7 +30,6 @@ const SignIn = z.coerce
 
 const SignOut = SignIn.optional();
 const NaiveDate = zPlainDate;
-type NaiveDate = z.infer<typeof NaiveDate>;
 
 export const TimeEntrySchema = z.object({
 	id: z.string(),

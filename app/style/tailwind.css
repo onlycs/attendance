@@ -1,9 +1,12 @@
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.0/index.css');
+
 @import "tailwindcss";
 
 @import "tailwindcss/theme" theme(reference);
 @import "tailwindcss/utilities" utilities(reference);
 
 @config "../../tailwind.config.ts";
+
 
 @layer base {
 	:root {
@@ -130,9 +133,10 @@
 	}
 }
 
-body {
+body, * {
 	font-family:
-		0 ui-sans-serif,
+		0 "JetBrains Mono", 
+		ui-sans-serif,
 		system-ui,
 		-apple-system,
 		BlinkMacSystemFont,

@@ -1,17 +1,15 @@
 <script setup lang="ts">
+import { Temporal } from "temporal-polyfill";
+import type { Reactive, WatchHandle } from "vue";
 import { toast } from "vue-sonner";
-import type { Table, TableBody, TableHeader } from "#components";
 import { Math2 } from "~/utils/math";
 import {
 	makeWebsocket,
-	type Row,
 	type TimeEntry,
 	type UpdateQuery,
 } from "~/utils/zodws/api";
-import { Temporal } from "temporal-polyfill";
-import cuid from "cuid";
-import type { Reactive } from "vue";
 import "~/style/tailwind.css";
+import { Accumulate, Draw, PBLookup } from "#imports";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
@@ -19,7 +17,7 @@ const password = usePassword();
 
 interface Cell {
 	date: Temporal.PlainDate;
-	entries: Reactive<Map<string, Ref<TimeEntry>>>;
+	entries: Reactive<Ref<TimeEntry>[]>;
 }
 
 interface Student {
@@ -31,49 +29,71 @@ interface Student {
 }
 
 // organized by hashed student id, not real id
-const tableData: Reactive<Map<string, Student>> = reactive(new Map());
+const tableData: Reactive<Student[]> = reactive([]);
 const updates: Ref<UpdateQuery[]> = ref([]);
 const undoStack: UpdateQuery[] = [];
 
 const studentData = new JsonDb(StudentData, []);
 const ready = ref(false);
 
+function sortData() {
+	tableData.sort((a, b) => {
+		if (a.last.toLowerCase() === b.last.toLowerCase()) {
+			return a.first.toLowerCase().localeCompare(b.first.toLowerCase());
+		}
+		return a.last.toLowerCase().localeCompare(b.last.toLowerCase());
+	});
+}
+
 const websocket = makeWebsocket({
 	messages: {
 		EditorData: (_, q) => {
 			if (q.type === "Full") {
-				q.data.entries().forEach(([hashed, row]) => {
-					const cells = row.cells.map((c) => ({
-						date: c.date,
-						entries: reactive(
-							new Map(
-								c.entries.entries().map(([id, entry]) => [id, ref(entry)]),
-							),
-						),
-					}));
+				tableData.splice(
+					0,
+					tableData.length,
+					...q.data
+						.entries()
+						.map(([hashed, row]) => {
+							const cells = row.cells.map((c) => ({
+								date: c.date,
+								entries: reactive(
+									Array.from(
+										c.entries.entries().map(([_, entry]) => ref(entry)),
+									),
+								),
+							}));
 
-					const student = studentData
-						.all()
-						.find((s) => Crypt.sha256(s.id) === hashed)!;
+							const student = studentData
+								.all()
+								.find((s) => Crypt.sha256(s.id) === hashed);
 
-					tableData.set(hashed, {
-						...student,
-						hashed,
-						cells,
-					});
-				});
+							if (!student) return null;
 
-				setTimeout(() => { ready.value = true }, 500);
+							return {
+								...student,
+								hashed,
+								cells,
+							};
+						})
+						.filter((s): s is Student => !!s),
+				);
+
+				sortData();
+
+				setTimeout(() => {
+					ready.value = true;
+				}, 500);
 			} else if (q.type === "Create") {
 				tableData
-					.get(q.studentId)
+					.find((s) => s.hashed === q.studentId)
 					?.cells.find((c) => c.date.equals(q.date))
-					?.entries.set(q.entry.id, ref(q.entry));
+					?.entries.push(ref(q.entry));
 			} else if (q.type === "Update") {
 				const ref = tableData
-					.get(q.studentId)
+					.find((s) => s.hashed === q.studentId)
 					?.cells.find((c) => c.date.equals(q.date))
-					?.entries.get(q.id);
+					?.entries.find((e) => e.value.id === q.id);
 
 				const entry = ref?.value;
 
@@ -86,10 +106,17 @@ const websocket = makeWebsocket({
 
 				ref.value = { ...entry };
 			} else if (q.type === "Delete") {
-				tableData
-					.get(q.studentId)
-					?.cells.find((c) => c.date.equals(q.date))
-					?.entries.delete(q.id);
+				const entries = tableData
+					.find((s) => s.hashed === q.studentId)
+					?.cells.find((c) => c.date.equals(q.date))?.entries;
+
+				if (!entries) return;
+
+				const index = entries.findIndex((el) => el.value.id === q.id);
+
+				if (index === -1) return;
+
+				entries.splice(index, 1);
 			}
 		},
 		StudentData: (_, data) => {
@@ -102,15 +129,26 @@ const websocket = makeWebsocket({
 				.then((decrypted) => {
 					studentData.reset(JSON.parse(decrypted));
 
-					for (const student of studentData.all()) {
-						const hashed = Crypt.sha256(student.id);
-						if (!tableData.has(hashed)) {
-							tableData.set(hashed, {
-								...student,
-								hashed,
-								cells: [],
-							});
+					if (ready.value) {
+						let inserted = false;
+						for (const student of studentData.all()) {
+							const hashed = Crypt.sha256(student.id);
+							if (!tableData.find((s) => s.hashed === hashed)) {
+								inserted = true;
+								tableData.push({
+									...student,
+									hashed,
+									cells: [],
+								});
+							}
 						}
+
+						if (inserted) sortData();
+					} else {
+						websocket.send("Subscribe", {
+							sub: "Editor",
+							token: token.value!,
+						});
 					}
 				})
 				.catch((error) => {
@@ -140,18 +178,18 @@ function onReady(f: () => void) {
 function dateFmt(date: Temporal.PlainDate) {
 	const now = Temporal.Now.plainDateISO();
 
-	if (now.year != date.year)
+	if (now.year !== date.year)
 		return `${date.toLocaleString(undefined, { month: "long", day: "numeric", year: "numeric" })}`;
 
-	if (now.weekOfYear != date.weekOfYear)
+	if (now.weekOfYear !== date.weekOfYear)
 		return `${date.toLocaleString(undefined, { month: "long", day: "numeric" })}`;
 
 	if (now.day === date.day)
-		return `Today (${date.day}-${date.month}-${date.year})`;
+		return `Today (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
 	if (now.day - 1 === date.day)
-		return `Yesterday (${date.day}-${date.month}-${date.year})`;
+		return `Yesterday (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
 
-	return `This ${date.toLocaleString(undefined, { weekday: "long" })}`;
+	return `${date.toLocaleString(undefined, { weekday: "long" })} (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
 }
 
 // labelling
@@ -162,14 +200,14 @@ function hours(el: number): string {
 	else return Math2.format(el, "Hour", 2);
 }
 
-function entriesLabel(entries: TimeEntry[]) {
+function entriesLabel(entries: Ref<TimeEntry>[]) {
 	if (entries.length === 0) return "No data";
 
 	let sum = new Temporal.Duration();
 
 	for (const entry of entries) {
-		if (!entry.end) continue;
-		sum = sum.add(entry.start.until(entry.end));
+		if (!entry.value.end) continue;
+		sum = sum.add(entry.value.start.until(entry.value.end));
 	}
 
 	return hours(sum.total({ unit: "hours" }));
@@ -186,119 +224,351 @@ function icon(count: number) {
 }
 
 // functionality
+const Pad = {
+	md: Convert.remToPx(1),
+	xs: Convert.remToPx(0.5),
+	sm: Convert.remToPx(0.95),
+};
+
+const ROW_HEIGHT = 56;
+const HEADER_HEIGHT = 48;
+
 const scrollX = ref(0);
 const scrollY = ref(0);
 const table = ref<HTMLCanvasElement>();
 
-watch([ready, table, () => tableData.size], ([isReady, canvas, _]) => {
-	/*
-	 * self-doc for handling borders:
-	 * any element with a border (e.g.) to the right will place the
-	 * border inside itself, and the element to the right will not
-	 * be offset. borders between two touching elements will be assigned
-	 * to the top/left element, so boxes should have a border on the
-	 * bottom/right but not top/left
-	 *
-	 * thank you for listening to my ted talk
-	 */
+const xyWatch = ref<WatchHandle | null>(null);
+const resize = ref(false);
 
-	const Colors = {
-		drop: "#171717",
-		backgroundDark: "#1f1f1f",
-		background: "#242424",
-		card: "#303030",
-		cardHover: "#3d3d3d",
-		cardActive: "#282828",
-		card2: "#565656",
-		card2Hover: "#636363",
-		card2Active: "#494949",
-	}
+const lookup = new PBLookup<{ studentId: string; date: Temporal.PlainDate }>();
 
-	const PAD_X = Convert.remToPx(1); // px-4 py-2 equivalent
-	const PAD_Y = Convert.remToPx(0.5);
-	const ROW_HEIGHT = 52; // from before, tbd
+onMounted(() => {
+	window.addEventListener("resize", () => {
+		setTimeout(() => {
+			resize.value = !resize.value;
+		}, 25); // will not work without timeout, idk why. js strange.
+	});
+});
 
-	console.log("causing" , ready.value, table.value, tableData.size);
-
-	if (!isReady || !canvas) return;
-	const ctx = canvas.getContext("2d")!;
-
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	/*
-	 * canvas units aren't the same as pixels for some reason
-	 * so we have to do this fun dance to make it look good
-	 */
-	const dpr = window.devicePixelRatio || 1;
-	const rect = canvas.getBoundingClientRect();
-	canvas.width = rect.width * dpr;
-	canvas.height = rect.height * dpr;
-	ctx.scale(dpr, dpr);
-
-	/*
-	 * set the font correctly, we are going to be
-	 * measuring text sizes. 1.125rem = lg = header
-	 */
-	ctx.font = "1.125rem 'JetBrains Mono', monospace";
-
+function renderStudentHeader(
+	draw: Draw,
+	idWidth: number,
+	firstWidth: number,
+	lastWidth: number,
+	header_text_pad: number,
+	cumWidth: Accumulate,
+) {
 	/*
 	 * student info header is always fixed-in-place
 	 * i do want to find the longest first, last name however
 	 * to size the column properly. comparing the size of the text
 	 * rather than the length of the string
 	 */
-	const firstWidth = Math.max(
-		...Array.from(tableData.values()).map(
-			(s) => ctx.measureText(s.first).width,
-		),
-		ctx.measureText("First Name").width
+	draw.rect(
+		0,
+		0,
+		cumWidth.add_diff(idWidth),
+		HEADER_HEIGHT,
+		Colors.cardHover,
+		Colors.card2Hover,
 	);
-	const lastWidth = Math.max(
-		...Array.from(tableData.values()).map((s) => ctx.measureText(s.last).width),
-		ctx.measureText("Last Name").width
+	draw.text(
+		"Student ID",
+		cumWidth.prev + header_text_pad,
+		header_text_pad,
+		FontSize.lg,
 	);
-	const idWidth = ctx.measureText("Student ID").width;
 
-	console.log(idWidth, firstWidth, lastWidth);
+	draw.rect(
+		cumWidth.value,
+		0,
+		cumWidth.add_diff(firstWidth),
+		HEADER_HEIGHT,
+		Colors.cardHover,
+		Colors.card2Hover,
+	);
+	draw.text(
+		"First Name",
+		cumWidth.prev + header_text_pad,
+		header_text_pad,
+		FontSize.lg,
+	);
 
-	// name header is 100% will never move
-	let cumWidth = new Accumulate();
+	draw.rect(
+		cumWidth.value,
+		0,
+		cumWidth.add_diff(lastWidth),
+		HEADER_HEIGHT,
+		Colors.cardHover,
+		Colors.card2Hover,
+	);
+	draw.text(
+		"Last Name",
+		cumWidth.prev + header_text_pad,
+		header_text_pad,
+		FontSize.lg,
+	);
 
-	function setText() {
-		ctx.fillStyle = "#fff";
-	}
+	return cumWidth;
+}
 
-	function setRect(fill: string, stroke: string) {
-		ctx.fillStyle = fill;
-		ctx.strokeStyle = stroke;
-	}
+watch(
+	[ready, table, () => tableData.length, resize],
+	([isReady, canvas, _tl, _rs]) => {
+		/*
+		 * self-doc for handling borders:
+		 * any element with a border (e.g.) to the right will place the
+		 * border inside itself, and the element to the right will not
+		 * be offset. borders between two touching elements will be assigned
+		 * to the top/left element, so boxes should have a border on the
+		 * bottom/right but not top/left
+		 *
+		 * thank you for listening to my ted talk
+		 */
 
-	ctx.beginPath();
-	setRect(Colors.card, Colors.card2Hover);
-	ctx.rect(0, 0, cumWidth.add(idWidth + 2 * PAD_X), ROW_HEIGHT);
-	ctx.fill();
-	ctx.stroke();
+		if (!isReady || !canvas) return;
 
-	ctx.beginPath();
-	setText();
-	ctx.fillText("Student ID", PAD_X, ROW_HEIGHT / 2);
+		const draw = new Draw(canvas.getContext("2d")!, canvas);
+		draw.clear();
 
-	setRect(Colors.card, Colors.card2Hover);
-	ctx.rect(cumWidth.value, 0, cumWidth.add(firstWidth + 2 * PAD_X), ROW_HEIGHT);
-	ctx.fill();
-	ctx.stroke();
+		const HEADER_TEXT_PAD = (HEADER_HEIGHT - draw.textHeight(FontSize.lg)) / 2;
+		const CELL_TEXT_PAD = (ROW_HEIGHT - draw.textHeight()) / 2;
 
-	ctx.rect(cumWidth.value, 0, cumWidth.add(lastWidth + 2 * PAD_X), ROW_HEIGHT);
-	ctx.fill();
-	ctx.stroke();
+		// measure widths
+		const firstWidth = Math.max(
+			...Array.from(tableData.values()).map(
+				(s) => draw.measureText(s.first).width + 2 * CELL_TEXT_PAD,
+			),
+			draw.measureText("First Name", FontSize.lg).width + 2 * HEADER_TEXT_PAD,
+		);
+		const lastWidth = Math.max(
+			...Array.from(tableData.values()).map(
+				(s) => draw.measureText(s.last).width + 2 * CELL_TEXT_PAD,
+			),
+			draw.measureText("Last Name", FontSize.lg).width + 2 * HEADER_TEXT_PAD,
+		);
+		const idWidth =
+			draw.measureText("Student ID", FontSize.lg).width + 2 * HEADER_TEXT_PAD;
 
+		const cumWidth = new Accumulate();
 
-	// name section is always fixed-in-place so can render independent of scrollX
+		// draw student header
+		renderStudentHeader(
+			draw,
+			idWidth,
+			firstWidth,
+			lastWidth,
+			HEADER_TEXT_PAD,
+			cumWidth,
+		);
 
-	watch([scrollY], ([y]) => {});
+		// name section is always fixed-in-place so can render independent of scrollX
+		if (xyWatch.value) xyWatch.value.stop();
 
-	watch([scrollX, scrollY], ([x, y]) => {});
-});
+		xyWatch.value = watch(
+			[scrollX, scrollY],
+			([x, y]) => {
+				const CELL_MIN_WIDTH =
+					draw.measureText("X.XX Hours").width + // longest possible text
+					2 * CELL_TEXT_PAD + // padding for the text (measure from cell, not inner card)
+					(ROW_HEIGHT - 2 * Pad.xs); // button width
+
+				const scrollWidth = new Accumulate(0);
+				const scrollHeight = new Accumulate(0);
+
+				let xStart = 0;
+				let yStart = 0;
+
+				while (scrollWidth.value <= x) {
+					const date = tableData[0]!.cells[xStart]!.date;
+					const dateWidth = draw.measureText(dateFmt(date)).width;
+					scrollWidth.add_diff(
+						Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH),
+					);
+					xStart++;
+				}
+
+				while (scrollHeight.value <= y) {
+					scrollHeight.add_diff(ROW_HEIGHT);
+					yStart++;
+				}
+
+				xStart--; // algo does one too many iterations
+				yStart--;
+
+				const xOffset = scrollWidth.prev - x;
+				const yOffset = scrollHeight.prev - y;
+				const wBegin = cumWidth.value + xOffset;
+
+				const cumHeight = new Accumulate(HEADER_HEIGHT + yOffset);
+				cumWidth.reset(wBegin);
+				lookup.clear();
+
+				let oddRow = yStart % 2 === 0;
+				for (const student of tableData.slice(yStart)) {
+					if (cumHeight.value > canvas.height) break;
+
+					for (const cell of student.cells.slice(xStart)) {
+						if (cumWidth.value > canvas.width) break;
+
+						const dateWidth = draw.measureText(dateFmt(cell.date)).width;
+						const cellWidth = Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH);
+						draw.rect(
+							cumWidth.value,
+							cumHeight.value,
+							cumWidth.add_diff(cellWidth),
+							ROW_HEIGHT,
+							oddRow ? Colors.backgroundDark : Colors.cardActive,
+							Colors.card2Hover,
+						);
+						draw.roundRect(
+							cumWidth.prev + Pad.xs,
+							cumHeight.value + Pad.xs,
+							cellWidth - 2 * Pad.xs,
+							ROW_HEIGHT - 2 * Pad.xs,
+							Colors.drop,
+							Colors.drop,
+						);
+						draw.text(
+							entriesLabel(cell.entries),
+							cumWidth.prev + CELL_TEXT_PAD,
+							cumHeight.value + CELL_TEXT_PAD,
+							1,
+							Colors.textSub,
+						);
+
+						// button time
+						const btnSize = ROW_HEIGHT - 2 * Pad.xs;
+						const btnX = cumWidth.value - Pad.xs - btnSize;
+						const btnY = cumHeight.value + Pad.xs;
+						const btnMaxX = btnX + btnSize;
+						const btnMaxY = btnY + btnSize;
+
+						draw.roundRect(
+							btnX,
+							btnY,
+							btnSize,
+							btnSize,
+							Colors.card,
+							Colors.card,
+						);
+						draw.icon(
+							btnX + btnSize / 16,
+							btnY + btnSize / 16,
+							btnSize * 0.875,
+							btnSize * 0.875,
+							"/caret-down.svg",
+						);
+
+						lookup.insert(btnX, btnMaxX, btnY, btnMaxY, {
+							studentId: student.hashed,
+							date: cell.date,
+						});
+					}
+
+					cumHeight.add_diff(ROW_HEIGHT);
+					cumWidth.reset(wBegin);
+					oddRow = !oddRow;
+				}
+
+				// render the data header
+				cumHeight.reset(0);
+				for (const cell of tableData[0]!.cells.slice(xStart)) {
+					if (cumWidth.value > canvas.width) break;
+
+					const dateWidth = draw.measureText(dateFmt(cell.date)).width;
+					const cellWidth = Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH);
+
+					draw.rect(
+						cumWidth.value,
+						cumHeight.value,
+						cumWidth.add_diff(cellWidth),
+						HEADER_HEIGHT,
+						Colors.card,
+						Colors.card2Hover,
+					);
+
+					draw.text(
+						dateFmt(cell.date),
+						cumWidth.prev + Pad.md,
+						(HEADER_HEIGHT - draw.textHeight(FontSize.lg)) / 2,
+						FontSize.lg,
+					);
+				}
+
+				// rerender the student info data cells
+				cumWidth.reset(0);
+				cumHeight.reset(HEADER_HEIGHT + yOffset);
+				oddRow = yStart % 2 === 0;
+				for (const student of tableData.slice(yStart)) {
+					if (cumHeight.value > canvas.height) break;
+
+					// id cell
+					draw.rect(
+						0,
+						cumHeight.value,
+						cumWidth.add_diff(idWidth),
+						ROW_HEIGHT,
+						oddRow ? Colors.cardActive : Colors.card,
+						Colors.card2Hover,
+					);
+					draw.text(
+						student.id,
+						cumWidth.prev + CELL_TEXT_PAD,
+						cumHeight.value + CELL_TEXT_PAD,
+					);
+
+					// first name cell
+					draw.rect(
+						cumWidth.value,
+						cumHeight.value,
+						cumWidth.add_diff(firstWidth),
+						ROW_HEIGHT,
+						oddRow ? Colors.cardActive : Colors.card,
+						Colors.card2Hover,
+					);
+					draw.text(
+						student.first,
+						cumWidth.prev + CELL_TEXT_PAD,
+						cumHeight.value + CELL_TEXT_PAD,
+					);
+
+					// last name cell
+					draw.rect(
+						cumWidth.value,
+						cumHeight.value,
+						cumWidth.add_diff(lastWidth),
+						ROW_HEIGHT,
+						oddRow ? Colors.cardActive : Colors.card,
+						Colors.card2Hover,
+					);
+					draw.text(
+						student.last,
+						cumWidth.prev + CELL_TEXT_PAD,
+						cumHeight.value + CELL_TEXT_PAD,
+					);
+
+					cumHeight.add_diff(ROW_HEIGHT);
+					cumWidth.reset(0);
+					oddRow = !oddRow;
+				}
+
+				/*
+				 * if we've scrolled, we've 100% drawn over the student info header. redraw it.
+				 */
+				renderStudentHeader(
+					draw,
+					idWidth,
+					firstWidth,
+					lastWidth,
+					HEADER_TEXT_PAD,
+					new Accumulate(),
+				);
+			},
+			{ immediate: true },
+		);
+	},
+);
 
 onMounted(async () => {
 	if (!token.value) {
@@ -315,14 +585,30 @@ onMounted(async () => {
 	document.fonts.add(font);
 
 	websocket.send("Subscribe", {
-		sub: "Editor",
-		token: token.value!,
-	});
-
-	websocket.send("Subscribe", {
 		sub: "StudentData",
 		token: token.value!,
 	});
+
+	const ratedMouseMove = useThrottleFn((ev: MouseEvent) => {
+		const mouseX = ev.clientX;
+		const mouseY = ev.clientY;
+		const canvas = table.value;
+
+		// undef check
+		if (canvas === null || canvas === undefined) return;
+
+		// get pos of mouse on canvas
+		const box = canvas.getBoundingClientRect();
+		const btn = lookup.query(mouseX - box.left, mouseY - box.top);
+
+		if (btn.isSome()) {
+			canvas!.style.cursor = "pointer";
+		} else {
+			canvas!.style.cursor = "default";
+		}
+	}, 50);
+
+	window.addEventListener("mousemove", ratedMouseMove);
 });
 
 definePageMeta({ layout: "admin-protected" });
