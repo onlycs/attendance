@@ -9,15 +9,16 @@ import {
 	type UpdateQuery,
 } from "~/utils/zodws/api";
 import "~/style/tailwind.css";
-import { Accumulate, Draw, PBLookup } from "#imports";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
+const isFirefox = /firefox/i.test(navigator.userAgent);
+
 interface Cell {
 	date: Temporal.PlainDate;
-	entries: Reactive<Ref<TimeEntry>[]>;
+	entries: Ref<TimeEntry>[];
 }
 
 interface Student {
@@ -25,7 +26,7 @@ interface Student {
 	first: string;
 	last: string;
 	hashed: string;
-	cells: Cell[];
+	cells: Reactive<Cell[]>;
 }
 
 // organized by hashed student id, not real id
@@ -178,18 +179,47 @@ function onReady(f: () => void) {
 function dateFmt(date: Temporal.PlainDate) {
 	const now = Temporal.Now.plainDateISO();
 
+	function pad2(n: number) {
+		return n.toString().padStart(2, "0");
+	}
+
+	const MONTHS = [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
+	];
+
+	const WEEKDAYS = [
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	];
+
 	if (now.year !== date.year)
-		return `${date.toLocaleString(undefined, { month: "long", day: "numeric", year: "numeric" })}`;
+		return `${MONTHS[date.month - 1]} ${pad2(date.day)}, ${date.year}`;
 
 	if (now.weekOfYear !== date.weekOfYear)
-		return `${date.toLocaleString(undefined, { month: "long", day: "numeric" })}`;
+		return `${MONTHS[date.month - 1]} ${pad2(date.day)}`;
 
 	if (now.day === date.day)
-		return `Today (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
+		return `Today (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
 	if (now.day - 1 === date.day)
-		return `Yesterday (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
+		return `Yesterday (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
 
-	return `${date.toLocaleString(undefined, { weekday: "long" })} (${date.toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" })})`;
+	return `${WEEKDAYS[date.dayOfWeek - 1]} (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
 }
 
 // labelling
@@ -218,11 +248,6 @@ function entryLabel(entry: TimeEntry) {
 	return hours(entry.start.until(entry.end).total({ unit: "hours" }));
 }
 
-function icon(count: number) {
-	if (count === 0) return "hugeicons:add-01";
-	return "hugeicons:arrow-down-01";
-}
-
 // functionality
 const Pad = {
 	md: Convert.remToPx(1),
@@ -232,343 +257,354 @@ const Pad = {
 
 const ROW_HEIGHT = 56;
 const HEADER_HEIGHT = 48;
+const HEAD_TEXT_PAD = new LateInit<number>();
+const CELL_TEXT_PAD = new LateInit<number>();
+const INFO_WIDTH = new LateInit<number>();
 
 const scrollX = ref(0);
 const scrollY = ref(0);
+const resize = ref(false);
+
 const table = ref<HTMLCanvasElement>();
 
-const xyWatch = ref<WatchHandle | null>(null);
-const resize = ref(false);
+const vCanvasReady = ref(false);
+const vDataHeaderCanvas = new Lazy(() => new VirtualCanvas());
+const vInfoHeaderCanvas = new Lazy(() => new VirtualCanvas());
+const vDataCanvas = new Lazy(() => new VirtualCanvas());
+const vInfoCanvas = new Lazy(() => new VirtualCanvas());
 
 const lookup = new PBLookup<{ studentId: string; date: Temporal.PlainDate }>();
 
-onMounted(() => {
-	window.addEventListener("resize", () => {
-		setTimeout(() => {
-			resize.value = !resize.value;
-		}, 25); // will not work without timeout, idk why. js strange.
-	});
-});
-
-function renderStudentHeader(
-	draw: Draw,
-	idWidth: number,
-	firstWidth: number,
-	lastWidth: number,
-	header_text_pad: number,
-	cumWidth: Accumulate,
-) {
-	/*
-	 * student info header is always fixed-in-place
-	 * i do want to find the longest first, last name however
-	 * to size the column properly. comparing the size of the text
-	 * rather than the length of the string
-	 */
-	draw.rect(
-		0,
-		0,
-		cumWidth.add_diff(idWidth),
-		HEADER_HEIGHT,
-		Colors.cardHover,
-		Colors.card2Hover,
-	);
-	draw.text(
-		"Student ID",
-		cumWidth.prev + header_text_pad,
-		header_text_pad,
-		FontSize.lg,
-	);
-
-	draw.rect(
-		cumWidth.value,
-		0,
-		cumWidth.add_diff(firstWidth),
-		HEADER_HEIGHT,
-		Colors.cardHover,
-		Colors.card2Hover,
-	);
-	draw.text(
-		"First Name",
-		cumWidth.prev + header_text_pad,
-		header_text_pad,
-		FontSize.lg,
-	);
-
-	draw.rect(
-		cumWidth.value,
-		0,
-		cumWidth.add_diff(lastWidth),
-		HEADER_HEIGHT,
-		Colors.cardHover,
-		Colors.card2Hover,
-	);
-	draw.text(
-		"Last Name",
-		cumWidth.prev + header_text_pad,
-		header_text_pad,
-		FontSize.lg,
-	);
-
-	return cumWidth;
-}
-
 watch(
-	[ready, table, () => tableData.length, resize],
-	([isReady, canvas, _tl, _rs]) => {
-		/*
-		 * self-doc for handling borders:
-		 * any element with a border (e.g.) to the right will place the
-		 * border inside itself, and the element to the right will not
-		 * be offset. borders between two touching elements will be assigned
-		 * to the top/left element, so boxes should have a border on the
-		 * bottom/right but not top/left
-		 *
-		 * thank you for listening to my ted talk
-		 */
+	[
+		ready,
+		() => ({
+			data: vDataCanvas.value,
+			info: vInfoCanvas.value,
+			header: {
+				data: vDataHeaderCanvas.value,
+				info: vInfoHeaderCanvas.value,
+			},
+		}),
+		() => tableData.length,
+	],
+	([isReady, v, _tl]) => {
+		if (!isReady) return;
 
-		if (!isReady || !canvas) return;
+		const p = new Profiler("Redraw canvas");
 
-		const draw = new Draw(canvas.getContext("2d")!, canvas);
-		draw.clear();
+		vCanvasReady.value = false;
 
-		const HEADER_TEXT_PAD = (HEADER_HEIGHT - draw.textHeight(FontSize.lg)) / 2;
-		const CELL_TEXT_PAD = (ROW_HEIGHT - draw.textHeight()) / 2;
+		v.data.clear();
+		v.info.clear();
+		v.header.data.clear();
+		v.header.info.clear();
+
+		HEAD_TEXT_PAD.init((HEADER_HEIGHT - v.data.textHeight(FontSize.lg)) / 2);
+		CELL_TEXT_PAD.init((ROW_HEIGHT - v.data.textHeight()) / 2);
+
+		const textWidthPadded = memoize(
+			(s: string, isHeader = false, size?: number) => {
+				const fontSizeFinal =
+					size ?? (isHeader ? FontSize.lg : FontSize.normal);
+				const padding = isHeader
+					? 2 * HEAD_TEXT_PAD.value
+					: 2 * CELL_TEXT_PAD.value;
+				return v.data.textSize(s, fontSizeFinal).width + padding;
+			},
+		);
 
 		// measure widths
+		const idWidth = textWidthPadded("Student ID", true);
 		const firstWidth = Math.max(
-			...Array.from(tableData.values()).map(
-				(s) => draw.measureText(s.first).width + 2 * CELL_TEXT_PAD,
-			),
-			draw.measureText("First Name", FontSize.lg).width + 2 * HEADER_TEXT_PAD,
+			...Array.from(tableData.values()).map((w) => textWidthPadded(w.first)),
+			textWidthPadded("First Name", true),
 		);
 		const lastWidth = Math.max(
-			...Array.from(tableData.values()).map(
-				(s) => draw.measureText(s.last).width + 2 * CELL_TEXT_PAD,
-			),
-			draw.measureText("Last Name", FontSize.lg).width + 2 * HEADER_TEXT_PAD,
+			...Array.from(tableData.values()).map((w) => textWidthPadded(w.last)),
+			textWidthPadded("Last Name", true),
 		);
-		const idWidth =
-			draw.measureText("Student ID", FontSize.lg).width + 2 * HEADER_TEXT_PAD;
 
-		const cumWidth = new Accumulate();
+		INFO_WIDTH.init(idWidth + firstWidth + lastWidth);
 
-		// draw student header
-		renderStudentHeader(
-			draw,
+		// draw the info header
+		const accumX = new Accumulate();
+		const accumY = new Accumulate();
+
+		v.header.info.rect(
+			accumX,
+			accumY.value,
 			idWidth,
+			HEADER_HEIGHT,
+			Colors.cardHover,
+			Colors.card2Hover,
+		);
+		v.header.info.text(
+			"Student ID",
+			accumX.prev + HEAD_TEXT_PAD.value,
+			HEAD_TEXT_PAD.value,
+			{ size: FontSize.lg },
+		);
+
+		v.header.info.rect(
+			accumX,
+			accumY.value,
 			firstWidth,
+			HEADER_HEIGHT,
+			Colors.cardHover,
+			Colors.card2Hover,
+		);
+		v.header.info.text(
+			"First Name",
+			accumX.prev + HEAD_TEXT_PAD.value,
+			HEAD_TEXT_PAD.value,
+			{ size: FontSize.lg },
+		);
+
+		v.header.info.rect(
+			accumX,
+			accumY.value,
 			lastWidth,
-			HEADER_TEXT_PAD,
-			cumWidth,
+			HEADER_HEIGHT,
+			Colors.cardHover,
+			Colors.card2Hover,
+		);
+		v.header.info.text(
+			"Last Name",
+			accumX.prev + HEAD_TEXT_PAD.value,
+			HEAD_TEXT_PAD.value,
+			{ size: FontSize.lg },
 		);
 
-		// name section is always fixed-in-place so can render independent of scrollX
-		if (xyWatch.value) xyWatch.value.stop();
+		console.log(INFO_WIDTH.value, accumX.value);
 
-		xyWatch.value = watch(
-			[scrollX, scrollY],
-			([x, y]) => {
-				const CELL_MIN_WIDTH =
-					draw.measureText("X.XX Hours").width + // longest possible text
-					2 * CELL_TEXT_PAD + // padding for the text (measure from cell, not inner card)
-					(ROW_HEIGHT - 2 * Pad.xs); // button width
+		const CELL_MIN_WIDTH =
+			textWidthPadded("X.XX Hours") + // longest possible text
+			(ROW_HEIGHT - 2 * Pad.xs); // button width
 
-				const scrollWidth = new Accumulate(0);
-				const scrollHeight = new Accumulate(0);
+		lookup.clear();
 
-				let xStart = 0;
-				let yStart = 0;
+		let odd = true;
+		for (const student of tableData) {
+			accumX.set(0);
 
-				while (scrollWidth.value <= x) {
-					const date = tableData[0]!.cells[xStart]!.date;
-					const dateWidth = draw.measureText(dateFmt(date)).width;
-					scrollWidth.add_diff(
-						Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH),
-					);
-					xStart++;
-				}
+			const bgLight = odd ? Colors.cardActive : Colors.card;
+			const bgDark = odd ? Colors.backgroundDark : Colors.cardActive;
 
-				while (scrollHeight.value <= y) {
-					scrollHeight.add_diff(ROW_HEIGHT);
-					yStart++;
-				}
+			// id
+			v.info.rect(
+				accumX,
+				accumY.value,
+				idWidth,
+				ROW_HEIGHT,
+				bgLight,
+				Colors.card2Hover,
+			);
+			v.info.text(
+				student.id,
+				accumX.prev + CELL_TEXT_PAD.value,
+				accumY.value + CELL_TEXT_PAD.value,
+				{ size: FontSize.lg },
+			);
 
-				xStart--; // algo does one too many iterations
-				yStart--;
+			// first name
+			v.info.rect(
+				accumX,
+				accumY.value,
+				firstWidth,
+				ROW_HEIGHT,
+				bgLight,
+				Colors.card2Hover,
+			);
+			v.info.text(
+				student.first,
+				accumX.prev + CELL_TEXT_PAD.value,
+				accumY.value + CELL_TEXT_PAD.value,
+			);
 
-				const xOffset = scrollWidth.prev - x;
-				const yOffset = scrollHeight.prev - y;
-				const wBegin = cumWidth.value + xOffset;
+			// last name
+			v.info.rect(
+				accumX,
+				accumY.value,
+				lastWidth,
+				ROW_HEIGHT,
+				bgLight,
+				Colors.card2Hover,
+			);
+			v.info.text(
+				student.last,
+				accumX.prev + CELL_TEXT_PAD.value,
+				accumY.value + CELL_TEXT_PAD.value,
+			);
 
-				const cumHeight = new Accumulate(HEADER_HEIGHT + yOffset);
-				cumWidth.reset(wBegin);
-				lookup.clear();
+			// data cells, reset accumX, different canvas
+			accumX.set(0);
 
-				let oddRow = yStart % 2 === 0;
-				for (const student of tableData.slice(yStart)) {
-					if (cumHeight.value > canvas.height) break;
+			for (const cell of student.cells) {
+				const dateWidth = textWidthPadded(dateFmt(cell.date), true);
+				const cellWidth = Math.max(dateWidth, CELL_MIN_WIDTH);
 
-					for (const cell of student.cells.slice(xStart)) {
-						if (cumWidth.value > canvas.width) break;
-
-						const dateWidth = draw.measureText(dateFmt(cell.date)).width;
-						const cellWidth = Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH);
-						draw.rect(
-							cumWidth.value,
-							cumHeight.value,
-							cumWidth.add_diff(cellWidth),
-							ROW_HEIGHT,
-							oddRow ? Colors.backgroundDark : Colors.cardActive,
-							Colors.card2Hover,
-						);
-						draw.roundRect(
-							cumWidth.prev + Pad.xs,
-							cumHeight.value + Pad.xs,
-							cellWidth - 2 * Pad.xs,
-							ROW_HEIGHT - 2 * Pad.xs,
-							Colors.drop,
-							Colors.drop,
-						);
-						draw.text(
-							entriesLabel(cell.entries),
-							cumWidth.prev + CELL_TEXT_PAD,
-							cumHeight.value + CELL_TEXT_PAD,
-							1,
-							Colors.textSub,
-						);
-
-						// button time
-						const btnSize = ROW_HEIGHT - 2 * Pad.xs;
-						const btnX = cumWidth.value - Pad.xs - btnSize;
-						const btnY = cumHeight.value + Pad.xs;
-						const btnMaxX = btnX + btnSize;
-						const btnMaxY = btnY + btnSize;
-
-						draw.roundRect(
-							btnX,
-							btnY,
-							btnSize,
-							btnSize,
-							Colors.card,
-							Colors.card,
-						);
-						draw.icon(
-							btnX + btnSize / 16,
-							btnY + btnSize / 16,
-							btnSize * 0.875,
-							btnSize * 0.875,
-							"/caret-down.svg",
-						);
-
-						lookup.insert(btnX, btnMaxX, btnY, btnMaxY, {
-							studentId: student.hashed,
-							date: cell.date,
-						});
-					}
-
-					cumHeight.add_diff(ROW_HEIGHT);
-					cumWidth.reset(wBegin);
-					oddRow = !oddRow;
-				}
-
-				// render the data header
-				cumHeight.reset(0);
-				for (const cell of tableData[0]!.cells.slice(xStart)) {
-					if (cumWidth.value > canvas.width) break;
-
-					const dateWidth = draw.measureText(dateFmt(cell.date)).width;
-					const cellWidth = Math.max(dateWidth + 2 * Pad.md, CELL_MIN_WIDTH);
-
-					draw.rect(
-						cumWidth.value,
-						cumHeight.value,
-						cumWidth.add_diff(cellWidth),
-						HEADER_HEIGHT,
-						Colors.card,
-						Colors.card2Hover,
-					);
-
-					draw.text(
-						dateFmt(cell.date),
-						cumWidth.prev + Pad.md,
-						(HEADER_HEIGHT - draw.textHeight(FontSize.lg)) / 2,
-						FontSize.lg,
-					);
-				}
-
-				// rerender the student info data cells
-				cumWidth.reset(0);
-				cumHeight.reset(HEADER_HEIGHT + yOffset);
-				oddRow = yStart % 2 === 0;
-				for (const student of tableData.slice(yStart)) {
-					if (cumHeight.value > canvas.height) break;
-
-					// id cell
-					draw.rect(
-						0,
-						cumHeight.value,
-						cumWidth.add_diff(idWidth),
-						ROW_HEIGHT,
-						oddRow ? Colors.cardActive : Colors.card,
-						Colors.card2Hover,
-					);
-					draw.text(
-						student.id,
-						cumWidth.prev + CELL_TEXT_PAD,
-						cumHeight.value + CELL_TEXT_PAD,
-					);
-
-					// first name cell
-					draw.rect(
-						cumWidth.value,
-						cumHeight.value,
-						cumWidth.add_diff(firstWidth),
-						ROW_HEIGHT,
-						oddRow ? Colors.cardActive : Colors.card,
-						Colors.card2Hover,
-					);
-					draw.text(
-						student.first,
-						cumWidth.prev + CELL_TEXT_PAD,
-						cumHeight.value + CELL_TEXT_PAD,
-					);
-
-					// last name cell
-					draw.rect(
-						cumWidth.value,
-						cumHeight.value,
-						cumWidth.add_diff(lastWidth),
-						ROW_HEIGHT,
-						oddRow ? Colors.cardActive : Colors.card,
-						Colors.card2Hover,
-					);
-					draw.text(
-						student.last,
-						cumWidth.prev + CELL_TEXT_PAD,
-						cumHeight.value + CELL_TEXT_PAD,
-					);
-
-					cumHeight.add_diff(ROW_HEIGHT);
-					cumWidth.reset(0);
-					oddRow = !oddRow;
-				}
-
-				/*
-				 * if we've scrolled, we've 100% drawn over the student info header. redraw it.
-				 */
-				renderStudentHeader(
-					draw,
-					idWidth,
-					firstWidth,
-					lastWidth,
-					HEADER_TEXT_PAD,
-					new Accumulate(),
+				// header (date)
+				v.header.data.rect(
+					accumX.value,
+					0,
+					cellWidth,
+					HEADER_HEIGHT,
+					Colors.card,
+					Colors.card2Hover,
 				);
-			},
-			{ immediate: true },
-		);
+				v.header.data.text(
+					dateFmt(cell.date),
+					accumX.value + HEAD_TEXT_PAD.value,
+					HEAD_TEXT_PAD.value,
+					{ size: FontSize.lg },
+				);
+
+				// data (rect, rect, label, button)
+				v.data.rect(
+					accumX,
+					accumY.value,
+					cellWidth,
+					ROW_HEIGHT,
+					bgDark,
+					Colors.card2Hover,
+				);
+				v.data.roundRect(
+					accumX.prev + Pad.xs,
+					accumY.value + Pad.xs,
+					cellWidth - 2 * Pad.xs,
+					ROW_HEIGHT - 2 * Pad.xs,
+					Colors.drop,
+					Colors.drop,
+				);
+				v.data.text(
+					entriesLabel(cell.entries),
+					accumX.prev + CELL_TEXT_PAD.value,
+					accumY.value + CELL_TEXT_PAD.value,
+					{ color: Colors.textSub },
+				);
+
+				// button time
+				const btnSize = ROW_HEIGHT - 2 * Pad.xs;
+				const btnX = accumX.value - Pad.xs - btnSize;
+				const btnY = accumY.value + Pad.xs;
+				const btnMaxX = btnX + btnSize;
+				const btnMaxY = btnY + btnSize;
+
+				v.data.roundRect(
+					btnX,
+					btnY,
+					btnSize,
+					btnSize,
+					Colors.card,
+					Colors.card,
+				);
+				v.data.icon(
+					btnX + btnSize / 16,
+					btnY + btnSize / 16,
+					btnSize * 0.875,
+					btnSize * 0.875,
+					"/caret-down.svg",
+				);
+
+				lookup.insert(btnX, btnMaxX, btnY, btnMaxY, {
+					studentId: student.hashed,
+					date: cell.date,
+				});
+			}
+
+			accumY.add(ROW_HEIGHT);
+			odd = !odd;
+		}
+
+		p.stop();
+		vCanvasReady.value = true;
 	},
 );
+
+watch(
+	[scrollX, scrollY, vCanvasReady, table, resize],
+	([scrollX, scrollY, vReady, canvas, _rs]) => {
+		if (!vReady || !canvas) return;
+		const p = new Profiler("Apply canvas to screen");
+
+		const ctx = canvas.getContext("2d")!;
+		const dpr = window.devicePixelRatio || 1;
+		const rect = canvas.getBoundingClientRect();
+		canvas.width = rect.width * dpr;
+		canvas.height = rect.height * dpr;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.imageSmoothingEnabled = false;
+
+		const cumX = new Accumulate();
+		const cumY = new Accumulate();
+
+		// info header
+		vInfoHeaderCanvas.value.paste(ctx, cumX.value, cumY);
+
+		// info data
+		vInfoCanvas.value.paste(
+			ctx,
+			cumX,
+			cumY,
+			0,
+			scrollY,
+			INFO_WIDTH.value,
+			rect.height - HEADER_HEIGHT,
+		);
+
+		// reset
+		cumY.set(0);
+
+		// data header
+		vDataHeaderCanvas.value.paste(
+			ctx,
+			cumX.value,
+			cumY,
+			scrollX,
+			0,
+			rect.width - cumX.value,
+			HEADER_HEIGHT,
+		);
+
+		// data
+		vDataCanvas.value.paste(
+			ctx,
+			cumX,
+			cumY,
+			scrollX,
+			scrollY,
+			rect.width - cumX.value,
+			rect.height - HEADER_HEIGHT,
+		);
+
+		p.stop();
+	},
+);
+
+const canvasScroll = (ev: WheelEvent) => {
+	const scrollFactor = isFirefox ? 1.25 : 0.5;
+
+	if (ev.shiftKey) {
+		scrollX.value += ev.deltaY * scrollFactor;
+		scrollY.value += ev.deltaX * scrollFactor;
+	} else {
+		scrollX.value += ev.deltaX * scrollFactor;
+		scrollY.value += ev.deltaY * scrollFactor;
+	}
+
+	if (scrollX.value < 0) scrollX.value = 0;
+	if (scrollY.value < 0) scrollY.value = 0;
+	if (!table.value) return;
+
+	const dpr = window.devicePixelRatio || 1;
+	const tblW = table.value.width / dpr;
+	const tblH = table.value.height / dpr;
+	const maxX = dpr*vDataCanvas.value.width - tblW + INFO_WIDTH.value;
+	const maxY = dpr*vDataCanvas.value.height - tblH + HEADER_HEIGHT;
+	if (scrollX.value > maxX) scrollX.value = maxX;
+	if (scrollY.value > maxY) scrollY.value = maxY;
+};
 
 onMounted(async () => {
 	if (!token.value) {
@@ -599,7 +635,10 @@ onMounted(async () => {
 
 		// get pos of mouse on canvas
 		const box = canvas.getBoundingClientRect();
-		const btn = lookup.query(mouseX - box.left, mouseY - box.top);
+		const btn = lookup.query(
+			mouseX - box.left - INFO_WIDTH.value,
+			mouseY - box.top - HEADER_HEIGHT,
+		);
 
 		if (btn.isSome()) {
 			canvas!.style.cursor = "pointer";
@@ -609,6 +648,10 @@ onMounted(async () => {
 	}, 50);
 
 	window.addEventListener("mousemove", ratedMouseMove);
+
+	window.addEventListener("resize", () => {
+		resize.value = !resize.value;
+	});
 });
 
 definePageMeta({ layout: "admin-protected" });
@@ -648,8 +691,8 @@ definePageMeta({ layout: "admin-protected" });
 			</Button>
 		</div>
 
-		<div class="table-container">
-			<canvas ref="table" class="table" />
+		<div class="table-container relative">
+			<canvas ref="table" class="table" @wheel.prevent="canvasScroll" />
 		</div>
 
 		<div class="hideaway left vertical" />
@@ -662,6 +705,14 @@ definePageMeta({ layout: "admin-protected" });
 		Loading editor
 		<br />
 		This may take a while...
+
+		<div v-if="isFirefox" class="text-[1.5rem] mt-6">
+			Firefox has abysmal canvas performance. I have tried
+			<br />
+			my best to speed things up, but consider not using Firefox.
+			<br />
+			Thank you for understanding <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
+		</div>
 	</div>
 </template>
 
@@ -737,7 +788,7 @@ definePageMeta({ layout: "admin-protected" });
 }
 
 .loading {
-	@apply flex justify-center items-center;
+	@apply flex flex-col justify-center items-center;
 	@apply w-full h-full;
 
 	@apply text-4xl font-semibold text-center;

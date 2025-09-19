@@ -116,6 +116,11 @@ export class ZodWsClient<Api extends WebsocketApi> {
 	}
 
 	private clearqueue() {
+		console.log(
+			"ws: connection established, sending",
+			this.queue.length,
+			"queued messages",
+		);
 		for (const el of this.queue) {
 			this.socket.send(el);
 		}
