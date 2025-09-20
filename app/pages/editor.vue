@@ -5,6 +5,7 @@ import { toast } from "vue-sonner";
 import { Math2 } from "~/utils/math";
 import {
 	makeWebsocket,
+	type ReplicateQuery,
 	type TimeEntry,
 	type UpdateQuery,
 } from "~/utils/zodws/api";
@@ -15,6 +16,7 @@ const token = useToken();
 const password = usePassword();
 
 const isFirefox = /firefox/i.test(navigator.userAgent);
+const DPR = new Lazy(() => window.devicePixelRatio || 1);
 
 interface Cell {
 	date: Temporal.PlainDate;
@@ -31,11 +33,179 @@ interface Student {
 
 // organized by hashed student id, not real id
 const tableData: Reactive<Student[]> = reactive([]);
-const updates: Ref<UpdateQuery[]> = ref([]);
 const undoStack: UpdateQuery[] = [];
+const redoStack: UpdateQuery[] = [];
+const activeStack = ref(undoStack);
 
 const studentData = new JsonDb(StudentData, []);
 const ready = ref(false);
+const txnInProgress = ref(false);
+
+function apply(q: ReplicateQuery): void {
+	if (q.type === "Full") {
+		tableData.splice(
+			0,
+			tableData.length,
+			...q.data
+				.entries()
+				.map(([hashed, row]) => {
+					const cells = row.cells.map((c) => ({
+						date: c.date,
+						entries: reactive(
+							Array.from(c.entries.entries().map(([_, entry]) => ref(entry))),
+						),
+					}));
+
+					const student = studentData
+						.all()
+						.find((s) => Crypt.sha256(s.id) === hashed);
+
+					if (!student) return null;
+
+					return {
+						...student,
+						hashed,
+						cells,
+					};
+				})
+				.filter((s): s is Student => !!s),
+		);
+
+		sortData();
+
+		setTimeout(() => {
+			ready.value = true;
+		}, 500);
+
+		return;
+	}
+
+	let inverse: UpdateQuery;
+
+	if (q.type === "Create") {
+		let date = tableData
+			.find((s) => s.hashed === q.studentId)
+			?.cells.find((c) => c.date.equals(q.date));
+
+		if (!date) {
+			let i = tableData[0]?.cells.length ? 0 : undefined;
+			for (const student of tableData) {
+				if (!i) {
+					// dates are sorted dsc, binsearch for insert point
+					let left = 0;
+					let right = student.cells.length;
+
+					while (left < right) {
+						const mid = Math.floor((left + right) / 2);
+						const item = student.cells[mid]!;
+
+						if (q.date > item.date) {
+							right = mid;
+						} else {
+							left = mid + 1;
+						}
+					}
+
+					i = left;
+				}
+
+				const cell = {
+					date: q.date,
+					entries: reactive([]),
+				};
+
+				student.cells.splice(i, 0, cell);
+
+				if (student.hashed === q.studentId) {
+					date = cell;
+				}
+			}
+		}
+
+		// i.e. if no student in tableData matches
+		if (!date) return;
+
+		// insert entry sorted by start time asc
+		if (date.entries.length === 0) {
+			date.entries.push(ref(q.entry));
+			return;
+		}
+
+		let left = 0;
+		let right = date.entries.length;
+
+		while (left < right) {
+			const mid = Math.floor((left + right) / 2);
+			const item = date.entries[mid]!;
+
+			if (q.entry.start < item.value.start) {
+				right = mid - 1;
+			} else {
+				left = mid + 1;
+			}
+		}
+
+		date.entries.splice(left, 0, ref(q.entry));
+
+		inverse = {
+			type: "Delete",
+			id: q.entry.id,
+		};
+
+		activeStack.value.push(inverse);
+	} else if (q.type === "Update") {
+		const ref = tableData
+			.find((s) => s.hashed === q.studentId)
+			?.cells.find((c) => c.date.equals(q.date))
+			?.entries.find((e) => e.value.id === q.id);
+
+		if (!ref) return;
+
+		const entry = { ...ref?.value };
+
+		inverse = {
+			type: "Update",
+			id: q.id,
+			updates: q.updates.map((up) => ({
+				type: up.type,
+				data: entry[up.type],
+			})) as any,
+		};
+		activeStack.value.push(inverse);
+
+		for (const update of q.updates) {
+			const up = narrow(update);
+			(entry[up.type] as unknown) = update.data;
+		}
+
+		ref.value = { ...entry };
+	} else if (q.type === "Delete") {
+		const entries = tableData
+			.find((s) => s.hashed === q.studentId)
+			?.cells.find((c) => c.date.equals(q.date))?.entries;
+
+		if (!entries) return;
+
+		const index = entries.findIndex((el) => el.value.id === q.id);
+
+		if (index === -1) return;
+
+		const entry = entries.splice(index, 1)[0]!;
+
+		inverse = {
+			type: "Create",
+			studentId: q.studentId,
+			signIn: entry.value.start,
+			signOut: entry.value.end,
+			hourType: entry.value.kind,
+		};
+
+		activeStack.value.push(inverse);
+	}
+
+	activeStack.value = undoStack;
+	txnInProgress.value = false;
+}
 
 function sortData() {
 	tableData.sort((a, b) => {
@@ -49,76 +219,7 @@ function sortData() {
 const websocket = makeWebsocket({
 	messages: {
 		EditorData: (_, q) => {
-			if (q.type === "Full") {
-				tableData.splice(
-					0,
-					tableData.length,
-					...q.data
-						.entries()
-						.map(([hashed, row]) => {
-							const cells = row.cells.map((c) => ({
-								date: c.date,
-								entries: reactive(
-									Array.from(
-										c.entries.entries().map(([_, entry]) => ref(entry)),
-									),
-								),
-							}));
-
-							const student = studentData
-								.all()
-								.find((s) => Crypt.sha256(s.id) === hashed);
-
-							if (!student) return null;
-
-							return {
-								...student,
-								hashed,
-								cells,
-							};
-						})
-						.filter((s): s is Student => !!s),
-				);
-
-				sortData();
-
-				setTimeout(() => {
-					ready.value = true;
-				}, 500);
-			} else if (q.type === "Create") {
-				tableData
-					.find((s) => s.hashed === q.studentId)
-					?.cells.find((c) => c.date.equals(q.date))
-					?.entries.push(ref(q.entry));
-			} else if (q.type === "Update") {
-				const ref = tableData
-					.find((s) => s.hashed === q.studentId)
-					?.cells.find((c) => c.date.equals(q.date))
-					?.entries.find((e) => e.value.id === q.id);
-
-				const entry = ref?.value;
-
-				if (!entry) return;
-
-				for (const update of q.updates) {
-					const up = narrow(update);
-					(entry[up.type] as unknown) = update.data;
-				}
-
-				ref.value = { ...entry };
-			} else if (q.type === "Delete") {
-				const entries = tableData
-					.find((s) => s.hashed === q.studentId)
-					?.cells.find((c) => c.date.equals(q.date))?.entries;
-
-				if (!entries) return;
-
-				const index = entries.findIndex((el) => el.value.id === q.id);
-
-				if (index === -1) return;
-
-				entries.splice(index, 1);
-			}
+			apply(q);
 		},
 		StudentData: (_, data) => {
 			if (!data) {
@@ -163,19 +264,27 @@ const websocket = makeWebsocket({
 	},
 });
 
-function onReady(f: () => void) {
-	if (ready.value) {
-		f();
-	} else {
-		const stop = watch(ready, (newVal) => {
-			if (newVal) {
-				stop();
-				f();
-			}
-		});
-	}
+function push(uq: UpdateQuery) {
+	websocket.send("Update", {
+		sub: "Editor",
+		value: uq,
+	});
+
+	txnInProgress.value = true;
 }
 
+function undo() {
+	if (undoStack.length === 0) return;
+	activeStack.value = redoStack;
+	push(undoStack.pop()!);
+}
+
+function redo() {
+	if (undoStack.length === 0) return;
+	push(redoStack.pop()!);
+}
+
+// formatting
 function dateFmt(date: Temporal.PlainDate) {
 	const now = Temporal.Now.plainDateISO();
 
@@ -230,14 +339,15 @@ function hours(el: number): string {
 	else return Math2.format(el, "Hour", 2);
 }
 
-function entriesLabel(entries: Ref<TimeEntry>[]) {
+function cellLabel(entries: MaybeRef<TimeEntry>[]) {
 	if (entries.length === 0) return "No data";
 
 	let sum = new Temporal.Duration();
 
-	for (const entry of entries) {
-		if (!entry.value.end) continue;
-		sum = sum.add(entry.value.start.until(entry.value.end));
+	for (const entryRef of entries) {
+		const entry = unref(entryRef);
+		if (!entry.end) continue;
+		sum = sum.add(entry.start.until(entry.end));
 	}
 
 	return hours(sum.total({ unit: "hours" }));
@@ -273,7 +383,20 @@ const vInfoHeaderCanvas = new Lazy(() => new VirtualCanvas());
 const vDataCanvas = new Lazy(() => new VirtualCanvas());
 const vInfoCanvas = new Lazy(() => new VirtualCanvas());
 
-const lookup = new PBLookup<{ studentId: string; date: Temporal.PlainDate }>();
+interface CellId {
+	studentId: string;
+	date: Temporal.PlainDate;
+}
+
+interface DrawLocation {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+const lookup = new PBLookup<CellId>();
+const textRedraw = new Map<CellId, DrawLocation>();
 
 watch(
 	[
@@ -287,8 +410,9 @@ watch(
 			},
 		}),
 		() => tableData.length,
+		() => tableData[tableData.length - 1]?.cells.length || 0,
 	],
-	([isReady, v, _tl]) => {
+	([isReady, v, _tl, _cellct]) => {
 		if (!isReady) return;
 
 		const p = new Profiler("Redraw canvas");
@@ -376,8 +500,6 @@ watch(
 			{ size: FontSize.lg },
 		);
 
-		console.log(INFO_WIDTH.value, accumX.value);
-
 		const CELL_MIN_WIDTH =
 			textWidthPadded("X.XX Hours") + // longest possible text
 			(ROW_HEIGHT - 2 * Pad.xs); // button width
@@ -444,6 +566,11 @@ watch(
 				const dateWidth = textWidthPadded(dateFmt(cell.date), true);
 				const cellWidth = Math.max(dateWidth, CELL_MIN_WIDTH);
 
+				const cellId = {
+					studentId: student.id,
+					date: cell.date,
+				};
+
 				// header (date)
 				v.header.data.rect(
 					accumX.value,
@@ -477,12 +604,19 @@ watch(
 					Colors.drop,
 					Colors.drop,
 				);
-				v.data.text(
-					entriesLabel(cell.entries),
+				const textDraw = v.data.text(
+					cellLabel(cell.entries),
 					accumX.prev + CELL_TEXT_PAD.value,
 					accumY.value + CELL_TEXT_PAD.value,
 					{ color: Colors.textSub },
 				);
+
+				textRedraw.set(cellId, {
+					x: accumX.prev + CELL_TEXT_PAD.value,
+					y: accumY.value + CELL_TEXT_PAD.value,
+					width: textDraw.width,
+					height: textDraw.height,
+				});
 
 				// button time
 				const btnSize = ROW_HEIGHT - 2 * Pad.xs;
@@ -499,18 +633,14 @@ watch(
 					Colors.card,
 					Colors.card,
 				);
-				v.data.icon(
+				v.data.chevron(
 					btnX + btnSize / 16,
 					btnY + btnSize / 16,
 					btnSize * 0.875,
 					btnSize * 0.875,
-					"/caret-down.svg",
 				);
 
-				lookup.insert(btnX, btnMaxX, btnY, btnMaxY, {
-					studentId: student.hashed,
-					date: cell.date,
-				});
+				lookup.insert(btnX, btnMaxX, btnY, btnMaxY, cellId);
 			}
 
 			accumY.add(ROW_HEIGHT);
@@ -522,18 +652,18 @@ watch(
 	},
 );
 
+// scrolling and rendering logic
 watch(
 	[scrollX, scrollY, vCanvasReady, table, resize],
 	([scrollX, scrollY, vReady, canvas, _rs]) => {
 		if (!vReady || !canvas) return;
-		const p = new Profiler("Apply canvas to screen");
 
 		const ctx = canvas.getContext("2d")!;
-		const dpr = window.devicePixelRatio || 1;
+
 		const rect = canvas.getBoundingClientRect();
-		canvas.width = rect.width * dpr;
-		canvas.height = rect.height * dpr;
-		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		canvas.width = rect.width * DPR.value;
+		canvas.height = rect.height * DPR.value;
+		ctx.setTransform(DPR.value, 0, 0, DPR.value, 0, 0);
 		ctx.imageSmoothingEnabled = false;
 
 		const cumX = new Accumulate();
@@ -553,7 +683,6 @@ watch(
 			rect.height - HEADER_HEIGHT,
 		);
 
-		// reset
 		cumY.set(0);
 
 		// data header
@@ -577,33 +706,130 @@ watch(
 			rect.width - cumX.value,
 			rect.height - HEADER_HEIGHT,
 		);
-
-		p.stop();
 	},
 );
 
-const canvasScroll = (ev: WheelEvent) => {
-	const scrollFactor = isFirefox ? 1.25 : 0.5;
+let pendingScrollX = 0;
+let pendingScrollY = 0;
+let pendingResize = false;
+let pendingScrollFrame: number | null = null;
 
-	if (ev.shiftKey) {
-		scrollX.value += ev.deltaY * scrollFactor;
-		scrollY.value += ev.deltaX * scrollFactor;
-	} else {
-		scrollX.value += ev.deltaX * scrollFactor;
-		scrollY.value += ev.deltaY * scrollFactor;
+const MAX_X_SCROLL = new LateInit<number>();
+const MAX_Y_SCROLL = new LateInit<number>();
+
+const commitScroll = () => {
+	if (scrollX.value !== pendingScrollX) {
+		scrollX.value = pendingScrollX;
+	}
+	if (scrollY.value !== pendingScrollY) {
+		scrollY.value = pendingScrollY;
+	}
+	if (resize.value !== pendingResize) {
+		resize.value = pendingResize;
 	}
 
-	if (scrollX.value < 0) scrollX.value = 0;
-	if (scrollY.value < 0) scrollY.value = 0;
-	if (!table.value) return;
+	pendingScrollFrame = null;
+};
 
-	const dpr = window.devicePixelRatio || 1;
-	const tblW = table.value.width / dpr;
-	const tblH = table.value.height / dpr;
-	const maxX = dpr*vDataCanvas.value.width - tblW + INFO_WIDTH.value;
-	const maxY = dpr*vDataCanvas.value.height - tblH + HEADER_HEIGHT;
-	if (scrollX.value > maxX) scrollX.value = maxX;
-	if (scrollY.value > maxY) scrollY.value = maxY;
+const scheduleUpdate = () => {
+	if (pendingScrollFrame === null) {
+		pendingScrollFrame = requestAnimationFrame(commitScroll);
+	}
+};
+
+const canvasScroll = (ev: WheelEvent) => {
+	// firefox handles scrolling differently, ig?
+	const scrollFactor = isFirefox ? 1 : 0.5;
+	const scrollXFactor = isFirefox ? 1.75 : 1;
+
+	if (ev.shiftKey) {
+		pendingScrollX += ev.deltaY * scrollFactor * scrollXFactor;
+		pendingScrollY += ev.deltaX * scrollFactor;
+	} else {
+		pendingScrollX += ev.deltaX * scrollFactor * scrollXFactor;
+		pendingScrollY += ev.deltaY * scrollFactor;
+	}
+
+	if (pendingScrollX < 0) pendingScrollX = 0;
+	if (pendingScrollY < 0) pendingScrollY = 0;
+
+	if (!MAX_X_SCROLL.hasValue || !MAX_Y_SCROLL.hasValue) {
+		if (!table.value) return;
+
+		const tblW = table.value.width / DPR.value;
+		const tblH = table.value.height / DPR.value;
+
+		// bro this math is NOT mathing
+		MAX_X_SCROLL.init(
+			DPR.value * (vDataCanvas.value.width - (tblW - INFO_WIDTH.value)),
+		);
+		MAX_Y_SCROLL.init(
+			DPR.value * (vDataCanvas.value.height - (tblH - HEADER_HEIGHT)),
+		);
+	}
+
+	if (pendingScrollX > MAX_X_SCROLL.value) pendingScrollX = MAX_X_SCROLL.value;
+	if (pendingScrollY > MAX_Y_SCROLL.value) pendingScrollY = MAX_Y_SCROLL.value;
+
+	scheduleUpdate();
+};
+
+// Hovercard logic
+const open = ref(false);
+const entries = ref([] as Ref<TimeEntry>[]);
+
+const canvasClick = (ev: MouseEvent) => {
+	const q = queryAt(ev.clientX, ev.clientY);
+	if (!q.isSome()) return;
+
+	const qEntries = tableData
+		.find((s) => s.id === q.value.studentId)
+		?.cells.find((c) => c.date === q.value.date)?.entries;
+
+	if (!qEntries) return;
+
+	entries.value = qEntries;
+};
+
+// misc QoL logic
+const queryAt = (mouseX: number, mouseY: number) => {
+	const canvas = table.value;
+
+	if (!canvas)
+		return None as Option<{
+			studentId: string;
+			date: Temporal.PlainDate;
+		}>;
+
+	const box = canvas.getBoundingClientRect();
+
+	return lookup.query(
+		mouseX - box.left - INFO_WIDTH.value + scrollX.value / DPR.value,
+		mouseY - box.top - HEADER_HEIGHT + scrollY.value / DPR.value,
+	);
+};
+
+const ratedMouseMove = useThrottleFn((ev: MouseEvent) => {
+	const mouseX = ev.clientX;
+	const mouseY = ev.clientY;
+	const canvas = table.value;
+
+	// undef check
+	if (!canvas) return;
+
+	// get pos of mouse on canvas
+	const btn = queryAt(mouseX, mouseY);
+
+	if (btn.isSome()) {
+		canvas.style.cursor = "pointer";
+	} else {
+		canvas.style.cursor = "default";
+	}
+}, 50);
+
+const onResize = () => {
+	pendingResize = !resize.value;
+	scheduleUpdate();
 };
 
 onMounted(async () => {
@@ -625,33 +851,16 @@ onMounted(async () => {
 		token: token.value!,
 	});
 
-	const ratedMouseMove = useThrottleFn((ev: MouseEvent) => {
-		const mouseX = ev.clientX;
-		const mouseY = ev.clientY;
-		const canvas = table.value;
-
-		// undef check
-		if (canvas === null || canvas === undefined) return;
-
-		// get pos of mouse on canvas
-		const box = canvas.getBoundingClientRect();
-		const btn = lookup.query(
-			mouseX - box.left - INFO_WIDTH.value,
-			mouseY - box.top - HEADER_HEIGHT,
-		);
-
-		if (btn.isSome()) {
-			canvas!.style.cursor = "pointer";
-		} else {
-			canvas!.style.cursor = "default";
-		}
-	}, 50);
-
 	window.addEventListener("mousemove", ratedMouseMove);
+	window.addEventListener("resize", onResize);
+});
 
-	window.addEventListener("resize", () => {
-		resize.value = !resize.value;
-	});
+onUnmounted(() => {
+	window.removeEventListener("mousemove", ratedMouseMove);
+	window.removeEventListener("resize", onResize);
+	if (pendingScrollFrame !== null) {
+		cancelAnimationFrame(pendingScrollFrame);
+	}
 });
 
 definePageMeta({ layout: "admin-protected" });
@@ -670,29 +879,26 @@ definePageMeta({ layout: "admin-protected" });
 				Download
 			</Button>
 
-			<Button :disabled="updates.length === 0" kind="card" class="button">
+			<Button :disabled="undoStack.length === 0" kind="card" class="button" @click="undo">
 				<Icon name="hugeicons:undo" size="22" />
 				Undo
 			</Button>
 
-			<Button :disabled="undoStack.length === 0" kind="card" class="button">
+			<Button :disabled="redoStack.length === 0" kind="card" class="button" @click="redo">
 				<Icon name="hugeicons:redo" size="22" />
 				Redo
 			</Button>
 
-			<Button v-if="updates.length > 0" kind="error" class="button">
-				<Icon name="hugeicons:trash-01" size="22" />
-				Discard {{ Math2.format(updates.length, "Change") }}
-			</Button>
-
-			<Button v-if="updates.length > 0" kind="card" class="button">
-				<Icon name="hugeicons:upload-01" size="22" />
-				Push {{ Math2.format(updates.length, "Change") }}
-			</Button>
+			<Icon 
+				v-if="txnInProgress"
+				name="svg-spinners:ring-resize" 
+				:customize="Customize.StrokeWidth(1.75)" 
+				mode="svg" 
+			/>
 		</div>
 
-		<div class="table-container relative">
-			<canvas ref="table" class="table" @wheel.prevent="canvasScroll" />
+		<div class="table-container">
+			<canvas ref="table" class="table" @wheel.prevent="canvasScroll" @click.prevent="canvasClick" />
 		</div>
 
 		<div class="hideaway left vertical" />
@@ -706,59 +912,26 @@ definePageMeta({ layout: "admin-protected" });
 		<br />
 		This may take a while...
 
-		<div v-if="isFirefox" class="text-[1.5rem] mt-6">
-			Firefox has abysmal canvas performance. I have tried
+		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
+			If you notice lag, you're not going insane!
 			<br />
-			my best to speed things up, but consider not using Firefox.
+			Firefox has some performance issues which 
 			<br />
-			Thank you for understanding <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
+			I have been pulling my hair out over.
+			<br />
+			Sorry about that, and good luck <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
 		</div>
 	</div>
+
+	<HoverCard v-model:open="open">
+		<div class="edit-menu">
+
+		</div>
+	</HoverCard>
 </template>
 
 <style scoped>
 @reference '~/style/tailwind.css';
-
-.hideaway {
-	@apply absolute;
-	@apply to-transparent;
-
-	/* setup gradient directions */
-	&.left {
-		@apply bg-gradient-to-r;
-	}
-
-	&.right {
-		@apply bg-gradient-to-l;
-	}
-
-	&.top {
-		@apply bg-gradient-to-b;
-	}
-
-	&.bottom {
-		@apply bg-gradient-to-t;
-	}
-
-	/* setup sizing */
-	&.vertical {
-		@apply w-4;
-	}
-
-	&.horizontal {
-		@apply h-4;
-	}
-
-	/* make an actual shadow if ducking under other elements */
-	&:not(.end) {
-		@apply from-black/35;
-	}
-
-	/* otherwise just fade out */
-	&.end {
-		@apply from-background;
-	}
-}
 
 .page {
 	@apply flex flex-col;
@@ -792,13 +965,5 @@ definePageMeta({ layout: "admin-protected" });
 	@apply w-full h-full;
 
 	@apply text-4xl font-semibold text-center;
-}
-</style>
-
-<style>
-@reference '~/style/tailwind.css';
-
-#content {
-	@apply overflow-y-scroll overscroll-none;
 }
 </style>

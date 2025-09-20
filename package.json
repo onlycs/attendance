@@ -22,7 +22,6 @@
 		"clsx": "^2.1.1",
 		"crypto-js": "^4.2.0",
 		"cuid": "^3.0.0",
-		"fabric": "^6.7.1",
 		"gsap": "^3.13.0",
 		"lucide-vue-next": "^0.543.0",
 		"neverthrow": "^8.2.0",

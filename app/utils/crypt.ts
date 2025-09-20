@@ -1,4 +1,5 @@
 import sha256 from "crypto-js/sha256";
+import cuid2 from "cuid";
 
 export const Crypt = {
 	toUint8Array(str: string): Uint8Array<ArrayBuffer> {
@@ -65,5 +66,9 @@ export const Crypt = {
 
 	sha256(text: string) {
 		return sha256(text).toString();
+	},
+
+	cuid() {
+		return cuid2();
 	},
 };

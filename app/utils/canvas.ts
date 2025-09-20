@@ -45,9 +45,21 @@ export class Accumulate {
 	}
 }
 
+// Sourced from hugeicons:arrow-down
+export const ChevronSVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="#8c8c8c" fill="none">
+    <path d="M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9" stroke="#8c8c8c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+`;
+
+const Chevron = (() => {
+	const icon = new Image();
+	icon.src = `data:image/svg+xml;base64,${btoa(ChevronSVG)}`;
+	return icon;
+})();
+
 // i don't know how i thought of this
 export class VirtualCanvas {
-	private icons = new Map<string, HTMLImageElement>();
 	private commands: Array<
 		(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => void
 	> = [];
@@ -94,9 +106,12 @@ export class VirtualCanvas {
 		x: number,
 		y: number,
 		options: Partial<{ size: number; color: string }> = {},
-	): void {
+	): { width: number; height: number } {
 		const size = options.size ?? FontSize.normal;
 		const color = options.color ?? Colors.text;
+
+		const width = this.textSize(text, size).width;
+		const height = Convert.remToPx(size); // .measureTextHeight is for centering
 
 		this.commands.push((_, ctx) => {
 			ctx.beginPath();
@@ -108,9 +123,8 @@ export class VirtualCanvas {
 			ctx.closePath();
 		});
 
-		const width = this.textSize(text, size).width;
-		const height = Convert.remToPx(size); // .measureTextHeight is for centering
 		this.ensure(x, y, width, height);
+		return { width, height };
 	}
 
 	rect(
@@ -174,19 +188,9 @@ export class VirtualCanvas {
 		if (y instanceof Accumulate) y.add(h);
 	}
 
-	icon(x: number, y: number, w: number, h: number, url: string): void {
-		const cached = this.icons.get(url);
-		if (!cached) {
-			const img = new Image();
-			img.src = url;
-			img.loading = "eager";
-			this.icons.set(url, img);
-		}
-
+	chevron(x: number, y: number, w: number, h: number): void {
 		this.commands.push((_, ctx) => {
-			const img = this.icons.get(url);
-
-			if (img) ctx.drawImage(img, x, y, w, h);
+			ctx.drawImage(Chevron, x, y, w, h);
 		});
 
 		this.ensure(x, y, w, h);

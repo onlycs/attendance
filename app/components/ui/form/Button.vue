@@ -6,7 +6,11 @@ defineProps<{
 </script>
 
 <template>
-	<button :class="cn('button', $props.kind, $attrs.class as string | undefined, disabled && 'disabled')" v-bind="$attrs">
+	<button 
+		:class="cn('button', $props.kind, $attrs.class as string | undefined, disabled && 'disabled')" 
+		v-bind="$attrs" 
+		:disabled="disabled"		
+	>
 		<slot />
 	</button>
 </template>
