@@ -52,11 +52,11 @@ export const ChevronSVG = `
 </svg>
 `;
 
-const Chevron = (() => {
+const Chevron = new Lazy(() => {
 	const icon = new Image();
 	icon.src = `data:image/svg+xml;base64,${btoa(ChevronSVG)}`;
 	return icon;
-})();
+});
 
 // i don't know how i thought of this
 export class VirtualCanvas {
@@ -83,6 +83,8 @@ export class VirtualCanvas {
 		this.maxHeight = Math.max(this.maxHeight, needHeight);
 
 		this.wasChanged = true;
+
+		Chevron.load();
 	}
 
 	setFont(): void {
@@ -190,7 +192,7 @@ export class VirtualCanvas {
 
 	chevron(x: number, y: number, w: number, h: number): void {
 		this.commands.push((_, ctx) => {
-			ctx.drawImage(Chevron, x, y, w, h);
+			ctx.drawImage(Chevron.value, x, y, w, h);
 		});
 
 		this.ensure(x, y, w, h);

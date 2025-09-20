@@ -27,6 +27,10 @@ export class Lazy<T> extends LateInit<T> {
 		if (!this.hasValue) this.init(this.factory());
 		return super.value;
 	}
+
+	load(): void {
+		this.init(this.factory());
+	}
 }
 
 export function memoize<T extends (...args: any[]) => any>(fn: T): T {

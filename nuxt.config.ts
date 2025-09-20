@@ -42,15 +42,22 @@ export default defineNuxtConfig({
 		plugins: [tailwind()],
 		define: {
 			__API_URL__: JSON.stringify(process.env.API_URL || "http://localhost:3000"),
+		},
+		build: {
+			rollupOptions: {
+				external: ["vue"],
+				output: {
+					globals: {
+						vue: "Vue"
+					}
+				}
+			}
 		}
 	},
 	icon: {
 		serverBundle: {
 			collections: ["hugeicons"]
 		}
-	},
-	build: {
-		transpile: ['@vuepic/vue-datepicker']
 	},
 	compatibilityDate: '2025-08-18',
 	

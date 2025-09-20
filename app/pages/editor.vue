@@ -15,7 +15,7 @@ const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
-const isFirefox = /firefox/i.test(navigator.userAgent);
+const isFirefox = new Lazy(() => /firefox/i.test(navigator.userAgent));
 const DPR = new Lazy(() => window.devicePixelRatio || 1);
 
 interface Cell {
@@ -739,8 +739,8 @@ const scheduleUpdate = () => {
 
 const canvasScroll = (ev: WheelEvent) => {
 	// firefox handles scrolling differently, ig?
-	const scrollFactor = isFirefox ? 1 : 0.5;
-	const scrollXFactor = isFirefox ? 1.75 : 1;
+	const scrollFactor = isFirefox.value ? 1 : 0.5;
+	const scrollXFactor = isFirefox.value ? 1.75 : 1;
 
 	if (ev.shiftKey) {
 		pendingScrollX += ev.deltaY * scrollFactor * scrollXFactor;
@@ -912,7 +912,7 @@ definePageMeta({ layout: "admin-protected" });
 		<br />
 		This may take a while...
 
-		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
+		<div v-if="isFirefox.value" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
 			If you notice lag, you're not going insane!
 			<br />
 			Firefox has some performance issues which 

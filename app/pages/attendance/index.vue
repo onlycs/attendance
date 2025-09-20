@@ -31,8 +31,18 @@ const rare = [
 	"tabler:router-off",
 ];
 
+const learning = [
+	"hugeicons:motarboard-01",
+	"hugeicons:teaching",
+	"hugeicons:students",
+	"hugeicons:knowledge-01",
+	"hugeicons:student",
+];
+
 const rarity = month > 4 ? 50 : 8 - month;
-const icons = rare.concat(...Array(rarity).fill(common));
+const build = rare.concat(...Array(rarity).fill(common));
+
+const icons = isLearning ? learning : build;
 const icon = useState(() => Random.Choose(icons).unwrap());
 
 function demo() {
