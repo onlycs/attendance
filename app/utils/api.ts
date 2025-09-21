@@ -300,7 +300,7 @@ export const ApiClient = {
 	},
 };
 
-export function apiToast(err: AnyError, redirect: (url: string) => void) {
+export function apiToast(err: AnyError, on401?: (url: string) => void) {
 	if (!err.response) {
 		toast.error("Could not connect to the server. Are you online?");
 		return;
@@ -308,8 +308,11 @@ export function apiToast(err: AnyError, redirect: (url: string) => void) {
 
 	switch (err.response.status as number) {
 		case 401: {
-			redirect("/?error=session-expired");
-			return;
+			if (on401) {
+				on401("/?error=session-expired");
+				return;
+			}
+			break;
 		}
 		case 404: {
 			toast.error(

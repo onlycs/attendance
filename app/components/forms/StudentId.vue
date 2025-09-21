@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import { REGEXP_ONLY_DIGITS as Numeric } from "vue-input-otp";
-import type { OTPInput } from "#components";
 import type { SlotSize } from "../ui/input-otp/Slot.vue";
 
-const props = defineProps<{
-	size?: SlotSize;
-	loading?: boolean;
-	autofocus?: boolean;
-}>();
+const props = defineProps<{ size?: SlotSize; loading?: boolean }>();
 const emit = defineEmits<{ submit: [id: string] }>();
 
 const id = ref("");
 const size = toRef(props, "size");
-const slots = ref<HTMLDivElement>();
 
 const icon = {
 	sm: "max-md:size-4 size-6",
@@ -26,24 +19,11 @@ watch(id, (value) => {
 		id.value = "";
 	}
 });
-
-onMounted(() => {
-	if (!props.autofocus || !slots.value) return;
-	const parent = slots.value.parentElement as HTMLDivElement;
-	const input = parent.querySelector("input") as HTMLInputElement;
-
-	setTimeout(() => input.focus(), 0); // wtf
-});
 </script>
 
 <template>
-    <OTPInput 
-		v-slot="{ slots }" 
-		v-model="id" 
-		:maxlength="5" 
-		:pattern="Numeric" 
-	>
-        <div class="flex" ref="slots">
+    <OTPInput v-slot="{ slots }" v-model="id" :maxlength="5">
+        <div class="flex">
             <OTPSlot
                 v-for="(slot, idx) in slots"
                 v-bind="slot"

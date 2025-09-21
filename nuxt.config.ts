@@ -7,9 +7,6 @@ export default defineNuxtConfig({
 			htmlAttrs: {
 				class: "dark",
 			},
-			link: [
-				{ rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" }
-			]
 		},
 	},
 	components: [
@@ -42,16 +39,6 @@ export default defineNuxtConfig({
 		plugins: [tailwind()],
 		define: {
 			__API_URL__: JSON.stringify(process.env.API_URL || "http://localhost:3000"),
-		},
-		build: {
-			rollupOptions: {
-				external: ["vue"],
-				output: {
-					globals: {
-						vue: "Vue"
-					}
-				}
-			}
 		}
 	},
 	icon: {
@@ -59,6 +46,5 @@ export default defineNuxtConfig({
 			collections: ["hugeicons"]
 		}
 	},
-	compatibilityDate: '2025-08-18',
-	
+	compatibilityDate: '2025-08-18'
 });
