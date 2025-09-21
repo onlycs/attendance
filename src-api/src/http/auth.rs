@@ -36,7 +36,7 @@ pub(super) async fn authorize(
     .fetch_optional(pg)
     .await?;
 
-    let token = if let Some(token) = token {
+    if let Some(token) = token {
         debug!("Found usable token, returning...");
 
         let dt = token.created_at + TimeDelta::hours(12);
@@ -77,9 +77,7 @@ pub(super) async fn authorize(
             token,
             expires: fmt,
         })
-    };
-
-    token
+    }
 }
 
 pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, RouteError> {

@@ -22,7 +22,7 @@ pub mod chrono_temporal {
     }
 
     pub mod optional {
-        use super::*;
+        use super::{DateTime, Deserialize, Deserializer, Local, Serializer};
 
         pub fn serialize<S>(dt: &Option<DateTime<Local>>, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -39,8 +39,9 @@ pub mod chrono_temporal {
             D: Deserializer<'de>,
         {
             let opt: Option<&str> = Option::deserialize(deserializer)?;
-            if let Some(s) = opt {
-                let s = s.split('[').next().unwrap();
+            if let Some(s) = opt
+                && let Some(s) = s.split('[').next()
+            {
                 let dt = s
                     .parse::<DateTime<Local>>()
                     .map_err(serde::de::Error::custom)?;

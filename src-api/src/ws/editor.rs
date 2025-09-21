@@ -2,13 +2,13 @@ use std::{collections::HashMap, fmt::Write, sync::Arc};
 
 use actix_web::rt;
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
-use sqlx::{postgres::PgListener, PgExecutor, PgPool};
-use tokio::sync::{mpsc, RwLock};
+use sqlx::{PgExecutor, PgPool, postgres::PgListener};
+use tokio::sync::{RwLock, mpsc};
 
 use crate::{
     http::roster::HourType,
     prelude::*,
-    ws::{message::ServerMessage, pool::SubPool, session::Session, WsError},
+    ws::{WsError, message::ServerMessage, pool::SubPool, session::Session},
 };
 
 #[derive(Deserialize)]
@@ -546,16 +546,20 @@ async fn update_thread(
         error!("[Editor] Failed to process update: {err}");
         warn!("[Editor] Sent error response to session {session_id}: {hr_error}");
 
-        if let Some(session) = subscriptions.write().await.get_mut(&session_id) {
-            if let Err(err) = session
-                .send(ServerMessage::Error {
-                    message: format!("{hr_error}"),
-                    meta: hr_error,
-                })
-                .await
-            {
-                error!("[Editor] Failed to send error message: {err}");
-            }
+        let mut subs = subscriptions.write().await;
+        let Some(session) = subs.get_mut(&session_id) else {
+            warn!("[Editor] Could not find session {session_id} to send error response");
+            continue;
+        };
+
+        if let Err(err) = session
+            .send(ServerMessage::Error {
+                message: format!("{hr_error}"),
+                meta: hr_error,
+            })
+            .await
+        {
+            error!("[Editor] Failed to send error message: {err}");
         }
     }
 
