@@ -73,18 +73,19 @@ export class VirtualCanvas {
 	private maxWidth = 0;
 	private maxHeight = 0;
 
-	private wasChanged = true;
+	private executed = 0;
+	private canvasAdd = true;
+	private canvasNew = true;
 
 	private ensure(x: number, y: number, w: number, h: number): void {
-		const needWidth = x + w;
-		const needHeight = y + h;
+		const sizeX = x + w;
+		const sizeY = y + h;
 
-		this.maxWidth = Math.max(this.maxWidth, needWidth);
-		this.maxHeight = Math.max(this.maxHeight, needHeight);
+		this.canvasAdd = true;
+		this.canvasNew = sizeX > this.maxWidth || sizeY > this.maxHeight;
 
-		this.wasChanged = true;
-
-		Chevron.load();
+		this.maxWidth = Math.max(this.maxWidth, sizeX);
+		this.maxHeight = Math.max(this.maxHeight, sizeY);
 	}
 
 	setFont(): void {
@@ -157,6 +158,8 @@ export class VirtualCanvas {
 
 		if (x instanceof Accumulate) x.add(w);
 		if (y instanceof Accumulate) y.add(h);
+
+		Chevron.init();
 	}
 
 	roundRect(
@@ -192,7 +195,9 @@ export class VirtualCanvas {
 
 	chevron(x: number, y: number, w: number, h: number): void {
 		this.commands.push((_, ctx) => {
-			ctx.drawImage(Chevron.value, x, y, w, h);
+			const draw = () => ctx.drawImage(Chevron.value, x, y, w, h);
+			if (!Chevron.value.complete) Chevron.value.onload = draw;
+			else draw();
 		});
 
 		this.ensure(x, y, w, h);
@@ -202,44 +207,54 @@ export class VirtualCanvas {
 		this.commands = [];
 		this.maxWidth = 0;
 		this.maxHeight = 0;
-		this.wasChanged = true;
+		this.canvasAdd = true;
+		this.canvasNew = true;
 	}
 
 	build(): HTMLCanvasElement {
-		if (this.cachedCanvas && !this.wasChanged) return this.cachedCanvas;
-		this.wasChanged = false;
+		if (this.cachedCanvas && !this.canvasAdd && !this.canvasNew)
+			return this.cachedCanvas;
+		this.canvasAdd = false;
+		this.cachedBitmap = null;
 
-		// create canvas
-		const canvas = document.createElement("canvas");
-		const ctx = canvas.getContext("2d")!;
+		if (this.canvasNew || !this.cachedCanvas) {
+			const canvas = document.createElement("canvas");
+			const ctx = canvas.getContext("2d")!;
 
-		// make canvas size correct
-		const dpr = window.devicePixelRatio || 1;
-		canvas.width = this.maxWidth * dpr;
-		canvas.height = this.maxHeight * dpr;
-		canvas.style.width = `${this.maxWidth}px`;
-		canvas.style.height = `${this.maxHeight}px`;
-		ctx.scale(dpr, dpr);
+			// make canvas size correct
+			const dpr = window.devicePixelRatio || 1;
+			canvas.width = this.maxWidth * dpr;
+			canvas.height = this.maxHeight * dpr;
+			canvas.style.width = `${this.maxWidth}px`;
+			canvas.style.height = `${this.maxHeight}px`;
+			ctx.scale(dpr, dpr);
 
-		// set some defaults
-		ctx.textBaseline = "top";
-		ctx.lineWidth = 1;
-		ctx.lineJoin = "round";
-		ctx.lineCap = "round";
+			// set some defaults
+			ctx.textBaseline = "top";
+			ctx.lineWidth = 1;
+			ctx.lineJoin = "round";
+			ctx.lineCap = "round";
 
-		for (const command of this.commands) {
-			command(canvas, ctx);
+			this.cachedCanvas = canvas;
+			this.canvasNew = false;
+			this.executed = 0;
 		}
 
-		// cache it
-		this.cachedCanvas = canvas;
+		// create canvas
+		const ctx = this.cachedCanvas.getContext("2d")!;
+
+		for (const command of this.commands.slice(this.executed)) {
+			command(this.cachedCanvas, ctx);
+		}
+
+		this.executed = this.commands.length;
 
 		// firefox performance optimization
-		createImageBitmap(canvas).then((bitmap) => {
+		createImageBitmap(this.cachedCanvas).then((bitmap) => {
 			this.cachedBitmap = bitmap;
 		});
 
-		return canvas;
+		return this.cachedCanvas;
 	}
 
 	paste(
@@ -278,36 +293,42 @@ export class VirtualCanvas {
 		srcY ??= 0;
 
 		const dpr = window.devicePixelRatio || 1;
-		const canvas = this.build();
 
 		const destX = x instanceof Accumulate ? x.value : x;
 		const destY = y instanceof Accumulate ? y.value : y;
 
-		if (this.cachedBitmap) {
-			other.drawImage(
-				this.cachedBitmap,
-				Math.round(srcX), // firefox hates decimals here, apparently.
-				Math.round(srcY),
-				Math.round(width * dpr),
-				Math.round(height * dpr),
-				Math.round(destX),
-				Math.round(destY),
-				Math.round(width),
-				Math.round(height),
-			);
-		} else {
-			other.drawImage(
-				canvas,
-				Math.round(srcX),
-				Math.round(srcY),
-				Math.round(width * dpr),
-				Math.round(height * dpr),
-				Math.round(destX),
-				Math.round(destY),
-				Math.round(width),
-				Math.round(height),
-			);
-		}
+		const apply = () => {
+			const canvas = this.build();
+
+			if (this.cachedBitmap) {
+				other.drawImage(
+					this.cachedBitmap,
+					Math.round(srcX), // firefox hates decimals here, apparently.
+					Math.round(srcY),
+					Math.round(width * dpr),
+					Math.round(height * dpr),
+					Math.round(destX),
+					Math.round(destY),
+					Math.round(width),
+					Math.round(height),
+				);
+			} else {
+				other.drawImage(
+					canvas,
+					Math.round(srcX),
+					Math.round(srcY),
+					Math.round(width * dpr),
+					Math.round(height * dpr),
+					Math.round(destX),
+					Math.round(destY),
+					Math.round(width),
+					Math.round(height),
+				);
+			}
+		};
+
+		if (!Chevron.value.complete) Chevron.value.onload = apply;
+		else apply();
 
 		if (x instanceof Accumulate) x.add(width);
 		if (y instanceof Accumulate) y.add(height);

@@ -24,12 +24,12 @@ export class Lazy<T> extends LateInit<T> {
 	}
 
 	override get value(): T {
-		if (!this.hasValue) this.init(this.factory());
+		if (!this.hasValue) this.init();
 		return super.value;
 	}
 
-	load(): void {
-		this.init(this.factory());
+	override init(): T {
+		return super.init(this.factory());
 	}
 }
 

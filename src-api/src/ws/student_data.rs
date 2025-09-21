@@ -10,7 +10,7 @@ use crate::ws::{message::ServerMessage, pool::SubPool};
 pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, mut add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, mut remove_rx) = mpsc::unbounded_channel();
-    let (update_tx, mut update_rx) = mpsc::unbounded_channel::<String>();
+    let (update_tx, mut update_rx) = mpsc::unbounded_channel::<(String, u64)>();
 
     let task = rt::spawn(async move {
         let subscriptions_add = Arc::new(RwLock::new(HashMap::new()));
@@ -60,7 +60,7 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
 
         rt::spawn(async move {
             loop {
-                let Some(data) = update_rx.recv().await else {
+                let Some((data, _)) = update_rx.recv().await else {
                     continue;
                 };
 

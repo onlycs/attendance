@@ -1,6 +1,12 @@
 <script setup lang="ts">
 defineProps<{
-	kind: "primary" | "background" | "card" | "card-2" | "error";
+	kind:
+		| "primary"
+		| "background"
+		| "card"
+		| "card-2"
+		| "error"
+		| "error-transparent";
 	disabled?: boolean;
 }>();
 </script>
@@ -43,6 +49,11 @@ defineProps<{
 	&.error {
 		@apply bg-red-500 text-white;
 		@apply active:bg-red-600 hover:bg-red-400;
+	}
+
+	&.error-transparent {
+		@apply bg-red-500/10 text-red-500;
+		@apply active:bg-red-500/20 hover:bg-red-500/30;
 	}
 
 	&.disabled {

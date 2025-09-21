@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
+import { set } from "zod";
 import { Math2 } from "~/utils/math";
 
+export interface TimePickerProps {
+	icon?: string;
+	color?: "red" | "green" | "gray";
+}
+
+const { icon, color } = defineProps<TimePickerProps>();
 const time = defineModel<Temporal.PlainTime>("time");
 const temp = ref(time.value ?? Temporal.Now.plainTimeISO());
 const emit = defineEmits<{ submit: [Temporal.PlainTime] }>();
@@ -53,7 +60,14 @@ function placement(i: number) {
 }
 
 function end() {
-	if (time.value) emit("submit", Temporal.PlainTime.from(etime.value));
+	input.value?.blur();
+}
+
+function blur() {
+	if (time.value && active.value !== 0) {
+		emit("submit", Temporal.PlainTime.from(etime.value));
+	}
+
 	active.value = -1;
 }
 
@@ -65,22 +79,16 @@ function setH12(h12u: number) {
 	const h12 = Math2.clamp(h12u, 1, 12);
 	const h24 = isA.value ? h12 % 12 : (h12 % 12) + 12;
 	etime.value = etime.value.with({ hour: h24 });
-
-	active.value++;
 }
 
 function setMinutes(m: number) {
 	const minute = Math2.clamp(m, 0, 59);
 	etime.value = etime.value.with({ minute });
-
-	active.value++;
 }
 
 function setSeconds(s: number) {
 	const seconds = Math2.clamp(s, 0, 59);
 	etime.value = etime.value.with({ second: seconds });
-
-	active.value++;
 }
 
 function keypress(kp: KeyboardEvent) {
@@ -106,51 +114,37 @@ function keypress(kp: KeyboardEvent) {
 		if (isA && h24 >= 12) etime.value = etime.value.with({ hour: h24 - 12 });
 		if (!isA && h24 < 12) etime.value = etime.value.with({ hour: h24 + 12 });
 
-		active.value++;
-		return;
+		return end();
 	}
 
 	if (!/^\d$/.test(key)) return;
 	const num = Number(key);
 
-	if (active.value === 0) {
-		if (num > 1) {
-			active.value++;
-			return setH12(num);
+	const activate = (
+		tensLim: number,
+		set: (v: number) => void,
+		ref: Ref<readonly [number, number]>,
+	) => {
+		if (active.value % 2 === 0) {
+			if (num > tensLim) {
+				active.value++;
+				set(num);
+			} else {
+				set(num * 10 + ref.value[1]);
+			}
+		} else {
+			set(ref.value[0] * 10 + num);
 		}
+	};
 
-		return setH12(num * 10 + hour.value[1]);
-	}
+	const tensLim = [1, 5, 5][Math.floor(active.value / 2)]!;
+	const setter = [setH12, setMinutes, setSeconds][
+		Math.floor(active.value / 2)
+	]!;
+	const ref = [hour, minute, seconds][Math.floor(active.value / 2)]!;
 
-	if (active.value === 1) {
-		return setH12(hour.value[0] * 10 + num);
-	}
-
-	if (active.value === 2) {
-		if (num > 5) {
-			active.value++;
-			return setMinutes(num);
-		}
-
-		return setMinutes(num * 10 + minute.value[1]);
-	}
-
-	if (active.value === 3) {
-		return setMinutes(minute.value[0] * 10 + num);
-	}
-
-	if (active.value === 4) {
-		if (num > 5) {
-			active.value++;
-			return setSeconds(num);
-		}
-
-		return setSeconds(num * 10 + seconds.value[1]);
-	}
-
-	if (active.value === 5) {
-		return setSeconds(seconds.value[0] * 10 + num);
-	}
+	activate(tensLim, setter, ref);
+	active.value++;
 }
 
 const timestr = computed(() => {
@@ -166,13 +160,19 @@ const timestr = computed(() => {
 
 	return `${h1}${h2}:${m1}${m2}:${s1}${s2} ${p}`;
 });
+
+const iconClass = computed(() => {
+	if (color === "red") return "!text-red-400";
+	if (color === "green") return "!text-green-400";
+	return "!text-sub";
+});
 </script>
 
 <template>
-	<div tabindex="0" class="input" ref="input" @focusin="start" @focusout="end" @keydown="keypress">
-		<Icon name="hugeicons:clock-01" :class="cn('icon', active !== -1 ? 'focused' : '')" size="20" />
-		
-		<div class="display" >
+	<div tabindex="0" :class="cn('input', ringClass)" ref="input" @focusin="start" @focusout="blur" @keydown="keypress">
+		<Icon :name="icon ?? 'hugeicons:clock-01'" :class="cn('icon', active !== -1 ? 'focused' : '', iconClass)" size="20" />
+
+		<div class="display">
 			{{ timestr }}
 		
 			<div 
@@ -184,7 +184,7 @@ const timestr = computed(() => {
 					active === 6 && i === 8 ? 'active' : ''
 				)" 
 				:style="{
-					left: `${Math2.round(10.8 * placement(i - 1), 1)}px`
+					left: `${Math2.round(9.6 * placement(i - 1), 1)}px`
 				}"
 			/>
 		</div>
@@ -198,7 +198,8 @@ const timestr = computed(() => {
 	@apply relative;
 	@apply flex flex-row justify-center items-center gap-4;
 	@apply bg-card rounded-lg px-6 py-4;
-	@apply font-['JetBrains_Mono',monospace] text-lg select-none;
+	@apply font-['JetBrains_Mono',monospace]  select-none;
+	@apply transition-all duration-200;
 }
 
 .display {
@@ -220,7 +221,7 @@ const timestr = computed(() => {
 }
 
 .line {
-	@apply absolute top-[24px] h-[1px] w-[10.8px] ;
+	@apply absolute top-[24px] h-[1px] w-[9.6px] ;
 	@apply border-b-sub border-b border-dotted;
 	@apply transition-all duration-200;
 	

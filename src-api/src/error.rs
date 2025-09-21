@@ -39,6 +39,30 @@ pub enum InitError {
 }
 
 #[derive(Error, Debug)]
+pub enum WsServerError {
+    #[error("At {location}: Failed to connect to database: {source}")]
+    Db {
+        #[from]
+        source: sqlx::Error,
+        location: &'static Location<'static>,
+    },
+
+    #[error("At {location}: Failed to get environment variable: {source}")]
+    Env {
+        #[from]
+        source: VarError,
+        location: &'static Location<'static>,
+    },
+
+    #[error("At {location}: Failed to format: {source}")]
+    Format {
+        #[from]
+        source: std::fmt::Error,
+        location: &'static Location<'static>,
+    },
+}
+
+#[derive(Error, Debug)]
 pub enum RouteError {
     #[error("At {location}: SQLx failure: {source}")]
     Sqlx {

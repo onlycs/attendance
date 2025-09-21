@@ -10,12 +10,13 @@ import {
 	type UpdateQuery,
 } from "~/utils/zodws/api";
 import "~/style/tailwind.css";
+import type { HoverCard } from "#components";
 
 const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
-const isFirefox = new Lazy(() => /firefox/i.test(navigator.userAgent));
+const isFirefox = useIsFirefox();
 const DPR = new Lazy(() => window.devicePixelRatio || 1);
 
 interface Cell {
@@ -138,7 +139,7 @@ function apply(q: ReplicateQuery): void {
 			const mid = Math.floor((left + right) / 2);
 			const item = date.entries[mid]!;
 
-			if (q.entry.start < item.value.start) {
+			if (Temporal.ZonedDateTime.compare(q.entry.start, item.value.start) < 0) {
 				right = mid - 1;
 			} else {
 				left = mid + 1;
@@ -153,6 +154,11 @@ function apply(q: ReplicateQuery): void {
 		};
 
 		activeStack.value.push(inverse);
+
+		relabel({
+			hashed: q.studentId,
+			date: q.date.toJSON(),
+		});
 	} else if (q.type === "Update") {
 		const ref = tableData
 			.find((s) => s.hashed === q.studentId)
@@ -179,6 +185,11 @@ function apply(q: ReplicateQuery): void {
 		}
 
 		ref.value = { ...entry };
+
+		relabel({
+			hashed: q.studentId,
+			date: q.date.toJSON(),
+		});
 	} else if (q.type === "Delete") {
 		const entries = tableData
 			.find((s) => s.hashed === q.studentId)
@@ -201,6 +212,11 @@ function apply(q: ReplicateQuery): void {
 		};
 
 		activeStack.value.push(inverse);
+
+		relabel({
+			hashed: q.studentId,
+			date: q.date.toJSON(),
+		});
 	}
 
 	activeStack.value = undoStack;
@@ -260,28 +276,35 @@ const websocket = makeWebsocket({
 		},
 		Error: (_, data) => {
 			toast.error(data.message);
+
+			if (["Time", "Data", "Unknown"].includes(data.meta.type)) {
+				txnInProgress.value = false;
+				cardOpen.value = false;
+			}
 		},
 	},
 });
 
-function push(uq: UpdateQuery) {
+function push(uq: UpdateQuery, shouldClearRedo = true) {
 	websocket.send("Update", {
 		sub: "Editor",
 		value: uq,
 	});
 
 	txnInProgress.value = true;
+
+	if (shouldClearRedo) redoStack.splice(0, redoStack.length);
 }
 
 function undo() {
 	if (undoStack.length === 0) return;
 	activeStack.value = redoStack;
-	push(undoStack.pop()!);
+	push(undoStack.pop()!, false);
 }
 
 function redo() {
 	if (undoStack.length === 0) return;
-	push(redoStack.pop()!);
+	push(redoStack.pop()!, false);
 }
 
 // formatting
@@ -332,13 +355,6 @@ function dateFmt(date: Temporal.PlainDate) {
 }
 
 // labelling
-function hours(el: number): string {
-	const mins = el * 60;
-
-	if (mins < 15) return Math2.format(mins, "Minute");
-	else return Math2.format(el, "Hour", 2);
-}
-
 function cellLabel(entries: MaybeRef<TimeEntry>[]) {
 	if (entries.length === 0) return "No data";
 
@@ -350,12 +366,7 @@ function cellLabel(entries: MaybeRef<TimeEntry>[]) {
 		sum = sum.add(entry.start.until(entry.end));
 	}
 
-	return hours(sum.total({ unit: "hours" }));
-}
-
-function entryLabel(entry: TimeEntry) {
-	if (!entry.end) return "Ongoing";
-	return hours(entry.start.until(entry.end).total({ unit: "hours" }));
+	return Math2.formatHours(sum.total({ unit: "hours" }));
 }
 
 // functionality
@@ -384,8 +395,8 @@ const vDataCanvas = new Lazy(() => new VirtualCanvas());
 const vInfoCanvas = new Lazy(() => new VirtualCanvas());
 
 interface CellId {
-	studentId: string;
-	date: Temporal.PlainDate;
+	hashed: string;
+	date: string; // Temporal.PlainDate serialized
 }
 
 interface DrawLocation {
@@ -396,7 +407,7 @@ interface DrawLocation {
 }
 
 const lookup = new PBLookup<CellId>();
-const textRedraw = new Map<CellId, DrawLocation>();
+const textRedraw = new Map<string, DrawLocation>(); // key is JSON.stringify(CellId)
 
 watch(
 	[
@@ -567,8 +578,8 @@ watch(
 				const cellWidth = Math.max(dateWidth, CELL_MIN_WIDTH);
 
 				const cellId = {
-					studentId: student.id,
-					date: cell.date,
+					hashed: student.hashed,
+					date: cell.date.toJSON(),
 				};
 
 				// header (date)
@@ -611,7 +622,7 @@ watch(
 					{ color: Colors.textSub },
 				);
 
-				textRedraw.set(cellId, {
+				textRedraw.set(JSON.stringify(cellId), {
 					x: accumX.prev + CELL_TEXT_PAD.value,
 					y: accumY.value + CELL_TEXT_PAD.value,
 					width: textDraw.width,
@@ -652,10 +663,45 @@ watch(
 	},
 );
 
+const redraw = ref(false);
+
+const requestRedraw = () => {
+	requestAnimationFrame(() => {
+		redraw.value = !redraw.value;
+	});
+};
+
+function relabel(cell: CellId) {
+	const loc = textRedraw.get(JSON.stringify(cell));
+
+	if (!loc) return;
+
+	const entries = tableData
+		.find((s) => s.hashed === cell.hashed)!
+		.cells.find((c) => c.date.equals(cell.date))!.entries;
+
+	const v = vDataCanvas.value;
+	const label = cellLabel(entries);
+
+	// clear old text
+	v.rect(loc.x, loc.y, loc.width, loc.height, Colors.drop, Colors.drop);
+
+	// draw new text
+	const textDraw = v.text(label, loc.x, loc.y, { color: Colors.textSub });
+
+	// update
+	textRedraw.set(JSON.stringify(cell), {
+		...loc,
+		...textDraw,
+	});
+
+	requestRedraw();
+}
+
 // scrolling and rendering logic
 watch(
-	[scrollX, scrollY, vCanvasReady, table, resize],
-	([scrollX, scrollY, vReady, canvas, _rs]) => {
+	[scrollX, scrollY, vCanvasReady, table, resize, redraw],
+	([scrollX, scrollY, vReady, canvas, _rs, _rr]) => {
 		if (!vReady || !canvas) return;
 
 		const ctx = canvas.getContext("2d")!;
@@ -775,31 +821,36 @@ const canvasScroll = (ev: WheelEvent) => {
 };
 
 // Hovercard logic
-const open = ref(false);
+const cardOpen = ref(false);
 const entries = ref([] as Ref<TimeEntry>[]);
+const hashed = ref("");
+const date = ref<Temporal.PlainDate>(Temporal.Now.plainDateISO());
+const card = ref<InstanceType<typeof HoverCard>>();
 
 const canvasClick = (ev: MouseEvent) => {
 	const q = queryAt(ev.clientX, ev.clientY);
 	if (!q.isSome()) return;
 
 	const qEntries = tableData
-		.find((s) => s.id === q.value.studentId)
-		?.cells.find((c) => c.date === q.value.date)?.entries;
+		.find((s) => s.hashed === q.value.hashed)
+		?.cells.find((c) => c.date.toJSON() === q.value.date)?.entries;
 
 	if (!qEntries) return;
 
+	console.log(Temporal.PlainDate.from(q.value.date), q.value.date);
+
+	date.value = Temporal.PlainDate.from(q.value.date);
+	hashed.value = q.value.hashed;
 	entries.value = qEntries;
+	cardOpen.value = true;
+	card.value?.update();
 };
 
 // misc QoL logic
 const queryAt = (mouseX: number, mouseY: number) => {
 	const canvas = table.value;
 
-	if (!canvas)
-		return None as Option<{
-			studentId: string;
-			date: Temporal.PlainDate;
-		}>;
+	if (!canvas) return None as Option<CellId>;
 
 	const box = canvas.getBoundingClientRect();
 
@@ -912,7 +963,7 @@ definePageMeta({ layout: "admin-protected" });
 		<br />
 		This may take a while...
 
-		<div v-if="isFirefox.value" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
+		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
 			If you notice lag, you're not going insane!
 			<br />
 			Firefox has some performance issues which 
@@ -923,10 +974,8 @@ definePageMeta({ layout: "admin-protected" });
 		</div>
 	</div>
 
-	<HoverCard v-model:open="open">
-		<div class="edit-menu">
-
-		</div>
+	<HoverCard v-model:open="cardOpen" ref="card">
+		<Edit :entries="entries" :push="push" :hashed="hashed" :date="date" />
 	</HoverCard>
 </template>
 

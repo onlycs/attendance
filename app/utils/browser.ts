@@ -35,3 +35,19 @@ export function useMobile(screenSize?: Ref<number>) {
 	screenSize = screenSize ?? useScreenSize();
 	return computed(() => screenSize.value === 0);
 }
+
+export function useIsFirefox(): Readonly<Ref<boolean>> {
+	const isFirefox = ref(false);
+
+	if (import.meta.server) {
+		const headers = useRequestHeaders(["user-agent"]);
+		const ua = headers["user-agent"] ?? "";
+		isFirefox.value = /firefox/i.test(ua);
+	}
+
+	onMounted(() => {
+		isFirefox.value = /firefox/i.test(navigator.userAgent);
+	});
+
+	return readonly(isFirefox);
+}

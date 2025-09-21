@@ -130,7 +130,7 @@ export const ReplicateQuerySchema = z.union([
 	z.object({
 		type: z.literal("Full"),
 		data: z.preprocess(
-			(val) => new Map(Object.entries(val as Record<string, Row>)),
+			(val) => new Map(Object.entries((val ?? {}) as Record<string, Row>)),
 			z.map(z.string(), RowSchema),
 		),
 	}),
@@ -168,7 +168,16 @@ const StudentDataResponse = narrow({
 });
 
 const ErrorSchema = z.object({
-	type: z.enum(["Serde", "Sqlx", "Closed", "Send", "Auth"]),
+	type: z.enum([
+		"Serde",
+		"Sqlx",
+		"Closed",
+		"Time",
+		"Data",
+		"Unknown",
+		"Send",
+		"Auth",
+	]),
 	source: z.string().optional(),
 	location: z.string().optional(),
 });

@@ -1,3 +1,5 @@
+use core::fmt;
+
 use chrono::{Datelike, Local, Utc};
 
 use crate::prelude::*;
@@ -9,6 +11,16 @@ pub enum HourType {
     Build,
     Learning,
     Demo,
+}
+
+impl fmt::Display for HourType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HourType::Build => write!(f, "build"),
+            HourType::Learning => write!(f, "learning"),
+            HourType::Demo => write!(f, "demo"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

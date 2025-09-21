@@ -14,7 +14,7 @@ use crate::ws::{editor, student_data, WsError};
 pub struct SubPool {
     #[allow(dead_code)]
     pub process: JoinHandle<()>,
-    pub update: UnboundedSender<String>,
+    pub update: UnboundedSender<(String, u64)>,
     pub add: UnboundedSender<Session>,
     pub remove: UnboundedSender<u64>,
 }

@@ -1,14 +1,14 @@
 use std::{collections::HashMap, fmt::Write, sync::Arc};
 
 use actix_web::rt;
-use chrono::{DateTime, Local, NaiveDate};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use sqlx::{postgres::PgListener, PgExecutor, PgPool};
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
     http::roster::HourType,
     prelude::*,
-    ws::{message::ServerMessage, pool::SubPool, session::Session},
+    ws::{message::ServerMessage, pool::SubPool, session::Session, WsError},
 };
 
 #[derive(Deserialize)]
@@ -24,10 +24,8 @@ struct PgWatchUpdate {
     operation: Operation,
     id: String,
     student_id: String,
-    #[serde(with = "chrono_temporal")]
-    sign_in: DateTime<Local>,
-    #[serde(with = "chrono_temporal::optional")]
-    sign_out: Option<DateTime<Local>>,
+    sign_in: NaiveDateTime,
+    sign_out: Option<NaiveDateTime>,
     kind: HourType,
 }
 
@@ -216,13 +214,14 @@ async fn add_thread(
 
 #[allow(clippy::too_many_lines)]
 async fn watch_thread(
-    pg: Arc<PgPool>,
     mut dates: Vec<NaiveDate>,
     subs: Arc<RwLock<HashMap<u64, Session>>>,
     data: Arc<RwLock<HashMap<String, Row>>>,
-) -> Result<!, sqlx::Error> {
-    let mut watcher = PgListener::connect_with(&pg).await?;
-    watcher.listen("on_record_update").await?;
+) -> Result<!, WsServerError> {
+    let mut watcher = PgListener::connect(&env::var("DATABASE_URL")?).await?;
+    watcher.listen("record_update").await?;
+
+    info!("Listening for roster updates...");
 
     while let Ok(notification) = watcher.recv().await {
         let payload = notification.payload();
@@ -232,10 +231,13 @@ async fn watch_thread(
         let change: PgWatchUpdate = match serde_json::from_str(payload) {
             Ok(change) => change,
             Err(err) => {
-                error!("Failed to parse roster change: {err}");
+                error!("Failed to parse roster change: {err}:{payload}");
                 continue;
             }
         };
+
+        let sign_in = change.sign_in.and_utc().with_timezone(&Local);
+        let sign_out = change.sign_out.map(|t| t.and_utc().with_timezone(&Local));
 
         let rq: ReplicateQuery;
 
@@ -250,7 +252,7 @@ async fn watch_thread(
                     continue;
                 };
 
-                let day = change.sign_in.date_naive();
+                let day = sign_in.date_naive();
 
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
@@ -272,7 +274,7 @@ async fn watch_thread(
                 };
             }
             Operation::Insert => {
-                let day = change.sign_in.date_naive();
+                let day = sign_in.date_naive();
                 let mut rows = data.write().await;
 
                 if !dates.contains(&day) {
@@ -318,8 +320,8 @@ async fn watch_thread(
                 // create a new time entry for this change
                 let entry = TimeEntry {
                     id: change.id,
-                    start: change.sign_in,
-                    end: change.sign_out,
+                    start: sign_in,
+                    end: sign_out,
                     kind: change.kind,
                 };
 
@@ -342,7 +344,7 @@ async fn watch_thread(
                     continue;
                 };
 
-                let day = change.sign_in.date_naive();
+                let day = change.sign_in.and_utc().with_timezone(&Local).date_naive();
 
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
@@ -359,20 +361,14 @@ async fn watch_thread(
                 let mut updates = vec![];
 
                 if let Some(entry) = entries.get_mut(&change.id) {
-                    if entry.start != change.sign_in {
-                        updates.push(TimeEntryUpdate::Start(change.sign_in));
-                        entry.start = change.sign_in;
-                    }
+                    updates.push(TimeEntryUpdate::Start(sign_in));
+                    entry.start = sign_in;
 
-                    if entry.end != change.sign_out {
-                        updates.push(TimeEntryUpdate::End(change.sign_out));
-                        entry.end = change.sign_out;
-                    }
+                    updates.push(TimeEntryUpdate::End(sign_out));
+                    entry.end = sign_out;
 
-                    if entry.kind != change.kind {
-                        updates.push(TimeEntryUpdate::Kind(change.kind));
-                        entry.kind = change.kind;
-                    }
+                    updates.push(TimeEntryUpdate::Kind(change.kind));
+                    entry.kind = change.kind;
                 } else {
                     warn!(
                         "Received update operation for student {} on date {} with unknown id: {}",
@@ -393,6 +389,8 @@ async fn watch_thread(
 
         let mut subs = subs.write().await;
 
+        info!("[Editor] Broadcasting update to {} subscribers", subs.len());
+
         // send the update to all subscribers
         let futures = subs
             .values_mut()
@@ -412,7 +410,7 @@ async fn process_update(
     pg: impl PgExecutor<'_>,
     pool: &PgPool,
     query: UpdateQuery,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), WsServerError> {
     match query {
         UpdateQuery::Create {
             student_id,
@@ -422,9 +420,10 @@ async fn process_update(
         } => {
             sqlx::query!(
                 r#"
-                    INSERT INTO records (student_id, in_progress, sign_in, sign_out, hour_type)
-                    VALUES ($1, $2, $3, $4, $5);
+                    INSERT INTO records (id, student_id, in_progress, sign_in, sign_out, hour_type)
+                    VALUES ($1, $2, $3, $4, $5, $6);
                     "#,
+                cuid2(),
                 student_id,
                 sign_out.is_none(),
                 sign_in.naive_utc(),
@@ -447,7 +446,7 @@ async fn process_update(
 
                 match update {
                     TimeEntryUpdate::Kind(kind) => {
-                        write!(&mut query, "hour_type = {kind:?}")
+                        write!(&mut query, "hour_type = '{kind}'")
                     }
                     TimeEntryUpdate::Start(start) => {
                         write!(&mut query, "sign_in = '{}'", start.naive_utc())
@@ -503,8 +502,12 @@ async fn process_update(
     Ok(())
 }
 
-async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>) -> ! {
-    while let Some(message) = rx.recv().await {
+async fn update_thread(
+    pg: Arc<PgPool>,
+    subscriptions: Arc<RwLock<HashMap<u64, Session>>>,
+    mut rx: mpsc::UnboundedReceiver<(String, u64)>,
+) -> ! {
+    while let Some((message, session_id)) = rx.recv().await {
         let query: UpdateQuery = match serde_json::from_str(&message) {
             Ok(data) => data,
             Err(err) => {
@@ -514,9 +517,45 @@ async fn update_thread(pg: Arc<PgPool>, mut rx: mpsc::UnboundedReceiver<String>)
         };
 
         let result = process_update(&*pg, &pg, query).await.err();
+        let hr_error: WsError;
 
-        if let Some(err) = result {
-            error!("[Editor] Failed to update database: {err}");
+        let Some(err) = result else {
+            continue;
+        };
+
+        match &err {
+            WsServerError::Db {
+                source: sqlx::Error::Database(db_err),
+                ..
+            } => {
+                let message = db_err.message();
+
+                if message.contains("time_check") {
+                    hr_error = WsError::Time;
+                } else if message.contains("violates check constraint") {
+                    hr_error = WsError::Data;
+                } else {
+                    hr_error = WsError::Unknown;
+                }
+            }
+            _ => {
+                hr_error = WsError::Unknown;
+            }
+        }
+
+        error!("[Editor] Failed to process update: {err}");
+        warn!("[Editor] Sent error response to session {session_id}: {hr_error}");
+
+        if let Some(session) = subscriptions.write().await.get_mut(&session_id) {
+            if let Err(err) = session
+                .send(ServerMessage::Error {
+                    message: format!("{hr_error}"),
+                    meta: hr_error,
+                })
+                .await
+            {
+                error!("[Editor] Failed to send error message: {err}");
+            }
         }
     }
 
@@ -537,12 +576,10 @@ async fn remove_thread(
 pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, remove_rx) = mpsc::unbounded_channel();
-    let (update_tx, update_rx) = mpsc::unbounded_channel::<String>();
+    let (update_tx, update_rx) = mpsc::unbounded_channel::<(String, u64)>();
 
     let task = rt::spawn(async move {
         let subscriptions = Arc::new(RwLock::new(HashMap::new()));
-
-        let pool_listen = Arc::clone(&pg);
         let pool_update = Arc::clone(&pg);
 
         let (dates, data) = init(&pg).await.unwrap_or_else(|err| {
@@ -559,13 +596,16 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         ));
 
         rt::spawn(watch_thread(
-            pool_listen,
             dates,
             Arc::clone(&subscriptions),
             Arc::clone(&data),
         ));
 
-        rt::spawn(update_thread(pool_update, update_rx));
+        rt::spawn(update_thread(
+            pool_update,
+            Arc::clone(&subscriptions),
+            update_rx,
+        ));
 
         rt::spawn(remove_thread(Arc::clone(&subscriptions), remove_rx));
     });

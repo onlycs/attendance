@@ -2,8 +2,8 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::{subscription::Subscription, WsError};
-use crate::ws::editor::ReplicateQuery;
+use super::subscription::Subscription;
+use crate::ws::{editor::ReplicateQuery, WsError};
 
 #[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", content = "data")]

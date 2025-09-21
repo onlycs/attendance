@@ -54,6 +54,15 @@ pub enum WsError {
         backtrace: Backtrace,
     },
 
+    #[error("Sign in time must be after the sign out time. The database was not updated.")]
+    Time,
+
+    #[error("Invalid update. The database was not updated.")]
+    Data,
+
+    #[error("Unknown error. The database was not updated.")]
+    Unknown,
+
     #[error("Failed to send a message to subscription pool")]
     Send,
 
@@ -108,7 +117,7 @@ pub(crate) async fn ws(
                                 .get(sub, &state.pg)
                                 .await
                                 .update
-                                .send(serde_json::to_string(&value)?)
+                                .send((serde_json::to_string(&value)?, session.id))
                                 .map_err(|_| WsError::Send)?,
                         }
                     }

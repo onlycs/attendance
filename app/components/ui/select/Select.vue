@@ -30,11 +30,11 @@ function select(key: keyof Options) {
 @reference '~/style/tailwind.css';
 
 .select {
-	@apply flex flex-row;
+	@apply flex flex-row w-full;
 
 	.option {
 		@apply px-4 py-2 bg-card;
-		@apply select-none;
+		@apply select-none flex-1 text-center;
 
 		&:first-child {
 			@apply rounded-l-lg;
@@ -50,6 +50,10 @@ function select(key: keyof Options) {
 
 		&:not(.selected) {
 			@apply cursor-pointer;
+		}
+
+		&:not(:first-child):not(:last-child) {
+			@apply border-x border-border;
 		}
 	}
 }

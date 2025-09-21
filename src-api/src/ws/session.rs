@@ -10,7 +10,8 @@ use actix_ws::Session as SessionPrim;
 use rand::Rng;
 use tokio::sync::RwLock;
 
-use super::{message::ServerMessage, WsError};
+use super::message::ServerMessage;
+use crate::ws::WsError;
 
 static IDS: LazyLock<RwLock<HashSet<u64>>> = LazyLock::new(|| RwLock::new(HashSet::new()));
 
