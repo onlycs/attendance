@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useStorage } from "@vueuse/core";
+import { toast } from "vue-sonner";
 import type { FocusCard, FocusCards } from "#components";
 import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
 import type { Actions } from "~/components/utility/RequireStorage.vue";
@@ -187,6 +188,7 @@ function click(clicked: "student" | "admin") {
 
 	const iconSrc = icon.$el.children[0] as SVGGElement;
 	const chevron = isMobile ? ChevronUp : ChevronLeft;
+
 	$gsap.to(iconSrc.children[0] as SVGPathElement, {
 		morphSVG: chevron,
 		...Timing.fast.in,
@@ -215,6 +217,7 @@ function click(clicked: "student" | "admin") {
 		x: !isMobile ? `${x + Convert.remToPx(0.75)}px` : "",
 		y: isMobile ? `${y + Convert.remToPx(0.75)}px` : "",
 		opacity: 1,
+		delay: Timing.fast.offset,
 		...Timing.in,
 	});
 
@@ -266,6 +269,31 @@ function adminSubmit(event: PasswordSubmitEvent) {
 	transition.out.trigger().then(() => router.push("/admin"));
 }
 
+async function studentSubmit(id: string) {
+	atEnd.value = false;
+
+	// check to make sure the student exists
+	const exists = await ApiClient.alias("studentExists", {
+		params: { id: Crypt.sha256(id) },
+	});
+
+	if (exists.isErr()) {
+		apiToast(exists.error);
+		return;
+	}
+
+	if (!exists.value) {
+		// student doesn't exist
+		toast.warning(
+			"You don't have any hours logged. Come back when you get some hours!",
+		);
+		return;
+	}
+
+	useStudentId().value = id;
+	transition.out.trigger().then(() => router.push("/student"));
+}
+
 onMounted(() => {
 	window?.addEventListener("resize", backClick);
 	$gsap.set([studentForm.value, adminForm.value], {
@@ -315,7 +343,7 @@ onMounted(() => {
 					Student ID
 				</div>
 				<div />
-				<FormStudentId class="form studentid" size="lg" />
+				<FormStudentId class="form studentid" size="lg" @submit="studentSubmit" />
 				<div />
 			</div>
 		</div>

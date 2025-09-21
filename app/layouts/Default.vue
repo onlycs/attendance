@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Toaster } from "vue-sonner";
-import type { TransitionControls } from "~/utils/transition";
+import type { TransitionControls, TransitionOptions } from "~/utils/transition";
 
 const content = ref<HTMLElement>();
 const mobile = useMobile();
@@ -12,7 +12,13 @@ const outComplete = ref<boolean>(false);
 const inStarted = ref<boolean>(false);
 const inComplete = ref<boolean>(false);
 
-function transitionOut(reverse: boolean = false): Promise<void> {
+function transitionOut({
+	reverse,
+	timing,
+}: TransitionOptions = {}): Promise<void> {
+	reverse ??= false;
+	timing ??= { ...Timing.slow, offset: Timing.offset };
+
 	const { $gsap } = useNuxtApp();
 	const tl = $gsap.timeline();
 	const isMobile = mobile.value;
@@ -33,7 +39,10 @@ function transitionOut(reverse: boolean = false): Promise<void> {
 				style.backgroundColor !== "rgba(0, 0, 0, 0)" &&
 				style.backgroundColor !== "transparent";
 
-			if (isSolid || child.classList.contains("page-transition")) {
+			const forceInclude = child.classList.contains("page-transition");
+			const forceExclude = child.classList.contains("no-page-transition");
+
+			if ((isSolid || forceInclude) && !forceExclude) {
 				// extra checks
 				const bbox = child.getBoundingClientRect();
 
@@ -97,9 +106,9 @@ function transitionOut(reverse: boolean = false): Promise<void> {
 				opacity: 0,
 				y: !isMobile ? `${reverse ? "" : "-"}100vh` : undefined,
 				x: isMobile ? `${reverse ? "" : "-"}100vw` : undefined,
-				...Timing.slow.in,
+				...timing.out,
 			},
-			i * Timing.offset,
+			i * timing.offset,
 		);
 		i++;
 	}
@@ -112,7 +121,13 @@ function transitionOut(reverse: boolean = false): Promise<void> {
 	});
 }
 
-function transitionIn(reverse: boolean = false): Promise<void> {
+function transitionIn({
+	reverse,
+	timing,
+}: TransitionOptions = {}): Promise<void> {
+	reverse ??= false;
+	timing ??= { ...Timing.slow, offset: Timing.offset };
+
 	outComplete.value = false;
 	outStarted.value = false;
 	inComplete.value = false;
@@ -138,7 +153,10 @@ function transitionIn(reverse: boolean = false): Promise<void> {
 				style.backgroundColor !== "rgba(0, 0, 0, 0)" &&
 				style.backgroundColor !== "transparent";
 
-			if (isSolid || child.classList.contains("page-transition")) {
+			const forceInclude = child.classList.contains("page-transition");
+			const forceExclude = child.classList.contains("no-page-transition");
+
+			if ((isSolid || forceInclude) && !forceExclude) {
 				// extra checks
 				const bbox = child.getBoundingClientRect();
 
@@ -204,7 +222,10 @@ function transitionIn(reverse: boolean = false): Promise<void> {
 		);
 	}
 
-	inStarted.value = true;
+	// give gsap a chance to apply the initial styles
+	setTimeout(() => {
+		inStarted.value = true;
+	}, 20);
 
 	let i = 0;
 	for (const el of elements) {
@@ -215,9 +236,9 @@ function transitionIn(reverse: boolean = false): Promise<void> {
 				x: 0,
 				opacity: 1,
 				clearProps: "all",
-				...Timing.slow.in,
+				...timing.in,
 			},
-			i * Timing.offset,
+			i * timing.offset,
 		);
 		i++;
 	}

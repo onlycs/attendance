@@ -1,13 +1,18 @@
+export interface TransitionOptions {
+	reverse?: boolean;
+	timing?: SingleTiming;
+}
+
 export interface TransitionControls {
 	out: {
 		begun: Ref<boolean>;
 		complete: Ref<boolean>;
-		trigger: (reverse?: boolean) => Promise<void>;
+		trigger: (options?: TransitionOptions) => Promise<void>;
 	};
 	in: {
 		begun: Ref<boolean>;
 		complete: Ref<boolean>;
-		trigger: (reverse?: boolean) => Promise<void>;
+		trigger: (options?: TransitionOptions) => Promise<void>;
 	};
 }
 

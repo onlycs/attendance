@@ -1,3 +1,14 @@
+export type GSAPTimingParams = {
+	duration: number;
+	ease: Parameters<(typeof gsap)["to"]>[2]["ease"];
+};
+
+export interface SingleTiming {
+	in: GSAPTimingParams;
+	out: GSAPTimingParams;
+	offset: number;
+}
+
 export const Timing = {
 	in: {
 		duration: 0.3,
@@ -30,6 +41,9 @@ export const Timing = {
 		},
 		offset: 0.15,
 	},
-} as const;
+} as SingleTiming & {
+	fast: SingleTiming;
+	slow: SingleTiming;
+};
 
 export const PreTranslateOffset = 20; // in rem

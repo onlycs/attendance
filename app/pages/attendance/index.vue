@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FocusCard } from "#components";
-import { Random } from "~/utils/random";
+import { Random } from "~/utils/math";
 
 const transition = injectTransition();
 const params = useUrlSearchParams();
@@ -55,11 +55,13 @@ function buildLearning() {
 }
 
 function back() {
-	transition.out.trigger(true).then(() => router.push("/admin?reverse=true"));
+	transition.out
+		.trigger({ reverse: true })
+		.then(() => router.push("/admin?reverse=true"));
 }
 
 onMounted(() => {
-	transition.in.trigger(params.reverse === "true");
+	transition.in.trigger({ reverse: params.reverse === "true" });
 	delete params.reverse;
 });
 

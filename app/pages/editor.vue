@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import type { Reactive, WatchHandle } from "vue";
+import type { Reactive } from "vue";
 import { toast } from "vue-sonner";
 import { Math2 } from "~/utils/math";
 import {
@@ -12,7 +12,6 @@ import {
 import "~/style/tailwind.css";
 import type { HoverCard } from "#components";
 
-const { $gsap } = useNuxtApp();
 const token = useToken();
 const password = usePassword();
 
@@ -906,6 +905,49 @@ onMounted(async () => {
 	window.addEventListener("resize", onResize);
 });
 
+// export
+function exportCSV() {
+	const header = [
+		"Student ID",
+		"First Name",
+		"Last Name",
+		"Sign In",
+		"Sign Out",
+		"In Progress?",
+		"For",
+	];
+
+	const records = [header.join(",")];
+
+	for (const student of tableData) {
+		for (const cell of student.cells) {
+			for (const entryRef of cell.entries) {
+				const entry = entryRef.value;
+
+				records.push(
+					[
+						student.id,
+						student.first,
+						student.last,
+						entry.start.toString({ timeZoneName: "never" }),
+						entry.end ? entry.end.toString({ timeZoneName: "never" }) : "",
+						(!entry.end).toString(),
+						entry.kind,
+					].join(","),
+				);
+			}
+		}
+	}
+
+	const blob = new Blob([records.join("\n")], { type: "text/csv" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+
+	link.setAttribute("href", url);
+	link.setAttribute("download", "time-entries.csv");
+	link.click();
+}
+
 onUnmounted(() => {
 	window.removeEventListener("mousemove", ratedMouseMove);
 	window.removeEventListener("resize", onResize);
@@ -920,14 +962,14 @@ definePageMeta({ layout: "admin-protected" });
 <template>
 	<div class="page" v-if="ready">
 		<div class="utilities">
-			<Button kind="card" class="button exit">
+			<Button kind="card" class="button exit" @click="$router.push('/admin')">
 				<Icon name="hugeicons:logout-02" size="22" />
 				Exit
 			</Button>
 
-			<Button kind="card" class="button" disabled>
-				<Icon name="hugeicons:download-01" size="22" />
-				Download
+			<Button kind="card" class="button" @click="exportCSV">
+				<Icon name="hugeicons:file-export" size="22" />
+				Export
 			</Button>
 
 			<Button :disabled="undoStack.length === 0" kind="card" class="button" @click="undo">
@@ -943,8 +985,10 @@ definePageMeta({ layout: "admin-protected" });
 			<Icon 
 				v-if="txnInProgress"
 				name="svg-spinners:ring-resize" 
-				:customize="Customize.StrokeWidth(1.75)" 
+				:customize="Customize.StrokeWidth(2)" 
 				mode="svg" 
+				size="22"
+				class="ml-2"
 			/>
 		</div>
 

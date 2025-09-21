@@ -57,6 +57,7 @@ const AuthParam = makeParameters([
 const HoursSchema = z.object({
 	learning: z.number(),
 	build: z.number(),
+	demo: z.number(),
 });
 
 const TokenSchema = z.object({
