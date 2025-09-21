@@ -1,0 +1,36 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"files": {
+		"includes": ["app/**/*.ts", "app/**/*.vue", "!**/node_modules", "!**/.nuxt"]
+	},
+	"formatter": { "enabled": true },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"style": {
+				"noNonNullAssertion": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.svelte", "**/*.astro", "**/*.vue"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useConst": "off",
+						"useImportType": "off"
+					},
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	]
+}

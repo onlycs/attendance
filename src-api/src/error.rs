@@ -9,36 +9,29 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum InitError {
-    #[error("At {location}: Failed to connect to database:\n{source}")]
-    DbError {
+    #[error("At {location}: Failed to connect to database: {source}")]
+    Db {
         #[from]
         source: sqlx::Error,
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to launch server:\n{source}")]
-    PoolError {
+    #[error("At {location}: Failed to launch server: {source}")]
+    Pool {
         #[from]
         source: io::Error,
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to init logger:\n{source}")]
-    LogError {
-        #[from]
-        source: log::SetLoggerError,
-        location: &'static Location<'static>,
-    },
-
-    #[error("At {location}: Failed to get environment variable:\n{source}")]
-    EnvError {
+    #[error("At {location}: Failed to get environment variable: {source}")]
+    Env {
         #[from]
         source: VarError,
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to start dotenv:\n{source}")]
-    DotenvError {
+    #[error("At {location}: Failed to start dotenv: {source}")]
+    Dotenv {
         #[from]
         source: dotenvy::Error,
         location: &'static Location<'static>,
@@ -46,23 +39,47 @@ pub enum InitError {
 }
 
 #[derive(Error, Debug)]
-pub enum RouteError {
-    #[error("At {location}: SQLx failure:\n{source}")]
-    SqlxError {
+pub enum WsServerError {
+    #[error("At {location}: Failed to connect to database: {source}")]
+    Db {
         #[from]
         source: sqlx::Error,
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to convert header to string:\n{source}")]
-    HeaderError {
+    #[error("At {location}: Failed to get environment variable: {source}")]
+    Env {
+        #[from]
+        source: VarError,
+        location: &'static Location<'static>,
+    },
+
+    #[error("At {location}: Failed to format: {source}")]
+    Format {
+        #[from]
+        source: std::fmt::Error,
+        location: &'static Location<'static>,
+    },
+}
+
+#[derive(Error, Debug)]
+pub enum RouteError {
+    #[error("At {location}: SQLx failure: {source}")]
+    Sqlx {
+        #[from]
+        source: sqlx::Error,
+        location: &'static Location<'static>,
+    },
+
+    #[error("At {location}: Failed to convert header to string: {source}")]
+    Header {
         #[from]
         source: ToStrError,
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Failed to get environment variable:\n{source}")]
-    EnvError {
+    #[error("At {location}: Failed to get environment variable: {source}")]
+    Env {
         #[from]
         source: VarError,
         location: &'static Location<'static>,
@@ -74,35 +91,26 @@ pub enum RouteError {
     #[error("Invalid token or password")]
     InvalidToken,
 
-    #[error("User already exists")]
-    UserExists,
+    #[error("Cannot log build hours between September and December")]
+    NoBuildHours,
 
-    #[error("User not found")]
-    UserNotFound,
-
-    #[error("Signed in too recently")]
-    DoubleSignin,
+    #[error("Cannot log learning hours between January and August")]
+    NoLearningHours,
 }
 
 impl ResponseError for RouteError {
     fn status_code(&self) -> StatusCode {
         match self {
-            RouteError::NoAuth => StatusCode::UNAUTHORIZED,
-            RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
-            RouteError::UserExists => StatusCode::CONFLICT,
-            RouteError::UserNotFound => StatusCode::NOT_FOUND,
-            RouteError::DoubleSignin => StatusCode::CONFLICT,
+            RouteError::NoAuth | RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
     fn error_response(&self) -> HttpResponse<BoxBody> {
         match self {
-            RouteError::NoAuth => HttpResponse::Unauthorized().body(format!("{self}")),
-            RouteError::InvalidToken => HttpResponse::Unauthorized().body(format!("{self}")),
-            RouteError::UserExists => HttpResponse::Conflict().body(format!("{self}")),
-            RouteError::UserNotFound => HttpResponse::NotFound().body(format!("{self}")),
-            RouteError::DoubleSignin => HttpResponse::Conflict().body(format!("{self}")),
+            RouteError::NoAuth | RouteError::InvalidToken => {
+                HttpResponse::Unauthorized().body(format!("{self}"))
+            }
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }
