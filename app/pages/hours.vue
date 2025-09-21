@@ -26,10 +26,14 @@ function makeHours(kind: keyof HoursResponse): [number, number, number] {
 	];
 }
 
-function back() {
+function redirect(url: string) {
 	transition.out
 		.trigger({ reverse: true, timing })
-		.then(() => router.push("/student?reverse=true"));
+		.then(() => router.push(url));
+}
+
+function back() {
+	redirect("/student?reverse=true");
 }
 
 onMounted(async () => {
@@ -38,7 +42,7 @@ onMounted(async () => {
 	});
 
 	if (res.isErr()) {
-		apiToast(res.error);
+		apiToast(res.error, redirect);
 		return;
 	}
 

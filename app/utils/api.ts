@@ -243,14 +243,12 @@ export const ApiClient = {
 				method,
 				url: path,
 				data: body,
-				// biome-ignore lint/suspicious/noExplicitAny: hax
 			} as any) as any;
 		} else {
 			res = this.client.request({
 				...(options ?? {}),
 				method,
 				url: path,
-				// biome-ignore lint/suspicious/noExplicitAny: hax
 			} as any) as any;
 		}
 
@@ -302,14 +300,17 @@ export const ApiClient = {
 	},
 };
 
-export function apiToast(err: AnyError, checks?: Record<number, boolean>) {
+export function apiToast(err: AnyError, redirect: (url: string) => void) {
 	if (!err.response) {
 		toast.error("Could not connect to the server. Are you online?");
 		return;
 	}
-	if (!checks?.[err.response.status] && checks) return;
 
 	switch (err.response.status as number) {
+		case 401: {
+			redirect("/?error=session-expired");
+			return;
+		}
 		case 404: {
 			toast.error(
 				"Could not find data from the server. This is probably a bug",

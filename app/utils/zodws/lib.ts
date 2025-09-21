@@ -46,7 +46,7 @@ export interface WsClientHooks<Api extends WebsocketApi> {
 }
 
 export class ZodWsClient<Api extends WebsocketApi> {
-	readonly socket: WebSocket;
+	private socket: WebSocket;
 	private ready = false;
 	private queue: string[] = [];
 
@@ -54,7 +54,7 @@ export class ZodWsClient<Api extends WebsocketApi> {
 		readonly api: Api,
 		readonly url: string,
 		private readonly hooks: WsClientHooks<Api>,
-		readonly protocols?: string | string[],
+		private readonly protocols?: string | string[],
 	) {
 		this.socket = new WebSocket(url, protocols);
 		this.socket.onmessage = async (ev: MessageEvent) => {
@@ -143,5 +143,11 @@ export class ZodWsClient<Api extends WebsocketApi> {
 		} else {
 			this.queue.push(text);
 		}
+	}
+
+	reconnect() {
+		if (this.socket.readyState === WebSocket.OPEN) return;
+		this.ready = false;
+		this.socket = new WebSocket(this.url, this.protocols);
 	}
 }

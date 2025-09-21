@@ -55,7 +55,16 @@ const websocket = makeWebsocket({
 					toast.error("Failed to load student data. Please try again.");
 				});
 		},
-		Error: (_, error) => toast.error(error.message),
+		Error: (_, error) => {
+			if (error.meta.type === "Auth") {
+				useToken().value = null;
+				usePassword().value = null;
+				useRouter().push("/?error=session-expired");
+				return;
+			}
+
+			toast.error(error.message);
+		},
 	},
 });
 
@@ -155,7 +164,7 @@ async function roster(id?: string, force = false) {
 	);
 
 	if (res.isErr()) {
-		apiToast(res.error);
+		apiToast(res.error, redirect);
 		loading.value = false;
 		return;
 	}
@@ -207,10 +216,12 @@ function backUnhover() {
 	});
 }
 
+function redirect(url: string) {
+	transition.out.trigger({ reverse: true }).then(() => useRouter().push(url));
+}
+
 function exit() {
-	transition.out
-		.trigger(true)
-		.then(() => useRouter().push("/attendance?reverse=true"));
+	redirect("/attendance?reverse=true");
 }
 
 onMounted(() => {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { REGEXP_ONLY_DIGITS as Numeric } from "vue-input-otp";
 import type { OTPInput } from "#components";
 import type { SlotSize } from "../ui/input-otp/Slot.vue";
 
@@ -36,7 +37,12 @@ onMounted(() => {
 </script>
 
 <template>
-    <OTPInput v-slot="{ slots }" v-model="id" :maxlength="5" >
+    <OTPInput 
+		v-slot="{ slots }" 
+		v-model="id" 
+		:maxlength="5" 
+		:pattern="Numeric" 
+	>
         <div class="flex" ref="slots">
             <OTPSlot
                 v-for="(slot, idx) in slots"

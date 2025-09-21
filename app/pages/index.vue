@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useStorage } from "@vueuse/core";
 import { toast } from "vue-sonner";
 import type { FocusCard, FocusCards } from "#components";
 import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
-import type { Actions } from "~/components/utility/RequireStorage.vue";
 
 const { $gsap } = useNuxtApp();
 
@@ -278,7 +276,7 @@ async function studentSubmit(id: string) {
 	});
 
 	if (exists.isErr()) {
-		apiToast(exists.error);
+		apiToast(exists.error, router.push);
 		return;
 	}
 
@@ -299,6 +297,11 @@ onMounted(() => {
 	$gsap.set([studentForm.value, adminForm.value], {
 		x: "-100vw",
 	});
+
+	if (params.error === "session-expired") {
+		toast.error("Session expired. Please log in again.");
+		delete params.error;
+	}
 });
 </script>
 

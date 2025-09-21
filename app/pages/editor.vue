@@ -14,6 +14,7 @@ import type { HoverCard } from "#components";
 
 const token = useToken();
 const password = usePassword();
+const router = useRouter();
 
 const isFirefox = useIsFirefox();
 const DPR = new Lazy(() => window.devicePixelRatio || 1);
@@ -40,6 +41,7 @@ const activeStack = ref(undoStack);
 const studentData = new JsonDb(StudentData, []);
 const ready = ref(false);
 const txnInProgress = ref(false);
+const connected = ref(false);
 
 function apply(q: ReplicateQuery): void {
 	if (q.type === "Full") {
@@ -274,6 +276,12 @@ const websocket = makeWebsocket({
 				});
 		},
 		Error: (_, data) => {
+			if (data.meta.type === "Auth") {
+				token.value = null;
+				password.value = null;
+				router.push("/?error=session-expired");
+			}
+
 			toast.error(data.message);
 
 			if (["Time", "Data", "Unknown"].includes(data.meta.type)) {
@@ -281,6 +289,9 @@ const websocket = makeWebsocket({
 				cardOpen.value = false;
 			}
 		},
+	},
+	onStatus(_, status) {
+		connected.value = status === "open";
 	},
 });
 
@@ -905,6 +916,14 @@ onMounted(async () => {
 	window.addEventListener("resize", onResize);
 });
 
+function reconnect() {
+	websocket.reconnect();
+	websocket.send("Subscribe", {
+		sub: "StudentData",
+		token: token.value!,
+	});
+}
+
 // export
 function exportCSV() {
 	const header = [
@@ -982,8 +1001,13 @@ definePageMeta({ layout: "admin-protected" });
 				Redo
 			</Button>
 
+			<Button v-if="!connected" kind="error-transparent" class="button" @click="reconnect">
+				<Icon name="hugeicons:connect" size="22" />
+				Reconnect
+			</Button>
+
 			<Icon 
-				v-if="txnInProgress"
+				v-if="txnInProgress && connected"
 				name="svg-spinners:ring-resize" 
 				:customize="Customize.StrokeWidth(2)" 
 				mode="svg" 

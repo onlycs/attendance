@@ -10,7 +10,7 @@ const show = transition.setup;
 const animate = transition.ready;
 
 onMounted(() => {
-	transition.in.trigger(params.reverse === "true");
+	transition.in.trigger({ reverse: params.reverse === "true" });
 	delete params.reverse;
 });
 
@@ -25,7 +25,7 @@ function attendance() {
 function logout() {
 	useToken().value = null;
 	usePassword().value = null;
-	transition.out.trigger(true).then(() => router.push("/"));
+	transition.out.trigger({ reverse: true }).then(() => router.push("/"));
 }
 
 definePageMeta({ layout: "admin-protected" });
