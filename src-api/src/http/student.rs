@@ -6,6 +6,7 @@ pub struct HoursResponse {
     build: f64,
     learning: f64,
     demo: f64,
+    offseason: f64,
 }
 
 impl HoursResponse {
@@ -14,6 +15,7 @@ impl HoursResponse {
             HourType::Build => &mut self.build,
             HourType::Learning => &mut self.learning,
             HourType::Demo => &mut self.demo,
+            HourType::Offseason => &mut self.offseason,
         }
     }
 

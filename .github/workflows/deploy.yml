@@ -43,12 +43,19 @@ jobs:
           default: true
           override: true
 
+      - name: Install sqlx CLI
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run database migrations
+        run: sqlx migrate run
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Build
         run: cargo build --release --locked
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      
       - name: Login to Google Cloud
         id: gcp-auth
         uses: google-github-actions/auth@v2

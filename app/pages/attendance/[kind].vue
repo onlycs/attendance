@@ -30,6 +30,7 @@ const title = {
 	build: "Build Hours",
 	learning: "Learning Days",
 	demo: "Volunteer Hours",
+	offseason: "Offseason Hours",
 }[kind];
 
 const loading = ref(false);

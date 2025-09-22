@@ -7,12 +7,16 @@ const params = useUrlSearchParams();
 const router = useRouter();
 
 const month = new Date().getMonth();
-const isLearning = month >= 8; // gte sept cuz jan == 0
+const hourType = month >= 11 ? "learning" : month < 5 ? "build" : "offseason";
 
 const show = transition.setup;
 const animate = transition.ready;
 
-const name = ["Learning Days", "Build Season"][+!isLearning]!;
+const name = {
+	build: "Build Hours",
+	learning: "Learning Hours",
+	offseason: "Offseason",
+}[hourType];
 
 const common = [
 	"heroicons:wrench-screwdriver",
@@ -32,7 +36,7 @@ const rare = [
 ];
 
 const learning = [
-	"hugeicons:motarboard-01",
+	"hugeicons:mortarboard-01",
 	"hugeicons:teaching",
 	"hugeicons:students",
 	"hugeicons:knowledge-01",
@@ -42,7 +46,7 @@ const learning = [
 const rarity = month > 4 ? 50 : 8 - month;
 const build = rare.concat(...Array(rarity).fill(common));
 
-const icons = isLearning ? learning : build;
+const icons = hourType === "learning" ? learning : build;
 const icon = useState(() => Random.Choose(icons).unwrap());
 
 function demo() {
@@ -50,7 +54,7 @@ function demo() {
 }
 
 function buildLearning() {
-	const url = `/attendance/${isLearning ? "learning" : "build"}`;
+	const url = `/attendance/${hourType}`;
 	transition.out.trigger().then(() => router.push(url));
 }
 

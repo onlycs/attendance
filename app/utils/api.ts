@@ -37,6 +37,10 @@ const ErrorSchema = makeErrors([
 		schema: z.string(),
 	},
 	{
+		status: 400,
+		schema: z.string(),
+	},
+	{
 		status: 404,
 		schema: z.never(),
 	},
@@ -74,7 +78,12 @@ const CsvSchema = z.object({
 	csv: z.string(),
 });
 
-export const HourTypeSchema = z.enum(["learning", "build", "demo"]);
+export const HourTypeSchema = z.enum([
+	"learning",
+	"build",
+	"demo",
+	"offseason",
+]);
 
 export const ApiSchema = makeApi([
 	{

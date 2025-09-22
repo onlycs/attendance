@@ -11,6 +11,27 @@ pub enum HourType {
     Build,
     Learning,
     Demo,
+    Offseason,
+}
+
+impl HourType {
+    pub(crate) fn allowed(self, month: u32) -> bool {
+        match self {
+            HourType::Build => month < 5,
+            HourType::Learning => month >= 11,
+            HourType::Demo => true,
+            HourType::Offseason => (3..11).contains(&month),
+        }
+    }
+
+    pub(crate) fn when_invalid(self) -> &'static str {
+        match self {
+            HourType::Build => "after April",
+            HourType::Learning => "before November",
+            HourType::Demo => "",
+            HourType::Offseason => "before May or after October",
+        }
+    }
 }
 
 impl fmt::Display for HourType {
@@ -19,6 +40,7 @@ impl fmt::Display for HourType {
             HourType::Build => write!(f, "build"),
             HourType::Learning => write!(f, "learning"),
             HourType::Demo => write!(f, "demo"),
+            HourType::Offseason => write!(f, "offseason"),
         }
     }
 }
@@ -54,14 +76,12 @@ pub(super) async fn record(
 ) -> Result<RosterResponse, RouteError> {
     debug!("Received roster request: {hour_type:?} hours for {id}");
 
-    if hour_type == HourType::Build && Local::now().month() > 9 {
-        warn!("Build hours are not available after September");
-        return Err(RouteError::NoBuildHours);
-    }
+    let month = Local::now().month();
 
-    if hour_type == HourType::Learning && Local::now().month() < 9 {
-        warn!("Learning hours are not available before September");
-        return Err(RouteError::NoLearningHours);
+    if !hour_type.allowed(month) {
+        let error = RouteError::HourType { hour_type };
+        warn!("{error}");
+        return Err(error);
     }
 
     let record = sqlx::query!(

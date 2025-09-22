@@ -1,11 +1,13 @@
 use std::{env::VarError, io, panic::Location};
 
 use actix_web::{
-    body::BoxBody,
-    http::{header::ToStrError, StatusCode},
     HttpResponse, ResponseError,
+    body::BoxBody,
+    http::{StatusCode, header::ToStrError},
 };
 use thiserror::Error;
+
+use crate::http::roster::HourType;
 
 #[derive(Error, Debug)]
 pub enum InitError {
@@ -91,17 +93,15 @@ pub enum RouteError {
     #[error("Invalid token or password")]
     InvalidToken,
 
-    #[error("Cannot log build hours between September and December")]
-    NoBuildHours,
-
-    #[error("Cannot log learning hours between January and August")]
-    NoLearningHours,
+    #[error("Invalid hour type: cannot log {hour_type} hours {}", hour_type.when_invalid())]
+    HourType { hour_type: HourType },
 }
 
 impl ResponseError for RouteError {
     fn status_code(&self) -> StatusCode {
         match self {
             RouteError::NoAuth | RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
+            RouteError::HourType { .. } => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -111,6 +111,7 @@ impl ResponseError for RouteError {
             RouteError::NoAuth | RouteError::InvalidToken => {
                 HttpResponse::Unauthorized().body(format!("{self}"))
             }
+            RouteError::HourType { .. } => HttpResponse::BadRequest().body(format!("{self}")),
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }
