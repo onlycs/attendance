@@ -169,7 +169,7 @@ const iconClass = computed(() => {
 </script>
 
 <template>
-	<div tabindex="0" :class="input" ref="input" @focusin="start" @focusout="blur" @keydown="keypress">
+	<div tabindex="0" class="input" ref="input" @focusin="start" @focusout="blur" @keydown="keypress">
 		<Icon :name="icon ?? 'hugeicons:clock-01'" :class="cn('icon', active !== -1 ? 'focused' : '', iconClass)" size="20" />
 
 		<div class="display">
