@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use actix_web::rt;
 use sqlx::PgPool;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 
 use super::session::Session;
 use crate::ws::{message::ServerMessage, pool::SubPool};
@@ -11,11 +11,19 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, mut add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, mut remove_rx) = mpsc::unbounded_channel();
     let (update_tx, mut update_rx) = mpsc::unbounded_channel::<(String, u64)>();
+    let subscriptions = Arc::new(RwLock::new(HashMap::new()));
 
-    let task = rt::spawn(async move {
-        let subscriptions_add = Arc::new(RwLock::new(HashMap::new()));
-        let subscriptions_remove = Arc::clone(&subscriptions_add);
-        let subscriptions_update = Arc::clone(&subscriptions_add);
+    let descriptor = SubPool {
+        update: update_tx.clone(),
+        add: add_tx.clone(),
+        remove: remove_tx.clone(),
+        sessions: Arc::clone(&subscriptions),
+    };
+
+    rt::spawn(async move {
+        let subscriptions_add = Arc::clone(&subscriptions);
+        let subscriptions_remove = Arc::clone(&subscriptions);
+        let subscriptions_update = Arc::clone(&subscriptions);
 
         let pool_add = pg;
         let pool_update = Arc::clone(&pool_add);
@@ -89,10 +97,5 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         });
     });
 
-    Arc::new(SubPool {
-        update: update_tx,
-        add: add_tx,
-        remove: remove_tx,
-        process: task,
-    })
+    Arc::new(descriptor)
 }

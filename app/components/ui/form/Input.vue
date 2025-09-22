@@ -42,6 +42,7 @@ function update() {
 
 	$gsap.to(wrapper.value, {
 		background: gradient,
+		delay: Timing.offset,
 		...Timing.slow.in,
 	});
 }

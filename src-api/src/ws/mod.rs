@@ -7,7 +7,7 @@ mod subscription;
 
 use std::{backtrace::Backtrace, panic::Location};
 
-use actix_web::{rt, web, Error, HttpRequest, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse, rt, web};
 use actix_ws::AggregatedMessage;
 use futures_util::StreamExt;
 use message::ClientMessage;
@@ -15,7 +15,7 @@ use pool::SubPools;
 use session::Session;
 use thiserror::Error;
 
-use crate::{http::auth, prelude::*, ws::message::ServerMessage, AppState};
+use crate::{AppState, http::auth, prelude::*, ws::message::ServerMessage};
 
 #[serde_as]
 #[derive(Error, Debug, Serialize)]
@@ -106,9 +106,17 @@ pub(crate) async fn ws(
                                     .await
                                     .map_err(|_| WsError::Auth)?;
 
-                                SubPools::instance()
-                                    .get(sub, &state.pg)
-                                    .await
+                                let pool = SubPools::instance().get(sub, &state.pg).await;
+
+                                if pool.sessions.read().await.contains_key(&session.id) {
+                                    info!(
+                                        "Websocket (id {:#x}) tried to subscribe to {sub:?} but is already subscribed. Ignoring.",
+                                        session.id
+                                    );
+                                    return Ok(());
+                                }
+
+                                pool
                                     .add
                                     .send(session.clone())
                                     .map_err(|_| WsError::Send)?;

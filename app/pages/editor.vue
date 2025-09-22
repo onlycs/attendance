@@ -40,6 +40,7 @@ const activeStack = ref(undoStack);
 
 const studentData = new JsonDb(StudentData, []);
 const ready = ref(false);
+const noData = ref(false);
 const txnInProgress = ref(false);
 const connected = ref(false);
 
@@ -240,7 +241,10 @@ const websocket = makeWebsocket({
 		},
 		StudentData: (_, data) => {
 			if (!data) {
-				studentData.reset([]);
+				setTimeout(() => {
+					noData.value = true;
+					ready.value = true;
+				}, 250); // looks like flashing if too fast
 				return;
 			}
 
@@ -248,7 +252,7 @@ const websocket = makeWebsocket({
 				.then((decrypted) => {
 					studentData.reset(JSON.parse(decrypted));
 
-					if (ready.value) {
+					if (ready.value && connected.value) {
 						let inserted = false;
 						for (const student of studentData.all()) {
 							const hashed = Crypt.sha256(student.id);
@@ -268,6 +272,7 @@ const websocket = makeWebsocket({
 							sub: "Editor",
 							token: token.value!,
 						});
+						connected.value = true;
 					}
 				})
 				.catch((error) => {
@@ -291,7 +296,12 @@ const websocket = makeWebsocket({
 		},
 	},
 	onStatus(_, status) {
-		connected.value = status === "open";
+		if (status === "close") {
+			connected.value = false;
+			toast.warning(
+				"Disconnected from the server. Reconnect to continue editing.",
+			);
+		}
 	},
 });
 
@@ -847,8 +857,6 @@ const canvasClick = (ev: MouseEvent) => {
 
 	if (!qEntries) return;
 
-	console.log(Temporal.PlainDate.from(q.value.date), q.value.date);
-
 	date.value = Temporal.PlainDate.from(q.value.date);
 	hashed.value = q.value.hashed;
 	entries.value = qEntries;
@@ -979,9 +987,37 @@ definePageMeta({ layout: "admin-protected" });
 </script>
 
 <template>
-	<div class="page" v-if="ready">
+	<div v-if="!ready" class="loading">
+		Loading editor
+		<br />
+		This may take a while...
+
+		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
+			If you notice lag, you're not going insane!
+			<br />
+			Firefox has some performance issues which 
+			<br />
+			I have been pulling my hair out over.
+			<br />
+			Sorry about that, and good luck <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
+		</div>
+	</div>
+
+	<div v-else-if="noData" class="loading">
+		No data (yet!)
+		<br />
+		Come back when there are
+		<br />
+		students with hours!
+
+		<Button kind="card" class="button" @click="$router.push('/admin?reverse=true')">
+			<Icon name="hugeicons:arrow-left-01" size="48" />
+		</Button>
+	</div>
+
+	<div class="page" v-else>
 		<div class="utilities">
-			<Button kind="card" class="button exit" @click="$router.push('/admin')">
+			<Button kind="card" class="button exit" @click="$router.push('/admin?reverse=true')">
 				<Icon name="hugeicons:logout-02" size="22" />
 				Exit
 			</Button>
@@ -1026,22 +1062,6 @@ definePageMeta({ layout: "admin-protected" });
 		<div class="hideaway bottom horizontal end" />
 	</div>
 
-	<div v-else class="loading">
-		Loading editor
-		<br />
-		This may take a while...
-
-		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
-			If you notice lag, you're not going insane!
-			<br />
-			Firefox has some performance issues which 
-			<br />
-			I have been pulling my hair out over.
-			<br />
-			Sorry about that, and good luck <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
-		</div>
-	</div>
-
 	<HoverCard v-model:open="cardOpen" ref="card">
 		<Edit :entries="entries" :push="push" :hashed="hashed" :date="date" />
 	</HoverCard>
@@ -1080,7 +1100,14 @@ definePageMeta({ layout: "admin-protected" });
 .loading {
 	@apply flex flex-col justify-center items-center;
 	@apply w-full h-full;
+	@apply text-4xl select-none font-semibold text-center;
 
-	@apply text-4xl font-semibold text-center;
+	.button {
+		@apply flex justify-center items-center w-64;
+		@apply mt-8;
+		@apply text-lg;
+	}
+
+	line-height: 1.25;
 }
 </style>

@@ -56,31 +56,39 @@ export class ZodWsClient<Api extends WebsocketApi> {
 		private readonly hooks: WsClientHooks<Api>,
 		private readonly protocols?: string | string[],
 	) {
-		this.socket = new WebSocket(url, protocols);
-		this.socket.onmessage = async (ev: MessageEvent) => {
-			let text: string;
+		this.socket = null!; // to be initialized in reconnect
+		this.reconnect();
+	}
 
-			if (typeof ev.data === "string") {
-				text = ev.data;
-			} else if (ev.data instanceof Blob) {
-				text = await ev.data.text();
-			} else if (ev.data instanceof ArrayBuffer) {
-				text = new TextDecoder("utf-8").decode(ev.data);
-			} else {
-				console.warn("Unknown data type:", typeof ev.data, ev.data);
-				return;
-			}
+	private async onmessage_prim(ev: MessageEvent) {
+		let text: string;
 
-			this.onmessage(text);
-		};
+		if (typeof ev.data === "string") {
+			text = ev.data;
+		} else if (ev.data instanceof Blob) {
+			text = await ev.data.text();
+		} else if (ev.data instanceof ArrayBuffer) {
+			text = new TextDecoder("utf-8").decode(ev.data);
+		} else {
+			console.warn("Unknown data type:", typeof ev.data, ev.data);
+			return;
+		}
 
-		this.socket.onerror = (ev: Event) => hooks.onError?.(this, ev);
-		this.socket.onclose = () => hooks.onStatus?.(this, "close");
-		this.socket.onopen = () => {
-			this.ready = true;
-			this.clearqueue();
-			hooks.onStatus?.(this, "open");
-		};
+		this.onmessage(text);
+	}
+
+	private onerror_prim(ev: Event) {
+		this.hooks.onError?.(this, ev);
+	}
+
+	private onclose_prim() {
+		this.hooks.onStatus?.(this, "close");
+	}
+
+	private onopen_prim() {
+		this.ready = true;
+		this.clearqueue();
+		this.hooks.onStatus?.(this, "open");
 	}
 
 	private onmessage(messagestr: string) {
@@ -146,8 +154,13 @@ export class ZodWsClient<Api extends WebsocketApi> {
 	}
 
 	reconnect() {
-		if (this.socket.readyState === WebSocket.OPEN) return;
+		if (this.socket?.readyState === WebSocket.OPEN) return;
 		this.ready = false;
 		this.socket = new WebSocket(this.url, this.protocols);
+
+		this.socket.onmessage = this.onmessage_prim.bind(this);
+		this.socket.onerror = this.onerror_prim.bind(this);
+		this.socket.onclose = this.onclose_prim.bind(this);
+		this.socket.onopen = this.onopen_prim.bind(this);
 	}
 }

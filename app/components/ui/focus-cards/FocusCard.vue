@@ -73,7 +73,7 @@ defineExpose({ card, icon, title });
 .title {
     @apply absolute inset-0 flex items-end;
     @apply py-4 px-5;
-    @apply text-lg md:text-xl xl:text-2xl font-[600];
+    @apply text-lg md:text-xl xl:text-2xl font-[600] select-none;
 	@apply z-[1];
 	
 	&.animate {

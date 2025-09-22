@@ -331,12 +331,13 @@ onMounted(() => {
 
 .textbox {
 	@apply flex justify-center items-center gap-6;
-	@apply mt-8 text-xl md:text-lg lg:text-xl;
+	@apply mt-8 text-xl md:text-lg lg:text-xl select-none;
 }
 
 .header {
 	@apply absolute top-10;
 	@apply text-4xl max-md:hidden;
+	@apply select-none;
 }
 
 .form-container {

@@ -3,23 +3,19 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use actix_web::rt::task::JoinHandle;
 use sqlx::PgPool;
-use tokio::sync::{mpsc::UnboundedSender, RwLock};
+use tokio::sync::{RwLock, mpsc::UnboundedSender};
 
 use super::{session::Session, subscription::Subscription};
-use crate::ws::{editor, student_data, WsError};
+use crate::ws::{WsError, editor, student_data};
 
-#[derive(Debug)]
 pub struct SubPool {
-    #[allow(dead_code)]
-    pub process: JoinHandle<()>,
     pub update: UnboundedSender<(String, u64)>,
     pub add: UnboundedSender<Session>,
     pub remove: UnboundedSender<u64>,
+    pub sessions: Arc<RwLock<HashMap<u64, Session>>>,
 }
 
-#[derive(Debug)]
 pub struct SubPools {
     pools: RwLock<HashMap<Subscription, Arc<SubPool>>>,
 }

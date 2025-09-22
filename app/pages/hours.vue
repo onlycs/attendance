@@ -124,14 +124,14 @@ onMounted(async () => {
 
 	.data {
 		@apply flex justify-center items-center;
-		@apply px-8 py-6;
-		@apply text-lg md:text-xl bg-drop;
+		@apply px-8 py-6 bg-drop;
+		@apply text-lg md:text-xl;
 	}
 
 	.header {
 		@apply flex justify-center items-center;
 		@apply px-8 py-6 bg-card;
-		@apply text-2xl;
+		@apply text-2xl font-semibold select-none;
 
 		&.top {
 			@apply rounded-tl-lg;

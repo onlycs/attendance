@@ -364,9 +364,8 @@ onMounted(() => {
 }
 
 .textbox {
-	@apply absolute;
-	@apply flex items-center gap-6;
+	@apply absolute flex items-center gap-6;
 	@apply mt-8;
-	@apply text-xl;
+	@apply text-xl select-none;
 }
 </style>

@@ -581,9 +581,16 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, remove_rx) = mpsc::unbounded_channel();
     let (update_tx, update_rx) = mpsc::unbounded_channel::<(String, u64)>();
+    let subscriptions = Arc::new(RwLock::new(HashMap::new()));
 
-    let task = rt::spawn(async move {
-        let subscriptions = Arc::new(RwLock::new(HashMap::new()));
+    let descriptor = SubPool {
+        update: update_tx.clone(),
+        add: add_tx.clone(),
+        remove: remove_tx.clone(),
+        sessions: Arc::clone(&subscriptions),
+    };
+
+    rt::spawn(async move {
         let pool_update = Arc::clone(&pg);
 
         let (dates, data) = init(&pg).await.unwrap_or_else(|err| {
@@ -614,10 +621,5 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         rt::spawn(remove_thread(Arc::clone(&subscriptions), remove_rx));
     });
 
-    Arc::new(SubPool {
-        update: update_tx,
-        add: add_tx,
-        remove: remove_tx,
-        process: task,
-    })
+    Arc::new(descriptor)
 }
