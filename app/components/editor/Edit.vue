@@ -49,7 +49,8 @@ function entryLabel(entry: TimeEntry) {
 				:options="{
 					learning: 'Learning',
 					build: 'Build',
-					demo: 'Volunteer'
+					demo: 'Volunteer',
+					offseason: 'Offseason',
 				}"
 				@update:selected="(kind) => {
 					push({
@@ -163,7 +164,7 @@ function entryLabel(entry: TimeEntry) {
 		}
 
 		.times {
-			@apply flex flex-row items-center gap-2;
+			@apply flex flex-row items-center gap-2 w-full;
 		}
 	}
 

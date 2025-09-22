@@ -196,7 +196,7 @@ const iconClass = computed(() => {
 
 .input {
 	@apply relative;
-	@apply flex flex-row justify-center items-center gap-4;
+	@apply flex flex-row justify-center items-center gap-4 flex-1;
 	@apply bg-card rounded-lg px-6 py-4;
 	@apply font-['JetBrains_Mono',monospace]  select-none;
 	@apply transition-all duration-200;
