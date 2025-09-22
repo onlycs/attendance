@@ -58,11 +58,14 @@ const AuthParam = makeParameters([
 	},
 ]);
 
-const HoursSchema = z.object({
-	learning: z.number(),
-	build: z.number(),
-	demo: z.number(),
-});
+export const HourTypeSchema = z.enum([
+	"learning",
+	"build",
+	"demo",
+	"offseason",
+]);
+
+const HoursSchema = z.record(HourTypeSchema, z.number().int());
 
 const TokenSchema = z.object({
 	token: z.string(),
@@ -77,13 +80,6 @@ const RosterSchema = z.object({
 const CsvSchema = z.object({
 	csv: z.string(),
 });
-
-export const HourTypeSchema = z.enum([
-	"learning",
-	"build",
-	"demo",
-	"offseason",
-]);
 
 export const ApiSchema = makeApi([
 	{

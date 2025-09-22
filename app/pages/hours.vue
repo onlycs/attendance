@@ -11,14 +11,16 @@ const MAX = {
 	learning: 8,
 	build: 80,
 	demo: 4,
-} satisfies Record<keyof HoursResponse, number>;
+} satisfies Record<keyof Omit<HoursResponse, "offseason">, number>;
 
 const timing = {
 	...Timing,
 	offset: 0.015,
 };
 
-function makeHours(kind: keyof HoursResponse): [number, number, number] {
+function makeHours(
+	kind: keyof Omit<HoursResponse, "offseason">,
+): [number, number, number] {
 	return [
 		hours.value![kind],
 		Math.max(MAX[kind] - hours.value![kind], 0),
@@ -102,6 +104,14 @@ onMounted(async () => {
 			{{ Math2.formatHours(time) }}
 		</div>
 
+		<div class="header">
+			Offseason
+		</div>
+
+		<div class="data">
+			{{ Math2.formatHours(hours.offseason) }}
+		</div>
+
 		<Button class="button" kind="card" @click="back">
 			<Icon 
 				name="hugeicons:arrow-left-01" 
@@ -116,7 +126,7 @@ onMounted(async () => {
 @reference '~/style/tailwind.css';
 
 .hours-table {
-	@apply grid grid-cols-4 grid-rows-5 gap-1;
+	@apply grid grid-cols-4 grid-rows-6 gap-1;
 
 	.hidden {
 		@apply invisible;
