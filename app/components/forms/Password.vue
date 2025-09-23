@@ -56,6 +56,9 @@ watch(password, (value) => {
 		:maxlength="PASSWORD_LENGTH"
 		inputmode="text"
 		:pattern="Alphanumeric"
+		type="password"
+		autocomplete="off"
+		spellcheck="false"
 	>
 		<div class="flex">
 			<OTPSlot
