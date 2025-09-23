@@ -64,7 +64,8 @@ function end() {
 }
 
 function blur() {
-	if (time.value && active.value !== 0) {
+	if ((time.value || active.value === 6) && active.value !== 0) {
+		if (!time.value) time.value = Temporal.PlainTime.from(etime.value);
 		emit("submit", Temporal.PlainTime.from(etime.value));
 	}
 

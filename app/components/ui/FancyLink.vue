@@ -50,6 +50,6 @@ function leave() {
 .dashes {
     @apply absolute bottom-[2px] left-0;
     @apply h-0 w-full;
-    @apply border-b-[1px] border-dashed border-border;
+    @apply border-b-[1px] border-dashed border-card-2;
 }
 </style>

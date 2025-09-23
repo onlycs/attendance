@@ -827,19 +827,17 @@ const canvasScroll = (ev: WheelEvent) => {
 
 		// bro this math is NOT mathing
 		MAX_X_SCROLL.init(
-			DPR.value * (vDataCanvas.value.width - (tblW - INFO_WIDTH.value)),
+			Math.max(
+				0,
+				DPR.value * (vDataCanvas.value.width - (tblW - INFO_WIDTH.value)),
+			),
 		);
 		MAX_Y_SCROLL.init(
-			DPR.value * (vDataCanvas.value.height - (tblH - HEADER_HEIGHT)),
+			Math.max(
+				0,
+				DPR.value * (vDataCanvas.value.height - (tblH - HEADER_HEIGHT)),
+			),
 		);
-
-		if (vDataCanvas.value.width + INFO_WIDTH.value > tblW) {
-			MAX_X_SCROLL.init(0);
-		}
-
-		if (vDataCanvas.value.height + HEADER_HEIGHT > tblH) {
-			MAX_Y_SCROLL.init(0);
-		}
 	}
 
 	if (pendingScrollX > MAX_X_SCROLL.value) pendingScrollX = MAX_X_SCROLL.value;

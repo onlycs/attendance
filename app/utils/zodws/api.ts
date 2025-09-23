@@ -28,7 +28,7 @@ const SignIn = z.coerce
 	.transform((date) => Temporal.Instant.fromEpochMilliseconds(date.getTime()))
 	.transform((instant) => instant.toZonedDateTimeISO("America/New_York"));
 
-const SignOut = SignIn.optional();
+const SignOut = z.preprocess((val) => val ?? undefined, SignIn.optional());
 const NaiveDate = zPlainDate;
 
 export const TimeEntrySchema = z.object({
