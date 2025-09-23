@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Analytics } from "@vercel/analytics/vue";
+import { SpeedInsights } from "@vercel/speed-insights/vue";
 import { Toaster } from "vue-sonner";
 import type { TransitionControls, TransitionOptions } from "~/utils/transition";
 
@@ -269,6 +271,9 @@ defineExpose({ transition: controls });
 </script>
 
 <template>
+	<SpeedInsights  />
+	<Analytics />
+
     <div id="content" ref="content" data-vaul-drawer-wrapper>
         <slot />
     </div>
