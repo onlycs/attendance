@@ -289,6 +289,8 @@ async fn watch_thread(
                             entries: HashMap::new(),
                         });
                     }
+
+                    rows.insert(change.student_id.clone(), row);
                 }
 
                 if !dates.contains(&day) {
