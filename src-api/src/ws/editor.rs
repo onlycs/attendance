@@ -277,6 +277,20 @@ async fn watch_thread(
                 let day = sign_in.date_naive();
                 let mut rows = data.write().await;
 
+                if !rows.contains_key(&change.student_id) {
+                    let mut row = Row {
+                        id: change.student_id.clone(),
+                        cells: vec![],
+                    };
+
+                    for date in &dates {
+                        row.cells.push(Cell {
+                            date: *date,
+                            entries: HashMap::new(),
+                        });
+                    }
+                }
+
                 if !dates.contains(&day) {
                     let pos = dates.iter().position(|&d| d < day).unwrap_or(dates.len());
                     dates.insert(pos, day);
@@ -301,8 +315,8 @@ async fn watch_thread(
 
                 let Some(row) = rows.get_mut(&change.student_id) else {
                     warn!(
-                        "Received insert operation for unknown student: {}",
-                        &change.student_id[..7]
+                        "Received insert operation for unknown student: {:.7}",
+                        &change.student_id
                     );
                     continue;
                 };
@@ -310,9 +324,8 @@ async fn watch_thread(
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        "Received insert operation for student {} on unknown date: {}",
-                        &change.student_id[..7],
-                        day
+                        "Received insert operation for student {:.7} on unknown date: {day}",
+                        &change.student_id,
                     );
                     continue;
                 };
@@ -338,8 +351,8 @@ async fn watch_thread(
                 let mut rows = data.write().await;
                 let Some(row) = rows.get_mut(&change.student_id) else {
                     warn!(
-                        "Received update operation for unknown student: {}",
-                        &change.student_id[..7]
+                        "Received update operation for unknown student: {:.7}",
+                        change.student_id
                     );
                     continue;
                 };
@@ -349,9 +362,8 @@ async fn watch_thread(
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        "Received update operation for student {} on unknown date: {}",
-                        &change.student_id[..7],
-                        day
+                        "Received update operation for student {:.7} on unknown date: {day}",
+                        change.student_id
                     );
                     continue;
                 };

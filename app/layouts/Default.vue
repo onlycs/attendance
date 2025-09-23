@@ -121,7 +121,7 @@ function transitionOut({
 	});
 }
 
-function transitionIn({
+async function transitionIn({
 	reverse,
 	timing,
 }: TransitionOptions = {}): Promise<void> {

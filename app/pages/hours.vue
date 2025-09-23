@@ -97,7 +97,7 @@ onMounted(async () => {
 		</div>
 
 		<div class="header">
-			Volunteer
+			Outreach
 		</div>
 
 		<div class="data" v-for="time in makeHours('demo')">

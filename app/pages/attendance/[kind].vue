@@ -29,7 +29,7 @@ const backIcon = computed(
 const title = {
 	build: "Build Hours",
 	learning: "Learning Days",
-	demo: "Volunteer Hours",
+	demo: "Outreach Hours",
 	offseason: "Offseason Hours",
 }[kind];
 
@@ -241,7 +241,7 @@ onMounted(() => {
 	</div>
 
 	<div class="container">
-		<FocusCards :animate="false" show-text>
+		<FocusCards :animate="false" :length="1" show-text>
 			<FocusCard class="card" title="Back" :icon="`hugeicons:${backIcon}`" ref="back"  @mouseenter="backHover" @mouseleave="backUnhover" @click="exit" />
 		</FocusCards>
 		<div class="box" ref="main">

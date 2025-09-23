@@ -20,7 +20,7 @@ impl HourType {
             HourType::Build => month < 5,
             HourType::Learning => month >= 11,
             HourType::Demo => true,
-            HourType::Offseason => (3..11).contains(&month),
+            HourType::Offseason => month >= 5,
         }
     }
 
@@ -29,7 +29,7 @@ impl HourType {
             HourType::Build => "after April",
             HourType::Learning => "before November",
             HourType::Demo => "",
-            HourType::Offseason => "before May or after October",
+            HourType::Offseason => "before May",
         }
     }
 }
@@ -74,7 +74,7 @@ pub(super) async fn record(
     }: RosterRequest,
     pg: &PgPool,
 ) -> Result<RosterResponse, RouteError> {
-    debug!("Received roster request: {hour_type:?} hours for {id}");
+    debug!("Received roster request: {hour_type:?} hours for {id:.7}");
 
     let month = Local::now().month();
 

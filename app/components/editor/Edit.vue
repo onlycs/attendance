@@ -49,7 +49,7 @@ function entryLabel(entry: TimeEntry) {
 				:options="{
 					learning: 'Learning',
 					build: 'Build',
-					demo: 'Volunteer',
+					demo: 'Outreach',
 					offseason: 'Offseason',
 				}"
 				@update:selected="(kind) => {

@@ -61,7 +61,7 @@ host, such as GitHub Pages.
 ### Attendance
 
 To start attendance, login as an admin, and go to the attendance tab. From 
-there, you can select volunteer (demo), build season, or learning hours.
+there, you can select outreach (demo), build season, or learning hours.
 
 ### Editor
 
@@ -81,13 +81,13 @@ To view your hours, login as a student using your ID, and select the "view hours
 
 The student ID is, by default, five numeric digits. Change this in:
 
-* `app/components/forms/StudentId.vue:43-44`
+* `app/components/forms/StudentId.vue:25`
 * `app/pages/editor.vue:452` (Depending on the length of your IDs)
 
 The admin password is, by default, eight alphanumeric characters. Change this in:
 
-* `app/components/forms/Password.vue:6`
-* `app/components/forms/Password.vue:69`
+* `app/components/forms/Password.vue:5`
+* `app/components/forms/Password.vue:58`
 
 The UI changes between allowing build season and learning hours depending on the month
 (build season starts in January and ends in September). The API doesn't allow

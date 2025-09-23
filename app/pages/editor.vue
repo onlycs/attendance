@@ -367,11 +367,11 @@ function dateFmt(date: Temporal.PlainDate) {
 		return `${MONTHS[date.month - 1]} ${pad2(date.day)}`;
 
 	if (now.day === date.day)
-		return `Today (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
+		return `Today (${pad2(date.month)}/${pad2(date.day)}/${pad2(date.year % 100)})`;
 	if (now.day - 1 === date.day)
-		return `Yesterday (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
+		return `Yesterday (${pad2(date.month)}/${pad2(date.day)}/${pad2(date.year % 100)})`;
 
-	return `${WEEKDAYS[date.dayOfWeek - 1]} (${pad2(date.day)}/${pad2(date.month)}/${pad2(date.year % 100)})`;
+	return `${WEEKDAYS[date.dayOfWeek - 1]} (${pad2(date.month)}/${pad2(date.day)}/${pad2(date.year % 100)})`;
 }
 
 // labelling
