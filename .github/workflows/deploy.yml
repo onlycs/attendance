@@ -49,10 +49,11 @@ jobs:
         run: |
           if [ -f "~/.cargo/bin/sqlx" ]; then echo "exists=true" >> $GITHUB_OUTPUT
           else echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install sqlx CLI
         run: cargo install sqlx-cli --no-default-features --features postgres
-        if: steps.checkfile.outputs.exists == 'true'
+        if: steps.checkfile.outputs.exists == 'false'
 
       - name: Run database migrations
         run: sqlx migrate run
