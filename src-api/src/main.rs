@@ -15,11 +15,11 @@ use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::{
-    web::{self, Data},
     App, HttpServer,
+    web::{self, Data},
 };
 use dotenvy::dotenv;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use tracing::level_filters::LevelFilter;
 
 use crate::prelude::*;
@@ -49,6 +49,19 @@ async fn main() -> Result<(), InitError> {
             .connect(&env::var("DATABASE_URL").unwrap())
             .await?,
     );
+
+    if let Ok(password) = env::var("ADMIN_CRYPT") {
+        sqlx::query!(
+            r#"
+            UPDATE cryptstore
+            SET admin_bcrypt = $1
+            WHERE admin_bcrypt = ''
+            "#,
+            password
+        )
+        .execute(pool.as_ref())
+        .await?;
+    }
 
     // spawn blocking on current thread
     HttpServer::new(move || {

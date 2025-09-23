@@ -1,0 +1,2 @@
+ALTER TABLE cryptstore
+ADD COLUMN admin_bcrypt TEXT NOT NULL DEFAULT '';

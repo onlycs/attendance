@@ -22,7 +22,11 @@ pub(super) async fn authorize(
 ) -> Result<TokenResponse, RouteError> {
     debug!("Got authentication request");
 
-    if !bcrypt::verify(&password, &env::var("ADMIN_CRYPT")?).unwrap_or(false) {
+    let admin_bcrypt = sqlx::query!(r#"SELECT admin_bcrypt FROM cryptstore"#)
+        .fetch_one(pg)
+        .await?;
+
+    if !bcrypt::verify(&password, &admin_bcrypt).unwrap_or(false) {
         info!("Authentication failed: invalid password");
         return Err(RouteError::InvalidToken);
     }
