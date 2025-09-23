@@ -47,7 +47,7 @@ jobs:
       - name: Check if sqlx CLI is cached
         id: checkfile
         run: |
-          if [ -f "~/.cargo/bin/sqlx" ]; then echo "exists=true" >> $GITHUB_OUTPUT
+          if [ -f "$HOME/.cargo/bin/sqlx" ]; then echo "exists=true" >> $GITHUB_OUTPUT
           else echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
