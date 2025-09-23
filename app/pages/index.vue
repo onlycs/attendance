@@ -307,7 +307,7 @@ onMounted(() => {
 
 <template>
 	<RequireStorage ref="storage" :actions="narrow([Actions.TokenFound, Actions.StudentIdFound])">
-		<FocusCards ref="cards" :animate="atStart" show-text>
+		<FocusCards ref="cards" :animate="atStart" :length="2" show-text>
 			<FocusCard
 				ref="student"
 				@click="() => click('student')"

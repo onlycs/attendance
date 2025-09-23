@@ -33,6 +33,7 @@ jobs:
             /home/runner/work/attendance/attendance/src-api/target
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
           key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-rust-cache
 
@@ -43,8 +44,15 @@ jobs:
           default: true
           override: true
 
+      - name: Check if sqlx CLI is cached
+        id: checkfile
+        run: |
+          if [ -f "~/.cargo/bin/sqlx" ]; then echo "exists=true" >> $GITHUB_OUTPUT
+          else echo "exists=false" >> $GITHUB_OUTPUT
+
       - name: Install sqlx CLI
         run: cargo install sqlx-cli --no-default-features --features postgres
+        if: steps.checkfile.outputs.exists == 'true'
 
       - name: Run database migrations
         run: sqlx migrate run
@@ -104,4 +112,5 @@ jobs:
             /home/runner/work/attendance/attendance/src-api/target
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
           key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
