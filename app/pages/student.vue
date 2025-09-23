@@ -25,7 +25,7 @@ function logout() {
 </script>
 
 <template>
-	<FocusCards :class="cn(!show && 'opacity-0')" :length="3" :animate="animate" ref="container">
+	<FocusCards :class="cn(!show && 'opacity-0')" :length="2" :animate="animate" ref="container">
 		<FocusCard title="Check Hours" icon="hugeicons:user-time-01" @click="hours"  />
 		<FocusCard title="Log Out" icon="hugeicons:logout-05" class="logout" @click="logout" />
 	</FocusCards>

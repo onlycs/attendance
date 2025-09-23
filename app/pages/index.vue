@@ -236,10 +236,13 @@ function hover(enter: boolean, force?: boolean) {
 	const bbox = card.getBoundingClientRect();
 	const width = bbox.right - bbox.left;
 	const tl = $gsap.timeline();
+	const isStudent = active.value.unwrap("student") === "student";
 
 	tl.to(card, {
 		width: `calc(${width}px ${enter ? "+" : "-"} 4rem)`,
-		left: `${card.style.left.slice(0, card.style.left.length - 1)} ${enter ? "+" : "-"} 2rem)`,
+		left: isStudent
+			? `${card.style.left.slice(0, card.style.left.length - 1)} ${enter ? "+" : "-"} 4rem)`
+			: `${card.style.left.slice(0, card.style.left.length - 1)}`,
 		...(enter ? Timing.in : Timing.out),
 	});
 

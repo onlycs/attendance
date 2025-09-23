@@ -73,7 +73,7 @@ onMounted(() => {
 @reference "~/style/tailwind.css";
 
 .card-container {
-    @apply grid;
+    @apply grid place-items-center;
     @apply gap-10 md:gap-12 lg:gap-22 xl:gap-32 2xl:gap-42;
 
 	&.animate:has(.focus-card:hover) > *:not(:hover) {
