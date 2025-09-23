@@ -109,6 +109,12 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<TokenResponse, R
 }
 
 pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
+    if let Ok(automation) = env::var("AUTOMATION_TOKEN")
+        && bcrypt::verify(&token, &automation).unwrap_or(false)
+    {
+        return Ok(());
+    }
+
     let token = sqlx::query!(
         r#"
         SELECT token FROM tokens
@@ -134,7 +140,11 @@ pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
         return Err(RouteError::NoAuth);
     };
 
-    Ok(auth.to_str()?.to_string().replace("Bearer ", ""))
+    Ok(auth
+        .to_str()?
+        .to_string()
+        .replace("Bearer ", "")
+        .replace("Basic ", ""))
 }
 
 fn sanitize(token: &str) -> String {
