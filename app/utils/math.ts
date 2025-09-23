@@ -23,14 +23,14 @@ export namespace Math2 {
 	}
 
 	export function format(num: number, unit: string, places = 0): string {
-		return `${round(num, places)} ${num === 1 ? unit : `${unit}s`}`.trim();
+		return `${round(num, places)} ${round(num, places) === 1 ? unit : `${unit}s`}`.trim();
 	}
 
 	export function formatHours(hours: number): string {
 		const mins = hours * 60;
 
-		if (mins < 15) return Math2.format(mins, "Minute");
-		else return Math2.format(hours, "Hour", 2);
+		if (mins < 15) return format(mins, "Minute");
+		else return format(hours, "Hour", 2);
 	}
 }
 

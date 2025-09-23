@@ -43,6 +43,8 @@ onMounted(async () => {
 		params: { id: Crypt.sha256(id.value!) },
 	});
 
+	console.log(res);
+
 	if (res.isErr()) {
 		apiToast(res.error, redirect);
 		return;
@@ -110,6 +112,10 @@ onMounted(async () => {
 
 		<div class="data">
 			{{ Math2.formatHours(hours.offseason) }}
+		</div>
+
+		<div class="data select-none cursor-not-allowed !bg-black/75 col-span-2">
+			N/A
 		</div>
 
 		<Button class="button" kind="card" @click="back">

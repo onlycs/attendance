@@ -65,7 +65,7 @@ export const HourTypeSchema = z.enum([
 	"offseason",
 ]);
 
-const HoursSchema = z.record(HourTypeSchema, z.number().int());
+const HoursSchema = z.record(HourTypeSchema, z.number());
 
 const TokenSchema = z.object({
 	token: z.string(),
