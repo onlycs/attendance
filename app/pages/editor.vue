@@ -679,7 +679,10 @@ watch(
 		}
 
 		p.stop();
-		vCanvasReady.value = true;
+
+		vDataCanvas.value.onReady(() => {
+			vCanvasReady.value = true;
+		});
 	},
 );
 

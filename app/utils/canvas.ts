@@ -52,7 +52,7 @@ export const ChevronSVG = `
 </svg>
 `;
 
-const Chevron = new Lazy(() => {
+export const Chevron = new Lazy(() => {
 	const icon = new Image();
 	icon.src = `data:image/svg+xml;base64,${btoa(ChevronSVG)}`;
 	return icon;
@@ -332,6 +332,10 @@ export class VirtualCanvas {
 
 		if (x instanceof Accumulate) x.add(width);
 		if (y instanceof Accumulate) y.add(height);
+	}
+
+	onReady(callback: () => void): void {
+		Chevron.value.onload = callback;
 	}
 
 	get width(): number {
