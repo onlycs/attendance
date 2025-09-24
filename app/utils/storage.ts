@@ -3,6 +3,7 @@ import {
 	useLocalStorage as useLocalStoragePrim,
 	useSessionStorage as useSessionStoragePrim,
 } from "@vueuse/core";
+import { Temporal } from "temporal-polyfill";
 import type { Action } from "~/components/utility/RequireStorage.vue";
 
 export const Keys = narrow({
@@ -59,7 +60,7 @@ export interface TokenStore {
 }
 
 export function useToken(
-	expiry?: MaybeRef<Date>,
+	expiry?: MaybeRef<Temporal.ZonedDateTime>,
 	options?: UseStorageOptions<string | null>,
 ) {
 	const token = useLocalStorage(Keys.Token, options);
@@ -70,7 +71,10 @@ export function useToken(
 
 			const parsed = JSON.parse(atob(token.value)) as TokenStore;
 
-			if (new Date(parsed.expires) < new Date()) {
+			const expiry = Temporal.ZonedDateTime.from(parsed.expires);
+			const now = Temporal.Now.zonedDateTimeISO();
+
+			if (Temporal.ZonedDateTime.compare(now, expiry) >= 0) {
 				token.value = null;
 				return null;
 			}
@@ -88,7 +92,7 @@ export function useToken(
 
 			const storeValue: TokenStore = {
 				token: value,
-				expires: expiry.toLocaleString(),
+				expires: expiry.toString(),
 			};
 
 			token.value = btoa(JSON.stringify(storeValue));

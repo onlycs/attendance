@@ -2,6 +2,7 @@
 import { toast } from "vue-sonner";
 import type { FocusCard, FocusCards } from "#components";
 import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
+import { ApiClient, apiToast } from "~/utils/api";
 
 const { $gsap } = useNuxtApp();
 
@@ -274,7 +275,7 @@ async function studentSubmit(id: string) {
 	atEnd.value = false;
 
 	// check to make sure the student exists
-	const exists = await ApiClient.alias("studentExists", {
+	const exists = await ApiClient.fetch("student/exists", {
 		params: { id: Crypt.sha256(id) },
 	});
 

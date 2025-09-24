@@ -50,19 +50,6 @@ async fn main() -> Result<(), InitError> {
             .await?,
     );
 
-    if let Ok(password) = env::var("ADMIN_CRYPT") {
-        sqlx::query!(
-            r#"
-            UPDATE cryptstore
-            SET admin_bcrypt = $1
-            WHERE admin_bcrypt = ''
-            "#,
-            password
-        )
-        .execute(pool.as_ref())
-        .await?;
-    }
-
     // spawn blocking on current thread
     HttpServer::new(move || {
         let pg = Arc::clone(&pool);
@@ -76,7 +63,10 @@ async fn main() -> Result<(), InitError> {
             .wrap(cors)
             .app_data(Data::new(AppState { pg }))
             .service(http::index)
-            .service(http::login)
+            .service(http::register_start)
+            .service(http::register_finish)
+            .service(http::login_start)
+            .service(http::login_finish)
             .service(http::student_hours)
             .service(http::student_exists)
             .service(http::record)

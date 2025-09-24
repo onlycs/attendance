@@ -77,6 +77,5 @@ export namespace Option {
 
 export type Option<T> = OptionSome<T> | OptionNone<T>;
 
-// biome-ignore lint/suspicious/noExplicitAny: None needs to be type-castable to any Option<T>
 export const None = new OptionNone() as Option<any>;
 export const Some = <T>(value: T) => new OptionSome(value) as Option<T>;

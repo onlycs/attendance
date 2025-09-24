@@ -289,14 +289,16 @@ dependencies = [
  "cuid",
  "dotenvy",
  "futures-util",
+ "hex",
  "itertools",
  "rand 0.9.2",
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "sqlx",
+ "srp",
  "thiserror 2.0.11",
- "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2439,6 +2441,19 @@ dependencies = [
  "thiserror 2.0.16",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "srp"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cdd40049b29ab1315ccba7ffcf1eece8162982eab14edfac3cf2c2ffab18193"
+dependencies = [
+ "digest",
+ "generic-array",
+ "lazy_static",
+ "num-bigint",
+ "subtle",
 ]
 
 [[package]]

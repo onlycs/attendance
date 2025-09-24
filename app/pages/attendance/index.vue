@@ -2,6 +2,7 @@
 import { identity } from "@vueuse/core";
 import { Temporal } from "temporal-polyfill";
 import type { FocusCard } from "#components";
+import type { HourType } from "~/utils/api";
 import { Random } from "~/utils/math";
 
 const transition = injectTransition();

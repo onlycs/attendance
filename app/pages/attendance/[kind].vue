@@ -9,6 +9,7 @@ import {
 import { toast } from "vue-sonner";
 import { z } from "zod";
 import type { FocusCard } from "#components";
+import { ApiClient, apiToast } from "~/utils/api";
 import { makeWebsocket } from "~/utils/zodws/api";
 
 definePageMeta({ layout: "admin-protected" });
@@ -158,9 +159,8 @@ async function roster(id?: string, force = false) {
 	}
 
 	const res = await ApiClient.fetch(
-		"post",
-		"/roster",
-		{ id: await Crypt.sha256(id), kind, force },
+		"roster",
+		{ id: Crypt.sha256(id), kind, force },
 		{ headers: { Authorization: token.value! } },
 	);
 

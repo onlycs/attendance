@@ -4,7 +4,7 @@ pub use actix_web::{delete, get, post};
 pub use cuid::cuid2;
 pub use itertools::Itertools;
 pub use serde::{Deserialize, Serialize};
-pub use serde_with::{serde_as, DisplayFromStr};
+pub use serde_with::{DisplayFromStr, serde_as};
 pub use sqlx::PgPool;
 
 pub use crate::{error::*, serde::chrono_temporal};

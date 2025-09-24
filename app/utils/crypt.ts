@@ -71,4 +71,15 @@ export const Crypt = {
 	cuid() {
 		return cuid2();
 	},
+
+	hex(number: bigint) {
+		const s = number.toString(16);
+
+		if (s.length % 2 === 1) return `0${s}`;
+		return s;
+	},
+
+	fromHex(hex: string) {
+		return BigInt(`0x${hex}`);
+	},
 };

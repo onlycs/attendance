@@ -1,4 +1,6 @@
 import tailwind from '@tailwindcss/vite';
+import wasm from 'vite-plugin-wasm';
+import tla from 'vite-plugin-top-level-await';
 
 export default defineNuxtConfig({
 	app: {
@@ -39,7 +41,7 @@ export default defineNuxtConfig({
 		},
 	},
 	vite: {
-		plugins: [tailwind()],
+		plugins: [tailwind(), wasm(), tla()],
 		define: {
 			__API_URL__: JSON.stringify(process.env.API_URL || "http://localhost:3000"),
 		}

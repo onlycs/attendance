@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import type { Temporal } from "temporal-polyfill";
+import {
+	createVerifierAndSalt,
+	SRPClientSession,
+	SRPParameters,
+	SRPRoutines,
+} from "tssrp6a";
 import { REGEXP_ONLY_DIGITS_AND_CHARS as Alphanumeric } from "vue-input-otp";
+import { ApiClient, apiToast } from "~/utils/api";
 import type { SlotSize } from "../ui/input-otp/Slot.vue";
 
 const PASSWORD_LENGTH = 8;
@@ -7,7 +15,7 @@ const PASSWORD_LENGTH = 8;
 export interface PasswordSubmitEvent {
 	password: string;
 	token: string;
-	expires: Date;
+	expires: Temporal.ZonedDateTime;
 	stopLoading: () => void;
 }
 
@@ -23,28 +31,51 @@ const icon = {
 	lg: "max-md:size-8 size-12",
 }[props.size ?? "md"];
 
-watch(password, (value) => {
+watch(password, async (value) => {
 	if (value.length !== PASSWORD_LENGTH) return;
 
 	loading.value = true;
 
-	ApiClient.alias("login", {
-		password: value,
-	}).then((data) => {
-		if (data.isErr()) {
-			apiToast(data.error);
-			loading.value = false;
-			return;
-		}
+	const routines = new SRPRoutines(
+		new SRPParameters(SRPParameters.PrimeGroup[2048], SRPParameters.H.SHA512),
+	);
 
-		emit("submit", {
-			password: value,
-			token: data.value.token,
-			expires: new Date(data.value.expires),
-			stopLoading: () => {
-				loading.value = false;
-			},
-		});
+	const clientA = new SRPClientSession(routines);
+	const clientB = await clientA.step1("admin", value);
+
+	const start = await ApiClient.fetch("login/start", undefined);
+
+	if (start.isErr()) {
+		apiToast(start.error);
+		loading.value = false;
+		return;
+	}
+
+	const clientC = await clientB.step2(
+		Crypt.fromHex(start.value.salt),
+		Crypt.fromHex(start.value.b),
+	);
+
+	const finish = await ApiClient.fetch("login/finish", {
+		a: Crypt.hex(clientC.A),
+		m1: Crypt.hex(clientC.M1),
+	});
+
+	if (finish.isErr()) {
+		apiToast(finish.error);
+		loading.value = false;
+		return;
+	}
+
+	await clientC.step3(Crypt.fromHex(finish.value.m2));
+
+	emit("submit", {
+		password: value,
+		token: finish.value.token,
+		expires: finish.value.expires,
+		stopLoading: () => {
+			loading.value = false;
+		},
 	});
 });
 </script>

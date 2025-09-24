@@ -48,6 +48,9 @@ export type FixedArray<
 
 export type CountKeys<T> = TuplifyUnion<keyof T>["length"];
 
+export type Optionalize<T, K extends keyof T> = Omit<T, K> &
+	Partial<Pick<T, K>>;
+
 /// Constrain T as much as possible using zodios voodoo magic
 export function narrow<T>(a: Narrow<T>): Narrow<T> {
 	return a;

@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { toast } from "vue-sonner";
+import {
+	ApiClient,
+	apiToast,
+	type HoursResponse,
+	type HourType,
+} from "~/utils/api";
 import { Math2 } from "~/utils/math";
 
 const hours = ref<HoursResponse | null>(null);
@@ -9,9 +14,9 @@ const router = useRouter();
 
 const MAX = {
 	learning: 8,
-	build: 80,
+	build: 60,
 	demo: 4,
-} satisfies Record<keyof Omit<HoursResponse, "offseason">, number>;
+} satisfies Record<Exclude<HourType, "offseason">, number>;
 
 const timing = {
 	...Timing,
@@ -19,7 +24,7 @@ const timing = {
 };
 
 function makeHours(
-	kind: keyof Omit<HoursResponse, "offseason">,
+	kind: Exclude<HourType, "offseason">,
 ): [number, number, number] {
 	return [
 		hours.value![kind],
@@ -39,7 +44,7 @@ function back() {
 }
 
 onMounted(async () => {
-	const res = await ApiClient.alias("studentHours", {
+	const res = await ApiClient.fetch("student/hours", {
 		params: { id: Crypt.sha256(id.value!) },
 	});
 

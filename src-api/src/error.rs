@@ -5,6 +5,7 @@ use actix_web::{
     body::BoxBody,
     http::{StatusCode, header::ToStrError},
 };
+use srp::types::SrpAuthError;
 use thiserror::Error;
 
 use crate::http::roster::HourType;
@@ -87,11 +88,15 @@ pub enum RouteError {
         location: &'static Location<'static>,
     },
 
-    #[error("No token or password provided")]
-    NoAuth,
+    #[error("At {location}: Failed to parse hex string: {source}")]
+    FromHex {
+        #[from]
+        source: hex::FromHexError,
+        location: &'static Location<'static>,
+    },
 
-    #[error("Invalid token or password")]
-    InvalidToken,
+    #[error("Invalid credentials")]
+    BadAuth,
 
     #[error("Invalid hour type: cannot log {hour_type} hours {}", hour_type.when_invalid())]
     HourType { hour_type: HourType },
@@ -100,7 +105,7 @@ pub enum RouteError {
 impl ResponseError for RouteError {
     fn status_code(&self) -> StatusCode {
         match self {
-            RouteError::NoAuth | RouteError::InvalidToken => StatusCode::UNAUTHORIZED,
+            RouteError::BadAuth => StatusCode::UNAUTHORIZED,
             RouteError::HourType { .. } => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -108,11 +113,15 @@ impl ResponseError for RouteError {
 
     fn error_response(&self) -> HttpResponse<BoxBody> {
         match self {
-            RouteError::NoAuth | RouteError::InvalidToken => {
-                HttpResponse::Unauthorized().body(format!("{self}"))
-            }
+            RouteError::BadAuth => HttpResponse::Unauthorized().body(format!("{self}")),
             RouteError::HourType { .. } => HttpResponse::BadRequest().body(format!("{self}")),
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
+    }
+}
+
+impl From<SrpAuthError> for RouteError {
+    fn from(_: SrpAuthError) -> Self {
+        RouteError::BadAuth
     }
 }
