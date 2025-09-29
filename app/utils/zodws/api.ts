@@ -8,10 +8,16 @@ export const WS_URL = `${API_URL.replaceAll("http", "ws")}/ws`;
 
 const Subscription = z.enum(["StudentData", "Editor"]);
 
+const Authenticate = narrow({
+	name: "Authenticate",
+	schema: z.object({
+		token: z.string(),
+	}),
+});
+
 const Subscribe = narrow({
 	name: "Subscribe",
 	schema: z.object({
-		token: z.string(),
 		sub: Subscription,
 	}),
 });
@@ -195,9 +201,19 @@ const EditorDataResponse = narrow({
 	schema: ReplicateQuerySchema,
 });
 
+const AuthenticateOk = narrow({
+	name: "AuthenticateOk",
+	schema: z.never().optional().nullable(),
+});
+
 const Api = narrow({
-	client: [Subscribe, Update],
-	server: [StudentDataResponse, EditorDataResponse, ErrorResponse],
+	client: [Authenticate, Subscribe, Update],
+	server: [
+		AuthenticateOk,
+		StudentDataResponse,
+		EditorDataResponse,
+		ErrorResponse,
+	],
 });
 
 export const makeWebsocket = (hooks: WsClientHooks<typeof Api>) =>

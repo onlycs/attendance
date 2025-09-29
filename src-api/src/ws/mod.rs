@@ -90,6 +90,8 @@ pub(crate) async fn ws(
         session.id
     );
     rt::spawn(async move {
+        let mut authenticated = false;
+
         while let Some(msg) = stream.next().await {
             let result = async {
                 match msg {
@@ -101,10 +103,29 @@ pub(crate) async fn ws(
                         );
 
                         match message {
-                            ClientMessage::Subscribe { sub, token } => {
+                            ClientMessage::Authenticate { token } => {
                                 auth::check_throw(token, &state.pg)
                                     .await
                                     .map_err(|_| WsError::Auth)?;
+
+                                authenticated = true;
+
+                                info!("Websocket (id {:#x}) authenticated", session.id);
+
+                                let Ok(res) = serde_json::to_string(&ServerMessage::AuthenticateOk) else {
+                                    warn!("Failed to serialize authenticated message.");
+                                    return Ok(());
+                                };
+
+                                if session.text(res).await.is_err() {
+                                    warn!("Websocket closed while sending AuthenticateOk, ignoring.");
+                                }
+                            }
+
+                            ClientMessage::Subscribe { sub } => {
+                                if !authenticated {
+                                    return Err(WsError::Auth);
+                                }
 
                                 let pool = SubPools::instance().get(sub, &state.pg).await;
 
@@ -121,12 +142,19 @@ pub(crate) async fn ws(
                                     .send(session.clone())
                                     .map_err(|_| WsError::Send)?;
                             }
-                            ClientMessage::Update { sub, value } => SubPools::instance()
-                                .get(sub, &state.pg)
-                                .await
-                                .update
-                                .send((serde_json::to_string(&value)?, session.id))
-                                .map_err(|_| WsError::Send)?,
+
+                            ClientMessage::Update { sub, value } => {
+                                if !authenticated {
+                                    return Err(WsError::Auth);
+                                }
+
+                                SubPools::instance()
+                                    .get(sub, &state.pg)
+                                    .await
+                                    .update
+                                    .send((serde_json::to_string(&value)?, session.id))
+                                    .map_err(|_| WsError::Send)?
+                            },
                         }
                     }
                     Ok(AggregatedMessage::Close(reason)) => {

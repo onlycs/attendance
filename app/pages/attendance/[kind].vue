@@ -42,6 +42,11 @@ const studentData = new JsonDb(StudentData, []);
 
 const websocket = makeWebsocket({
 	messages: {
+		AuthenticateOk: () => {
+			websocket.send("Subscribe", {
+				sub: "StudentData",
+			});
+		},
 		StudentData: (_, data) => {
 			if (!data) {
 				studentData.reset([]);
@@ -49,7 +54,7 @@ const websocket = makeWebsocket({
 			}
 
 			Crypt.decrypt(data, password.value!)
-				.then((decrypted) => {
+				.then(async (decrypted) => {
 					studentData.reset(JSON.parse(decrypted));
 				})
 				.catch((error) => {
@@ -226,10 +231,7 @@ function exit() {
 }
 
 onMounted(() => {
-	websocket.send("Subscribe", {
-		token: token.value!,
-		sub: "StudentData",
-	});
+	websocket.send("Authenticate", { token: token.value! });
 
 	transition.in.trigger();
 });
@@ -267,7 +269,7 @@ onMounted(() => {
 				<DrawerHandle class="handle" />
 
 				<div class="title">
-					Are you sure? 
+					Are you sure?
 				</div>
 
 				You signed in less than three minutes ago

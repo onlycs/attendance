@@ -236,6 +236,11 @@ function sortData() {
 
 const websocket = makeWebsocket({
 	messages: {
+		AuthenticateOk: () => {
+			websocket.send("Subscribe", {
+				sub: "StudentData",
+			});
+		},
 		EditorData: (_, q) => {
 			apply(q);
 		},
@@ -270,8 +275,8 @@ const websocket = makeWebsocket({
 					} else {
 						websocket.send("Subscribe", {
 							sub: "Editor",
-							token: token.value!,
 						});
+
 						connected.value = true;
 					}
 				})
@@ -924,10 +929,7 @@ onMounted(async () => {
 	await font.load();
 	document.fonts.add(font);
 
-	websocket.send("Subscribe", {
-		sub: "StudentData",
-		token: token.value!,
-	});
+	websocket.send("Authenticate", { token: token.value! });
 
 	window.addEventListener("mousemove", ratedMouseMove);
 	window.addEventListener("resize", onResize);
@@ -935,10 +937,7 @@ onMounted(async () => {
 
 function reconnect() {
 	websocket.reconnect();
-	websocket.send("Subscribe", {
-		sub: "StudentData",
-		token: token.value!,
-	});
+	websocket.send("Authenticate", { token: token.value! });
 }
 
 // export
@@ -1004,7 +1003,7 @@ definePageMeta({ layout: "admin-protected" });
 		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
 			If you notice lag, you're not going insane!
 			<br />
-			Firefox has some performance issues which 
+			Firefox has some performance issues which
 			<br />
 			I have been pulling my hair out over.
 			<br />
@@ -1051,11 +1050,11 @@ definePageMeta({ layout: "admin-protected" });
 				Reconnect
 			</Button>
 
-			<Icon 
+			<Icon
 				v-if="txnInProgress && connected"
-				name="svg-spinners:ring-resize" 
-				:customize="Customize.StrokeWidth(2)" 
-				mode="svg" 
+				name="svg-spinners:ring-resize"
+				:customize="Customize.StrokeWidth(2)"
+				mode="svg"
 				size="22"
 				class="ml-2"
 			/>
