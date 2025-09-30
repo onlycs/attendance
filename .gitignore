@@ -23,4 +23,5 @@ logs
 .env.*
 !.env.example
 
-src-old
+.envrc
+.direnv

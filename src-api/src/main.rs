@@ -14,6 +14,7 @@ pub mod ws;
 use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_governor::Governor;
 use actix_web::{
     App, HttpServer,
     web::{self, Data},
@@ -50,6 +51,12 @@ async fn main() -> Result<(), InitError> {
             .await?,
     );
 
+    let gov = actix_governor::GovernorConfigBuilder::default()
+        .seconds_per_request(5)
+        .burst_size(10)
+        .finish()
+        .expect("Unreachable: Fully configured governor");
+
     // spawn blocking on current thread
     HttpServer::new(move || {
         let pg = Arc::clone(&pool);
@@ -61,6 +68,7 @@ async fn main() -> Result<(), InitError> {
 
         App::new()
             .wrap(cors)
+            .wrap(Governor::new(&gov))
             .app_data(Data::new(AppState { pg }))
             .service(http::index)
             .service(http::register_start)

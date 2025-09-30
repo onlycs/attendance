@@ -65,13 +65,13 @@ onMounted(async () => {
 
 <template>
 	<div v-if="hours === null">
-		<Icon 
-			name="svg-spinners:ring-resize" 
-			:customize="Customize.StrokeWidth(1)" 
-			mode="svg" 
+		<Icon
+			name="svg-spinners:ring-resize"
+			:customize="Customize.StrokeWidth(1)"
+			mode="svg"
 			size="256"
 		/>
-	</div>
+  </div>
 	<div v-else :class="cn('hours-table', !transition.setup.value && 'opacity-0')" >
 		<div class="header hidden" />
 
@@ -124,9 +124,9 @@ onMounted(async () => {
 		</div>
 
 		<Button class="button" kind="card" @click="back">
-			<Icon 
-				name="hugeicons:arrow-left-01" 
-				mode="svg" 
+			<Icon
+				name="hugeicons:arrow-left-01"
+				mode="svg"
 				size="48"
 			/>
 		</Button>

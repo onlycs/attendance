@@ -1,4 +1,5 @@
 use actix_web::HttpRequest;
+use base64::Engine;
 use chrono::{Days, TimeDelta};
 use rand::{RngCore, rng};
 use sha2::Sha512;
@@ -238,11 +239,21 @@ pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
         return Err(RouteError::BadAuth);
     };
 
-    Ok(auth
-        .to_str()?
-        .to_string()
-        .replace("Bearer ", "")
-        .replace("Basic ", ""))
+    let auth = auth.to_str()?.to_string();
+
+    if auth.starts_with("Basic") {
+        let pass = auth.trim_start_matches("Basic ");
+        let engine = base64::engine::general_purpose::STANDARD;
+        let decoded = engine
+            .decode(pass.as_bytes())
+            .map_err(|_| RouteError::BadAuth)?;
+
+        let decoded = String::from_utf8(decoded).map_err(|_| RouteError::BadAuth)?;
+
+        return Ok(decoded);
+    }
+
+    Ok(auth.replace("Bearer ", "").replace("Basic ", ""))
 }
 
 fn sanitize(token: &str) -> String {

@@ -153,7 +153,7 @@ pub(crate) async fn ws(
                                     .await
                                     .update
                                     .send((serde_json::to_string(&value)?, session.id))
-                                    .map_err(|_| WsError::Send)?
+                                    .map_err(|_| WsError::Send)?;
                             },
                         }
                     }

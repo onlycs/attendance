@@ -297,7 +297,10 @@ async function studentSubmit(id: string) {
 }
 
 onMounted(() => {
-	window?.addEventListener("resize", backClick);
+	window?.addEventListener("resize", () => {
+	    if (!mobile.value) backClick();
+	});
+
 	$gsap.set([studentForm.value, adminForm.value], {
 		x: "-100vw",
 	});

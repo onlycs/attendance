@@ -39,6 +39,9 @@ pub enum InitError {
         source: dotenvy::Error,
         location: &'static Location<'static>,
     },
+
+    #[error("Failed to initialize rate limiter")]
+    RateLimiter,
 }
 
 #[derive(Error, Debug)]
