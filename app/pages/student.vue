@@ -9,6 +9,8 @@ const params = useUrlSearchParams();
 const show = transition.setup;
 const animate = transition.ready;
 
+const auth = useAuth();
+
 onMounted(() => {
 	transition.in.trigger({ reverse: params.reverse === "true" });
 	delete params.reverse;
@@ -19,7 +21,7 @@ function hours() {
 }
 
 function logout() {
-	useStudentId().value = null;
+    auth.clear();
 	transition.out.trigger({ reverse: true }).then(() => router.push("/"));
 }
 </script>

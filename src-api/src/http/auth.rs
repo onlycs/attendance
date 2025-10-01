@@ -1,6 +1,6 @@
 use actix_web::HttpRequest;
 use base64::Engine;
-use chrono::{Days, TimeDelta};
+use chrono::Days;
 use rand::{RngCore, rng};
 use sha2::Sha512;
 use srp::{groups::G_2048, server::SrpServer};
@@ -126,67 +126,42 @@ pub(super) async fn login_finish(
     let v = server.process_reply(&b, &auth_info.verifier, &hex::decode(a)?)?;
     v.verify_client(&hex::decode(m1)?)?;
 
-    let token = sqlx::query!(
+    let token = cuid2();
+
+    sqlx::query!(
         r#"
-        SELECT token, created_at FROM tokens
-        WHERE created_at > NOW() - INTERVAL '10 hours'
+        DELETE FROM tokens
+        WHERE created_at <= NOW() - INTERVAL '10 hours'
+            OR last_used_at <= NOW() - INTERVAL '3 hours'
         "#
     )
-    .fetch_optional(pg)
+    .execute(pg)
     .await?;
 
-    if let Some(token) = token {
-        debug!("Found usable token, returning...");
+    sqlx::query!(
+        r#"
+        INSERT INTO tokens (token)
+        VALUES ($1)
+        "#,
+        token
+    )
+    .execute(pg)
+    .await?;
 
-        let dt = token.created_at + TimeDelta::hours(10);
-        let fmt = dt
-            .and_utc()
-            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let dt = chrono::Utc::now().naive_utc() + Days::new(7);
+    let fmt = dt
+        .and_utc()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
-        Ok(LoginFinishResponse {
-            token: token.token,
-            expires: fmt,
-            m2: hex::encode(v.proof()),
-        })
-    } else {
-        debug!("Must generate new token, previous one was too old");
-
-        let token = cuid2();
-
-        sqlx::query!(
-            r#"
-            DELETE FROM tokens
-            WHERE created_at <= NOW() - INTERVAL '10 hours'
-            "#
-        )
-        .execute(pg)
-        .await?;
-
-        sqlx::query!(
-            r#"
-            INSERT INTO tokens (token)
-            VALUES ($1)
-            "#,
-            token
-        )
-        .execute(pg)
-        .await?;
-
-        let dt = chrono::Utc::now().naive_utc() + Days::new(7);
-        let fmt = dt
-            .and_utc()
-            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-        Ok(LoginFinishResponse {
-            token,
-            expires: fmt,
-            m2: hex::encode(v.proof()),
-        })
-    }
+    Ok(LoginFinishResponse {
+        token,
+        expires: fmt,
+        m2: hex::encode(v.proof()),
+    })
 }
 
 pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError> {
-    debug!("Got a token check request {}", sanitize(&token));
+    let token = token.trim_start_matches("Bearer ");
 
     if sqlx::query!(
         r#"
@@ -194,7 +169,7 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError
         WHERE created_at > NOW() - INTERVAL '10 hours'
             AND token = $1
         "#,
-        sanitize(&token)
+        token
     )
     .fetch_optional(pg)
     .await?
@@ -202,32 +177,43 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError
     {
         Ok(true)
     } else {
-        info!("Token check failed: invalid token");
         Err(RouteError::BadAuth)
     }
 }
 
-pub async fn check_throw(token: String, pg: &PgPool) -> Result<(), RouteError> {
+pub async fn check_throw(token: &str, pg: &PgPool) -> Result<(), RouteError> {
     if let Ok(automation) = env::var("AUTOMATION_TOKEN")
-        && bcrypt::verify(&token, &automation).unwrap_or(false)
+        && bcrypt::verify(token, &automation).unwrap_or(false)
     {
         return Ok(());
     }
 
-    let token = sqlx::query!(
+    let res = sqlx::query!(
         r#"
         SELECT token FROM tokens
         WHERE token = $1
             AND created_at > NOW() - INTERVAL '10 hours'
+            AND last_used_at > NOW() - INTERVAL '3 hours'
         "#,
         token
     )
     .fetch_optional(pg)
     .await?;
 
-    if token.is_none() {
+    if res.is_none() {
         return Err(RouteError::BadAuth);
     }
+
+    sqlx::query!(
+        r#"
+        UPDATE tokens
+        SET last_used_at = NOW()
+        WHERE token = $1
+        "#,
+        token
+    )
+    .fetch_optional(pg)
+    .await?;
 
     Ok(())
 }
@@ -254,8 +240,4 @@ pub(super) fn parse_header(req: &HttpRequest) -> Result<String, RouteError> {
     }
 
     Ok(auth.replace("Bearer ", "").replace("Basic ", ""))
-}
-
-fn sanitize(token: &str) -> String {
-    token.replace("Bearer ", "")
 }

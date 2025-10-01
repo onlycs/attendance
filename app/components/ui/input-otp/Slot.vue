@@ -24,27 +24,27 @@ const text = {
 </script>
 
 <template>
-    <div
-        :class="
-            cn(
-                'relative flex items-center justify-center',
-                box,
-                text,
-                'transition-all duration-300',
-                'border-border border-y border-r first:border-l first:rounded-l-md last:rounded-r-md',
-                { 'outline-4 outline-accent-foreground': isActive },
-            )
-        "
-    >
-        <div v-if="char !== null">
-            {{ hidden ? "●" : char }}
-        </div>
+	<div
+		:class="
+			cn(
+				'relative flex items-center justify-center',
+				box,
+				text,
+				'transition-all duration-300',
+				'border-border border-y border-r first:border-l first:rounded-l-md last:rounded-r-md',
+				{ 'outline-4 outline-accent-foreground': isActive },
+			)
+		"
+	>
+		<div v-if="char !== null">
+			{{ hidden ? "●" : char }}
+		</div>
 
-        <div
-            v-if="char === null && isActive"
-            class="absolute pointer-events-none inset-0 flex items-center justify-center animate-caret-blink"
-        >
-            <div class="w-px h-8 bg-white" />
-        </div>
-    </div>
+		<div
+			v-if="char === null && isActive"
+			class="absolute pointer-events-none inset-0 flex items-center justify-center animate-caret-blink"
+		>
+			<div class="w-px h-8 bg-white" />
+		</div>
+	</div>
 </template>

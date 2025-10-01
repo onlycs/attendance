@@ -7,6 +7,7 @@ extern crate tracing;
 
 pub mod error;
 pub mod http;
+pub mod middleware;
 pub mod prelude;
 pub mod serde;
 pub mod ws;
@@ -23,7 +24,10 @@ use dotenvy::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tracing::level_filters::LevelFilter;
 
-use crate::prelude::*;
+use crate::{
+    middleware::{ErrorLog, RequestLog, SecurityHeaders},
+    prelude::*,
+};
 
 pub struct AppState {
     pub pg: Arc<PgPool>,
@@ -31,16 +35,23 @@ pub struct AppState {
 
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
-    tracing_subscriber::fmt()
-        .pretty()
-        .with_max_level(if cfg!(debug_assertions) {
-            LevelFilter::DEBUG
-        } else {
-            LevelFilter::INFO
-        })
-        .with_thread_names(true)
-        .with_level(true)
-        .init();
+    if cfg!(debug_assertions) {
+        // Development: pretty formatted logs with debug level
+        tracing_subscriber::fmt()
+            .pretty()
+            .with_max_level(LevelFilter::DEBUG)
+            .with_thread_names(true)
+            .with_level(true)
+            .init();
+    } else {
+        // Production: one-line compact logs for better parsing and OWASP compliance
+        tracing_subscriber::fmt()
+            .compact()
+            .with_max_level(LevelFilter::INFO)
+            .with_target(false)
+            .with_thread_names(false)
+            .init();
+    }
 
     dotenv().ok();
 
@@ -69,6 +80,9 @@ async fn main() -> Result<(), InitError> {
         App::new()
             .wrap(cors)
             .wrap(Governor::new(&gov))
+            .wrap(ErrorLog)
+            .wrap(RequestLog)
+            .wrap(SecurityHeaders)
             .app_data(Data::new(AppState { pg }))
             .service(http::index)
             .service(http::register_start)

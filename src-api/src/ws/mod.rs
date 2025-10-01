@@ -86,11 +86,12 @@ pub(crate) async fn ws(
     let mut session = Session::new(session).await;
 
     info!(
-        "Websocket connection opened (assigned id {:#x})",
-        session.id
+        event_type = "websocket_connection_opened",
+        session_id = %format!("{:#x}", session.id),
+        "WebSocket connection established"
     );
     rt::spawn(async move {
-        let mut authenticated = false;
+        let mut auth_token = None;
 
         while let Some(msg) = stream.next().await {
             let result = async {
@@ -98,55 +99,77 @@ pub(crate) async fn ws(
                     Ok(AggregatedMessage::Text(msg)) => {
                         let message = serde_json::from_slice::<ClientMessage>(msg.as_bytes())?;
                         debug!(
-                            "Got message from client (id {:#x}): {message:?}",
-                            session.id
+                            event_type = "websocket_message_received",
+                            session_id = %format!("{:#x}", session.id),
+                            message_type = ?std::mem::discriminant(&message),
+                            "WebSocket message received"
                         );
 
                         match message {
                             ClientMessage::Authenticate { token } => {
-                                auth::check_throw(token, &state.pg)
+                                auth::check_throw(&token, &state.pg)
                                     .await
                                     .map_err(|_| WsError::Auth)?;
 
-                                authenticated = true;
+                                auth_token = Some(token);
 
-                                info!("Websocket (id {:#x}) authenticated", session.id);
+                                info!(
+                                    event_type = "websocket_authenticated",
+                                    session_id = %format!("{:#x}", session.id),
+                                    "WebSocket session authenticated"
+                                );
 
-                                let Ok(res) = serde_json::to_string(&ServerMessage::AuthenticateOk) else {
-                                    warn!("Failed to serialize authenticated message.");
-                                    return Ok(());
-                                };
+                                let res = serde_json::to_string(&ServerMessage::AuthenticateOk)?;
 
                                 if session.text(res).await.is_err() {
-                                    warn!("Websocket closed while sending AuthenticateOk, ignoring.");
+                                    warn!(
+                                        event_type = "websocket_send_failed",
+                                        session_id = %format!("{:#x}", session.id),
+                                        message_type = "AuthenticateOk",
+                                        "WebSocket closed while sending response"
+                                    );
                                 }
                             }
 
                             ClientMessage::Subscribe { sub } => {
-                                if !authenticated {
+                                let Some(token) = &auth_token else {
                                     return Err(WsError::Auth);
-                                }
+                                };
+
+                                auth::check_throw(token, &state.pg)
+                                    .await
+                                    .map_err(|_| WsError::Auth)?;
 
                                 let pool = SubPools::instance().get(sub, &state.pg).await;
 
                                 if pool.sessions.read().await.contains_key(&session.id) {
-                                    info!(
-                                        "Websocket (id {:#x}) tried to subscribe to {sub:?} but is already subscribed. Ignoring.",
-                                        session.id
+                                    warn!(
+                                        event_type = "websocket_duplicate_subscription",
+                                        session_id = %format!("{:#x}", session.id),
+                                        subscription = ?sub,
+                                        "WebSocket attempted duplicate subscription"
                                     );
                                     return Ok(());
                                 }
 
-                                pool
-                                    .add
-                                    .send(session.clone())
-                                    .map_err(|_| WsError::Send)?;
+                                pool.add.send(session.clone()).map_err(|_| WsError::Send)?;
+
+                                info!(
+                                    event_type = "websocket_subscribed",
+                                    session_id = %format!("{:#x}", session.id),
+                                    subscription = ?sub,
+                                    "WebSocket subscribed to service"
+                                );
                             }
 
                             ClientMessage::Update { sub, value } => {
-                                if !authenticated {
+                                let Some(token) = &auth_token else {
                                     return Err(WsError::Auth);
-                                }
+                                };
+
+                                auth::check_throw(token, &state.pg)
+                                    .await
+                                    .map_err(|_| WsError::Auth)?;
 
                                 SubPools::instance()
                                     .get(sub, &state.pg)
@@ -154,20 +177,17 @@ pub(crate) async fn ws(
                                     .update
                                     .send((serde_json::to_string(&value)?, session.id))
                                     .map_err(|_| WsError::Send)?;
-                            },
+                            }
                         }
                     }
-                    Ok(AggregatedMessage::Close(reason)) => {
+                    Ok(AggregatedMessage::Close(_)) => {
                         SubPools::instance().remove_all(session.id).await?;
 
-                        if let Some(reason) = reason {
-                            info!(
-                                "Websocket (id {:#x}) closed due to reason: {reason:?}",
-                                session.id
-                            );
-                        } else {
-                            info!("Websocket (id {:#x}) closed", session.id);
-                        }
+                        info!(
+                            event_type = "websocket_connection_closed",
+                            session_id = %format!("{:#x}", session.id),
+                            "WebSocket connection closed"
+                        );
                     }
                     _ => {}
                 }
@@ -181,12 +201,20 @@ pub(crate) async fn ws(
                     message: format!("{error}"),
                     meta: error,
                 }) else {
-                    warn!("Failed to serialize error message.");
+                    error!(
+                        event_type = "websocket_error_serialization_failed",
+                        session_id = %format!("{:#x}", session.id),
+                        "Failed to serialize WebSocket error message"
+                    );
                     continue;
                 };
 
                 if session.text(res).await.is_err() {
-                    warn!("Websocket closed while sending error, ignoring.");
+                    warn!(
+                        event_type = "websocket_error_send_failed",
+                        session_id = %format!("{:#x}", session.id),
+                        "WebSocket closed while sending error response"
+                    );
                 }
             }
         }

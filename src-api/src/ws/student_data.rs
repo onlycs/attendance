@@ -48,8 +48,12 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
                 .map(|record| record.student_data)
                 .unwrap_or_default();
 
-                if let Err(err) = session.send(ServerMessage::StudentData(data)).await {
-                    error!("[StudentData] Failed to send initial subscription response: {err}");
+                if let Err(_) = session.send(ServerMessage::StudentData(data)).await {
+                    warn!(
+                        event_type = "student_data_initial_send_failed",
+                        session_id = %format!("{:#x}", session.id),
+                        "Failed to send initial student data to WebSocket session"
+                    );
                 }
 
                 subscriptions_add
@@ -78,19 +82,26 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
                     r#"
                     UPDATE cryptstore
                     SET student_data = $1
-                    WHERE id
                     "#,
                     data
                 )
                 .execute(&*pool_update)
                 .await
                 {
-                    error!("[StudentData] Failed to update data in database: {err}");
+                    error!(
+                        event_type = "student_data_db_update_failed",
+                        error = %err,
+                        "Failed to update student data in database"
+                    );
                 }
 
                 for session in subscriptions_update.write().await.values_mut() {
-                    if let Err(err) = session.send(ServerMessage::StudentData(data.clone())).await {
-                        error!("[StudentData] Failed to send update message: {err}");
+                    if let Err(_) = session.send(ServerMessage::StudentData(data.clone())).await {
+                        warn!(
+                            event_type = "student_data_update_send_failed",
+                            session_id = %format!("{:#x}", session.id),
+                            "Failed to send student data update to WebSocket session"
+                        );
                     }
                 }
             }

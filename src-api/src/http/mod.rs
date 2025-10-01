@@ -71,7 +71,7 @@ pub(crate) async fn record(
     body: web::Json<RosterRequest>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    auth::check_throw(auth::parse_header(&req)?, &state.pg).await?;
+    auth::check_throw(&auth::parse_header(&req)?, &state.pg).await?;
     let res = roster::record(body.into_inner(), &state.pg).await?;
 
     Ok(HttpResponse::Ok().json(res))
@@ -82,7 +82,7 @@ pub(crate) async fn clear(
     req: HttpRequest,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    auth::check_throw(auth::parse_header(&req)?, &state.pg).await?;
+    auth::check_throw(&auth::parse_header(&req)?, &state.pg).await?;
     roster::delete_expired(&state.pg).await?;
 
     Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))

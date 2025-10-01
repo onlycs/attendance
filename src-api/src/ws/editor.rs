@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::Write, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use actix_web::rt;
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
-use sqlx::{PgExecutor, PgPool, postgres::PgListener};
+use sqlx::{PgExecutor, PgPool, QueryBuilder, postgres::PgListener};
 use tokio::sync::{RwLock, mpsc};
 
 use crate::{
@@ -126,9 +126,10 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
             .fetch_all(pg)
             .await?;
 
-    debug!(
-        "Commencing editor initialization ({} records)",
-        initial.len()
+    info!(
+        event_type = "editor_initialization",
+        record_count = initial.len(),
+        "Editor data initialization completed"
     );
 
     let mut added_dates = Vec::new();
@@ -202,8 +203,12 @@ async fn add_thread(
         let data = data.read().await;
         let rq = ReplicateQuery::Full { data: &data };
 
-        if let Err(err) = session.send(ServerMessage::EditorData(&rq)).await {
-            error!("[Editor] Failed to send initial subscription response: {err}");
+        if let Err(_) = session.send(ServerMessage::EditorData(&rq)).await {
+            warn!(
+                event_type = "editor_initial_send_failed",
+                session_id = %format!("{:#x}", session.id),
+                "Failed to send initial editor data to WebSocket session"
+            );
         }
 
         subs.write().await.insert(session.id, session);
@@ -221,17 +226,27 @@ async fn watch_thread(
     let mut watcher = PgListener::connect(&env::var("DATABASE_URL")?).await?;
     watcher.listen("record_update").await?;
 
-    info!("Listening for roster updates...");
+    info!(
+        event_type = "editor_db_listener_started",
+        "Editor database listener started for roster updates"
+    );
 
     while let Ok(notification) = watcher.recv().await {
         let payload = notification.payload();
-        debug!("Received notification: {payload}");
+
+        debug!(
+            event_type = "editor_db_notification",
+            "Database notification received for roster update"
+        );
 
         // parse the payload as a JSON string
         let change: PgWatchUpdate = match serde_json::from_str(payload) {
             Ok(change) => change,
-            Err(err) => {
-                error!("Failed to parse roster change: {err}:{payload}");
+            Err(_) => {
+                warn!(
+                    event_type = "editor_notification_parse_failed",
+                    "Failed to parse database notification payload"
+                );
                 continue;
             }
         };
@@ -246,8 +261,9 @@ async fn watch_thread(
                 let mut rows = data.write().await;
                 let Some(row) = rows.get_mut(&change.student_id) else {
                     warn!(
-                        "Received delete operation for unknown student: {}",
-                        &change.student_id[..7]
+                        event_type = "editor_unknown_student_delete",
+                        student_id_prefix = %&change.student_id[..7],
+                        "Received delete operation for unknown student"
                     );
                     continue;
                 };
@@ -257,9 +273,10 @@ async fn watch_thread(
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        "Received delete operation for student {} on unknown date: {}",
-                        &change.student_id[..7],
-                        day
+                        event_type = "editor_unknown_date_delete",
+                        student_id_prefix = %&change.student_id[..7],
+                        date = %day,
+                        "Received delete operation for unknown date"
                     );
                     continue;
                 };
@@ -317,8 +334,9 @@ async fn watch_thread(
 
                 let Some(row) = rows.get_mut(&change.student_id) else {
                     warn!(
-                        "Received insert operation for unknown student: {:.7}",
-                        &change.student_id
+                        event_type = "editor_unknown_student_insert",
+                        student_id_prefix = %&change.student_id[..7],
+                        "Received insert operation for unknown student"
                     );
                     continue;
                 };
@@ -434,9 +452,9 @@ async fn process_update(
         } => {
             sqlx::query!(
                 r#"
-                    INSERT INTO records (id, student_id, in_progress, sign_in, sign_out, hour_type)
-                    VALUES ($1, $2, $3, $4, $5, $6);
-                    "#,
+                INSERT INTO records (id, student_id, in_progress, sign_in, sign_out, hour_type)
+                VALUES ($1, $2, $3, $4, $5, $6);
+                "#,
                 cuid2(),
                 student_id,
                 sign_out.is_none(),
@@ -451,37 +469,38 @@ async fn process_update(
             id: entry_id,
             updates,
         } => {
-            let mut query = String::from("UPDATE records SET ");
+            let mut query = QueryBuilder::new("UPDATE records SET ");
 
             for (i, update) in updates.iter().enumerate() {
                 if i != 0 {
-                    query.push_str(", ");
+                    query.push(", ");
                 }
 
                 match update {
                     TimeEntryUpdate::Kind(kind) => {
-                        write!(&mut query, "hour_type = '{kind}'")
+                        query.push("hour_type = ");
+                        query.push_bind(*kind as HourType);
                     }
                     TimeEntryUpdate::Start(start) => {
-                        write!(&mut query, "sign_in = '{}'", start.naive_utc())
+                        query.push("sign_in = ");
+                        query.push_bind(start.naive_utc());
                     }
                     TimeEntryUpdate::End(end) => {
                         if let Some(end) = end {
-                            write!(
-                                &mut query,
-                                "in_progress = false, sign_out = '{}'",
-                                end.naive_utc()
-                            )
+                            query.push("in_progress = false, sign_out = ");
+                            query.push_bind(end.naive_utc());
                         } else {
-                            write!(&mut query, "in_progress = true, sign_out = NULL")
+                            query.push("in_progress = true, sign_out = ");
+                            query.push("NULL");
                         }
                     }
-                }?;
+                }
             }
 
-            write!(&mut query, " WHERE id = '{entry_id}'")?;
+            query.push(" WHERE id = ");
+            query.push_bind(entry_id);
 
-            sqlx::query(&query).execute(pg).await?;
+            query.build().execute(pg).await?;
         }
         UpdateQuery::Delete { id } => {
             sqlx::query!(
@@ -608,7 +627,11 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         let pool_update = Arc::clone(&pg);
 
         let (dates, data) = init(&pg).await.unwrap_or_else(|err| {
-            error!("Failed to initialize roster data: {err}");
+            error!(
+                event_type = "editor_init_failed",
+                error = %err,
+                "Failed to initialize editor roster data"
+            );
             (Vec::new(), HashMap::new())
         });
 

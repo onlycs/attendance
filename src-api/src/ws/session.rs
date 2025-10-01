@@ -27,7 +27,10 @@ impl Session {
 
         // if this happens, what the actual fuck
         if ids.len() as u64 == u64::MAX {
-            error!("Ran out of session ids... how the fuck is the server still on");
+            error!(
+                event_type = "session_id_exhaustion",
+                "Critical error: ran out of WebSocket session IDs"
+            );
             process::exit(1);
         }
 

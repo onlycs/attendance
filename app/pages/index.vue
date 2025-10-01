@@ -25,6 +25,8 @@ const mobile = computed(() => screenSize.value === 0);
 const transition = injectTransition();
 const router = useRouter();
 
+const auth = useAuth();
+
 function activeRef(using?: string) {
 	const cmpValue = using
 		? using
@@ -257,21 +259,14 @@ function hover(enter: boolean, force?: boolean) {
 	);
 }
 
-function adminSubmit(event: PasswordSubmitEvent) {
+function adminSubmit() {
 	atEnd.value = false;
-
-	const token = useToken(event.expires);
-	const password = usePassword();
-
-	token.value = event.token;
-	password.value = event.password;
-
-	event.stopLoading();
-
 	transition.out.trigger().then(() => router.push("/admin"));
 }
 
 async function studentSubmit(id: string) {
+    auth.setType("student");
+
 	atEnd.value = false;
 
 	// check to make sure the student exists
@@ -281,6 +276,7 @@ async function studentSubmit(id: string) {
 
 	if (exists.isErr()) {
 		apiToast(exists.error, router.push);
+        auth.setType("error");
 		return;
 	}
 
@@ -289,16 +285,17 @@ async function studentSubmit(id: string) {
 		toast.warning(
 			"You don't have any hours logged. Come back when you get some hours!",
 		);
+		auth.clear();
 		return;
 	}
 
-	useStudentId().value = id;
+	auth.setStudent(id);
 	transition.out.trigger().then(() => router.push("/student"));
 }
 
 onMounted(() => {
 	window?.addEventListener("resize", () => {
-	    if (!mobile.value) backClick();
+		if (!mobile.value) backClick();
 	});
 
 	$gsap.set([studentForm.value, adminForm.value], {

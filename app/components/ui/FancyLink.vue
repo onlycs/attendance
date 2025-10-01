@@ -25,31 +25,31 @@ function leave() {
 </script>
 
 <template>
-    <a
-        class="relative cursor-pointer"
-        @mouseenter="enter"
-        @mouseleave="leave"
-        target="_blank"
-        ref="link"
-    >
-        <slot />
-        <span v-if="!$props.dashless" class="dashes" />
-        <span v-if="!$props.lineless" class="line" ref="underline" />
-    </a>
+	<a
+		class="relative cursor-pointer"
+		@mouseenter="enter"
+		@mouseleave="leave"
+		target="_blank"
+		ref="link"
+	>
+		<slot />
+		<span v-if="!$props.dashless" class="dashes" />
+		<span v-if="!$props.lineless" class="line" ref="underline" />
+	</a>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
 .line {
-    @apply absolute bottom-[2px] left-0 -mt-1;
-    @apply h-[1px] w-full bg-text;
-    @apply scale-x-0 pointer-events-none;
+	@apply absolute bottom-[2px] left-0 -mt-1;
+	@apply h-[1px] w-full bg-text;
+	@apply scale-x-0 pointer-events-none;
 }
 
 .dashes {
-    @apply absolute bottom-[2px] left-0;
-    @apply h-0 w-full;
-    @apply border-b-[1px] border-dashed border-card-2;
+	@apply absolute bottom-[2px] left-0;
+	@apply h-0 w-full;
+	@apply border-b-[1px] border-dashed border-card-2;
 }
 </style>

@@ -22,23 +22,23 @@ watch(id, (value) => {
 </script>
 
 <template>
-    <OTPInput v-slot="{ slots }" v-model="id" :maxlength="5">
-        <div class="flex">
-            <OTPSlot
-                v-for="(slot, idx) in slots"
-                v-bind="slot"
-                :key="idx"
-                :size="size"
-            />
-        </div>
-		<Icon 
+	<OTPInput v-slot="{ slots }" v-model="id" :maxlength="5">
+		<div class="flex">
+			<OTPSlot
+				v-for="(slot, idx) in slots"
+				v-bind="slot"
+				:key="idx"
+				:size="size"
+			/>
+		</div>
+		<Icon
 			v-if="loading"
-			name="svg-spinners:ring-resize" 
-			:class="cn('icon', icon)" 
-			:customize="Customize.StrokeWidth(1.75)" 
-			mode="svg" 
+			name="svg-spinners:ring-resize"
+			:class="cn('icon', icon)"
+			:customize="Customize.StrokeWidth(1.75)"
+			mode="svg"
 		/>
-    </OTPInput>
+	</OTPInput>
 </template>
 
 <style scoped>

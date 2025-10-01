@@ -74,21 +74,17 @@ pub(super) async fn record(
     }: RosterRequest,
     pg: &PgPool,
 ) -> Result<RosterResponse, RouteError> {
-    debug!("Received roster request: {hour_type:?} hours for {id:.7}");
-
     let month = Local::now().month();
 
     if !hour_type.allowed(month) {
-        let error = RouteError::HourType { hour_type };
-        warn!("{error}");
-        return Err(error);
+        return Err(RouteError::HourType { hour_type });
     }
 
     let record = sqlx::query!(
         r#"
         SELECT id, sign_in FROM records
-        WHERE student_id = $1 
-            AND in_progress = true 
+        WHERE student_id = $1
+            AND in_progress = true
             AND hour_type = $2
         "#,
         id,
@@ -102,15 +98,11 @@ pub(super) async fn record(
         let diff = dt - record.sign_in;
 
         if (diff.num_minutes() < 3) && !force {
-            info!("Logout denied: student {id} has been signed in for less than 3 minutes");
-
             return Ok(RosterResponse {
                 action: RosterAction::Logout,
                 denied: true,
             });
         }
-
-        debug!("Logging out student {id}");
 
         sqlx::query!(
             r#"
@@ -128,8 +120,6 @@ pub(super) async fn record(
             denied: false,
         })
     } else {
-        debug!("Logging in student {id}");
-
         sqlx::query!(
             r#"
             INSERT INTO records (id, student_id, sign_in, hour_type)

@@ -5,6 +5,7 @@ const transition = injectTransition();
 const container = ref<InstanceType<typeof FocusCards>>();
 const router = useRouter();
 const params = useUrlSearchParams();
+const auth = useAuth();
 
 const show = transition.setup;
 const animate = transition.ready;
@@ -23,8 +24,7 @@ function attendance() {
 }
 
 function logout() {
-	useToken().value = null;
-	usePassword().value = null;
+    auth.clear();
 	transition.out.trigger({ reverse: true }).then(() => router.push("/"));
 }
 

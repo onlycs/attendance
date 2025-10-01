@@ -64,17 +64,17 @@ onMounted(() => {
 </script>
 
 <template>
-    <div :class="cn('card-container', animate && 'animate')" :style="gridStyle" ref="container">
-        <slot />
-    </div>
+	<div :class="cn('card-container', animate && 'animate')" :style="gridStyle" ref="container">
+		<slot />
+	</div>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
 .card-container {
-    @apply grid place-items-center;
-    @apply gap-10 md:gap-12 lg:gap-22 xl:gap-32 2xl:gap-42;
+	@apply grid place-items-center;
+	@apply gap-10 md:gap-12 lg:gap-22 xl:gap-32 2xl:gap-42;
 
 	&.animate:has(.focus-card:hover) > *:not(:hover) {
 		@apply blur-xs;

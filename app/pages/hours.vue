@@ -8,7 +8,7 @@ import {
 import { Math2 } from "~/utils/math";
 
 const hours = ref<HoursResponse | null>(null);
-const id = useStudentId();
+const auth = useAuth();
 const transition = injectTransition();
 const router = useRouter();
 
@@ -44,8 +44,14 @@ function back() {
 }
 
 onMounted(async () => {
+    if (!auth.student.value) {
+        auth.clear();
+        redirect("/");
+        return;
+    }
+
 	const res = await ApiClient.fetch("student/hours", {
-		params: { id: Crypt.sha256(id.value!) },
+		params: { id: Crypt.sha256(auth.student.value) },
 	});
 
 	console.log(res);
