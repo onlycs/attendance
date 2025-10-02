@@ -8,14 +8,14 @@ import type { SlotSize } from "../ui/input-otp/Slot.vue";
 const PASSWORD_LENGTH = 8;
 
 export interface PasswordSubmitEvent {
-  password: string;
-  token: string;
-  expires: Temporal.ZonedDateTime;
+	password: string;
+	token: string;
+	expires: Temporal.ZonedDateTime;
 }
 
 const props = defineProps<{ size?: SlotSize }>();
 const emit = defineEmits<{
-  submit: [ev: PasswordSubmitEvent];
+	submit: [ev: PasswordSubmitEvent];
 }>();
 const auth = useAuth();
 
@@ -23,68 +23,68 @@ const password = ref("");
 
 const started = ref(false);
 const loading = computed(
-  () => started.value && auth.admin.value.status !== "ok",
+	() => started.value && auth.admin.value.status !== "ok",
 );
 
 const icon = {
-  sm: "max-md:size-4 size-6",
-  md: "max-md:size-6 size-8",
-  lg: "max-md:size-8 size-12",
+	sm: "max-md:size-4 size-6",
+	md: "max-md:size-6 size-8",
+	lg: "max-md:size-8 size-12",
 }[props.size ?? "md"];
 
 watch(password, async (password) => {
-  if (password.length !== PASSWORD_LENGTH) {
-    return;
-  }
+	if (password.length !== PASSWORD_LENGTH) {
+		return;
+	}
 
-  started.value = true;
+	started.value = true;
 
-  const routines = new SRPRoutines(
-    new SRPParameters(SRPParameters.PrimeGroup[2048], SRPParameters.H.SHA512),
-  );
+	const routines = new SRPRoutines(
+		new SRPParameters(SRPParameters.PrimeGroup[2048], SRPParameters.H.SHA512),
+	);
 
-  const clientA = new SRPClientSession(routines);
-  const clientB = await clientA.step1("admin", password);
+	const clientA = new SRPClientSession(routines);
+	const clientB = await clientA.step1("admin", password);
 
-  const start = await ApiClient.fetch("login/start", undefined);
+	const start = await ApiClient.fetch("login/start", undefined);
 
-  if (start.isErr()) {
-    apiToast(start.error);
-    started.value = false;
+	if (start.isErr()) {
+		apiToast(start.error);
+		started.value = false;
 
-    return;
-  }
+		return;
+	}
 
-  const clientC = await clientB.step2(
-    Crypt.fromHex(start.value.salt),
-    Crypt.fromHex(start.value.b),
-  );
+	const clientC = await clientB.step2(
+		Crypt.fromHex(start.value.salt),
+		Crypt.fromHex(start.value.b),
+	);
 
-  const finish = await ApiClient.fetch("login/finish", {
-    a: Crypt.hex(clientC.A),
-    m1: Crypt.hex(clientC.M1),
-  });
+	const finish = await ApiClient.fetch("login/finish", {
+		a: Crypt.hex(clientC.A),
+		m1: Crypt.hex(clientC.M1),
+	});
 
-  if (finish.isErr()) {
-    apiToast(finish.error);
-    return;
-  }
+	if (finish.isErr()) {
+		apiToast(finish.error);
+		return;
+	}
 
-  await clientC.step3(Crypt.fromHex(finish.value.m2));
+	await clientC.step3(Crypt.fromHex(finish.value.m2));
 
-  if (auth.admin.value.status === "pending-password") {
-    auth.admin.value.reset(password, finish.value.token, finish.value.expires);
-  }
+	if (auth.admin.value.status === "pending-password") {
+		auth.admin.value.reset(password, finish.value.token, finish.value.expires);
+	}
 
-  if (auth.admin.value.status === "pending-all") {
-    auth.admin.value.set(password, finish.value.token, finish.value.expires);
-  }
+	if (auth.admin.value.status === "pending-all") {
+		auth.admin.value.set(password, finish.value.token, finish.value.expires);
+	}
 
-  emit("submit", {
-    password: password,
-    token: finish.value.token,
-    expires: finish.value.expires,
-  });
+	emit("submit", {
+		password: password,
+		token: finish.value.token,
+		expires: finish.value.expires,
+	});
 });
 </script>
 

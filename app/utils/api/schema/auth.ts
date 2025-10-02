@@ -109,10 +109,20 @@ export const Valid = makeEndpoint({
 	errors: ApiErrors,
 });
 
+export const Deauthorize = makeEndpoint({
+	method: "delete",
+	path: "/auth",
+	alias: "auth/deauthorize",
+	parameters: [AuthorizationHeader],
+	response: ValidResponseSchema,
+	errors: ApiErrors,
+});
+
 export const AuthEndpoints = narrow([
 	RegisterStart,
 	RegisterFinish,
 	LoginStart,
 	LoginFinish,
 	Valid,
+	Deauthorize,
 ]);

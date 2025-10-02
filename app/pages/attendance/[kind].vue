@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {
-  DrawerContent,
-  DrawerHandle,
-  DrawerOverlay,
-  DrawerPortal,
-  DrawerRoot,
+	DrawerContent,
+	DrawerHandle,
+	DrawerOverlay,
+	DrawerPortal,
+	DrawerRoot,
 } from "vaul-vue";
 import { toast } from "vue-sonner";
 import { z } from "zod";
@@ -25,13 +25,13 @@ const kind = route.params.kind as "build" | "learning" | "demo";
 
 const size = computed(() => [64, 32, 48, 52, 64][screenSize.value]);
 const backIcon = computed(
-  () => ["arrow-up-01", "arrow-left-01"][+!mobile.value],
+	() => ["arrow-up-01", "arrow-left-01"][+!mobile.value],
 );
 const title = {
-  build: "Build Hours",
-  learning: "Learning Days",
-  demo: "Outreach Hours",
-  offseason: "Offseason Hours",
+	build: "Build Hours",
+	learning: "Learning Days",
+	demo: "Outreach Hours",
+	offseason: "Offseason Hours",
 }[kind];
 
 const loading = ref(false);
@@ -41,215 +41,215 @@ const main = ref<HTMLDivElement>();
 const studentData = new JsonDb(StudentData, []);
 
 const websocket = makeWebsocket({
-  messages: {
-    AuthenticateOk: () => {
-      websocket.send("Subscribe", {
-        sub: "StudentData",
-      });
-    },
-    StudentData: (_, data) => {
-      if (!data) {
-        studentData.reset([]);
-        return;
-      }
+	messages: {
+		AuthenticateOk: () => {
+			websocket.send("Subscribe", {
+				sub: "StudentData",
+			});
+		},
+		StudentData: (_, data) => {
+			if (!data) {
+				studentData.reset([]);
+				return;
+			}
 
-      Crypt.decrypt(data, creds.value!.password)
-        .then(async (decrypted) => {
-          studentData.reset(JSON.parse(decrypted));
-        })
-        .catch((error) => {
-          console.error("Failed to decrypt student data:", error);
-          toast.error("Failed to load student data. Please try again.");
-        });
-    },
-    Error: (_, error) => {
-      if (error.meta.type === "Auth") {
-        useRouter().push("/?error=session-expired");
-        return;
-      }
+			Crypt.decrypt(data, creds.value!.password)
+				.then(async (decrypted) => {
+					studentData.reset(JSON.parse(decrypted));
+				})
+				.catch((error) => {
+					console.error("Failed to decrypt student data:", error);
+					toast.error("Failed to load student data. Please try again.");
+				});
+		},
+		Error: (_, error) => {
+			if (error.meta.type === "Auth") {
+				useRouter().push("/?error=session-expired");
+				return;
+			}
 
-      toast.error(error.message);
-    },
-  },
+			toast.error(error.message);
+		},
+	},
 });
 
 function UpdateStudentData() {
-  const serialized = studentData.serialize();
+	const serialized = studentData.serialize();
 
-  Crypt.encrypt(serialized, creds.value!.password)
-    .then((encrypted) => {
-      websocket.send("Update", {
-        sub: "StudentData",
-        value: encrypted,
-      });
-    })
-    .catch((error) => {
-      console.error("Failed to encrypt student data:", error);
-      toast.error("Failed to update student data. Please try again.");
-    });
+	Crypt.encrypt(serialized, creds.value!.password)
+		.then((encrypted) => {
+			websocket.send("Update", {
+				sub: "StudentData",
+				value: encrypted,
+			});
+		})
+		.catch((error) => {
+			console.error("Failed to encrypt student data:", error);
+			toast.error("Failed to update student data. Please try again.");
+		});
 }
 
 /// New Student Form
 const NewFormSchema = z.object({
-  first: z
-    .string()
-    .min(2, "First name is required")
-    .regex(/^[A-Z]/, "Must start with a capital letter")
-    .regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
-  last: z
-    .string()
-    .min(2, "Last name is required")
-    .regex(/^[A-Z]/, "Must start with a capital letter")
-    .regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
+	first: z
+		.string()
+		.min(2, "First name is required")
+		.regex(/^[A-Z]/, "Must start with a capital letter")
+		.regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
+	last: z
+		.string()
+		.min(2, "Last name is required")
+		.regex(/^[A-Z]/, "Must start with a capital letter")
+		.regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
 });
 
 const NewFormOpen = ref(false);
 
 function NewFormClose() {
-  if (!NewFormOpen.value) return;
+	if (!NewFormOpen.value) return;
 
-  NewFormOpen.value = false;
-  loading.value = false;
+	NewFormOpen.value = false;
+	loading.value = false;
 
-  toast.warning("Cancelled! You were not signed in!");
+	toast.warning("Cancelled! You were not signed in!");
 }
 
 function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
-  NewFormOpen.value = false;
-  studentData.insert({
-    id: currentId.value,
-    ...data,
-  });
+	NewFormOpen.value = false;
+	studentData.insert({
+		id: currentId.value,
+		...data,
+	});
 
-  UpdateStudentData();
-  roster(undefined);
+	UpdateStudentData();
+	roster(undefined);
 }
 
 /// Force Sign Out Form
 const ForceFormOpen = ref(false);
 
 function ForceFormClose() {
-  if (!ForceFormOpen.value) return;
+	if (!ForceFormOpen.value) return;
 
-  ForceFormOpen.value = false;
-  loading.value = false;
+	ForceFormOpen.value = false;
+	loading.value = false;
 
-  toast.warning("Cancelled! You were not signed out!");
+	toast.warning("Cancelled! You were not signed out!");
 }
 
 function ForceFormSubmit() {
-  ForceFormOpen.value = false;
-  roster(undefined, true);
+	ForceFormOpen.value = false;
+	roster(undefined, true);
 }
 
 async function roster(id?: string, force = false) {
-  loading.value = true;
+	loading.value = true;
 
-  if (id) currentId.value = id;
-  else id = currentId.value;
+	if (id) currentId.value = id;
+	else id = currentId.value;
 
-  if (!id) {
-    toast.error("Something went wrong. Please try again.");
-    loading.value = false;
-    return;
-  }
+	if (!id) {
+		toast.error("Something went wrong. Please try again.");
+		loading.value = false;
+		return;
+	}
 
-  const existsRes = studentData.get({ id }).length > 0;
+	const existsRes = studentData.get({ id }).length > 0;
 
-  if (!existsRes) {
-    NewFormOpen.value = true;
-    return;
-  }
+	if (!existsRes) {
+		NewFormOpen.value = true;
+		return;
+	}
 
-  const res = await ApiClient.fetch(
-    "roster",
-    { id: Crypt.sha256(id), kind, force },
-    { headers: { Authorization: creds.value!.token } },
-  );
+	const res = await ApiClient.fetch(
+		"roster",
+		{ id: Crypt.sha256(id), kind, force },
+		{ headers: { Authorization: creds.value!.token } },
+	);
 
-  if (res.isErr()) {
-    apiToast(res.error, redirect);
-    loading.value = false;
-    return;
-  }
+	if (res.isErr()) {
+		apiToast(res.error, redirect);
+		loading.value = false;
+		return;
+	}
 
-  if (res.value.denied) {
-    ForceFormOpen.value = true;
-    return;
-  }
+	if (res.value.denied) {
+		ForceFormOpen.value = true;
+		return;
+	}
 
-  toast.success(`Successfully signed ${res.value.action.replace("log", "")}!`);
-  loading.value = false;
+	toast.success(`Successfully signed ${res.value.action.replace("log", "")}!`);
+	loading.value = false;
 }
 
 function backHover() {
-  if (mobile.value) return;
-  if (!transition.ready) return;
+	if (mobile.value) return;
+	if (!transition.ready) return;
 
-  const target = back.value!.card!;
-  const bbox = target.getBoundingClientRect();
+	const target = back.value!.card!;
+	const bbox = target.getBoundingClientRect();
 
-  $gsap.to(target, {
-    width: `calc(${bbox.width}px + 2rem)`,
-    x: "-1rem",
-    ...Timing.in,
-  });
+	$gsap.to(target, {
+		width: `calc(${bbox.width}px + 2rem)`,
+		x: "-1rem",
+		...Timing.in,
+	});
 
-  $gsap.to(main.value!, {
-    x: "-1rem",
-    ...Timing.in,
-  });
+	$gsap.to(main.value!, {
+		x: "-1rem",
+		...Timing.in,
+	});
 }
 
 function backUnhover() {
-  if (mobile.value) return;
-  if (!transition.ready) return;
+	if (mobile.value) return;
+	if (!transition.ready) return;
 
-  const target = back.value!.card!;
-  const bbox = target.getBoundingClientRect();
+	const target = back.value!.card!;
+	const bbox = target.getBoundingClientRect();
 
-  $gsap.to(target, {
-    width: `calc(${bbox.width}px - 2rem)`,
-    x: "0rem",
-    ...Timing.out,
-  });
+	$gsap.to(target, {
+		width: `calc(${bbox.width}px - 2rem)`,
+		x: "0rem",
+		...Timing.out,
+	});
 
-  $gsap.to(main.value!, {
-    x: "0rem",
-    ...Timing.out,
-  });
+	$gsap.to(main.value!, {
+		x: "0rem",
+		...Timing.out,
+	});
 }
 
 function redirect(url: string) {
-  transition.out.trigger({ reverse: true }).then(() => useRouter().push(url));
+	transition.out.trigger({ reverse: true }).then(() => useRouter().push(url));
 }
 
 function exit() {
-  redirect("/attendance?reverse=true");
+	redirect("/attendance?reverse=true");
 }
 
 watch(creds, (creds) => {
-  if (!creds) return;
-  websocket.send("Authenticate", { token: creds.token });
+	if (!creds) return;
+	websocket.send("Authenticate", { token: creds.token });
 });
 
 watch(
-  auth.admin,
-  (admin) => {
-    if (admin.status !== "ok") return;
+	auth.admin,
+	(admin) => {
+		if (admin.status !== "ok") return;
 
-    creds.value = {
-      token: admin.token.value.token,
-      password: admin.password.value,
-    };
+		creds.value = {
+			token: admin.token.value.token,
+			password: admin.password.value,
+		};
 
-    auth.clear();
-  },
-  { immediate: true },
+		auth.clear();
+	},
+	{ immediate: true },
 );
 
 onMounted(() => {
-  transition.in.trigger();
+	transition.in.trigger();
 });
 </script>
 

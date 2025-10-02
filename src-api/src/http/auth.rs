@@ -160,6 +160,20 @@ pub(super) async fn login_finish(
     })
 }
 
+pub(super) async fn deauthorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
+    sqlx::query!(
+        r#"
+        DELETE FROM tokens
+        WHERE token = $1
+     "#,
+        token
+    )
+    .execute(pg)
+    .await?;
+
+    Ok(())
+}
+
 pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError> {
     let token = token.trim_start_matches("Bearer ");
 

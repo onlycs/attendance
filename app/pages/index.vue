@@ -265,7 +265,7 @@ function adminSubmit() {
 }
 
 async function studentSubmit(id: string) {
-    auth.setType("student");
+	auth.setType("student");
 
 	atEnd.value = false;
 
@@ -276,7 +276,7 @@ async function studentSubmit(id: string) {
 
 	if (exists.isErr()) {
 		apiToast(exists.error, router.push);
-        auth.setType("error");
+		auth.setType("error");
 		return;
 	}
 

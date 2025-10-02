@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {
-  DrawerContent,
-  DrawerHandle,
-  DrawerOverlay,
-  DrawerPortal,
-  DrawerRoot,
+	DrawerContent,
+	DrawerHandle,
+	DrawerOverlay,
+	DrawerPortal,
+	DrawerRoot,
 } from "vaul-vue";
 import { useAuth } from "~/utils/auth";
 import DefaultLayout from "./Default.vue";
@@ -20,26 +20,26 @@ const drawer = ref<InstanceType<typeof DrawerRoot>>();
 const layout = ref<InstanceType<typeof DefaultLayout>>();
 
 function redirect() {
-  if (ok.value) return;
+	if (ok.value) return;
 
-  forceClose.value = true;
+	forceClose.value = true;
 
-  layout.value?.transition.out.trigger().then(() => {
-    auth.clear();
-    router.push("/");
-  });
+	layout.value?.transition.out.trigger().then(() => {
+		auth.clear();
+		router.push("/");
+	});
 }
 
 function check() {
-  forceClose.value = false;
-  console.log("check", auth.admin.value.status);
+	forceClose.value = false;
+	console.log("check", auth.admin.value.status);
 
-  const path = router.currentRoute.value.path;
-  const skippable = /^\/attendance\/(.+)$/.test(path);
-  if (skippable && ok.value) return;
+	const path = router.currentRoute.value.path;
+	const skippable = /^\/attendance\/(.+)$/.test(path);
+	if (skippable && ok.value) return;
 
-  ok.value = auth.admin.value.status === "ok";
-  console.log(ok.value);
+	ok.value = auth.admin.value.status === "ok";
+	console.log(ok.value);
 }
 
 app.hook("page:finish", () => check());
@@ -49,9 +49,9 @@ onMounted(check);
 // watch(ok, (ok) => console.log(ok, forceClose.value));
 
 onMounted(() => {
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") redirect();
-  });
+	window.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") redirect();
+	});
 });
 </script>
 

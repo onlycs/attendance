@@ -65,6 +65,17 @@ pub(crate) async fn check_token(
     Ok(HttpResponse::Ok().json(res))
 }
 
+#[delete("/auth")]
+pub(crate) async fn deauthorize(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    let token = auth::parse_header(&req)?;
+    auth::deauthorize(token, &state.pg).await?;
+
+    Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
+}
+
 #[post("/roster")]
 pub(crate) async fn record(
     req: HttpRequest,

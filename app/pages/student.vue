@@ -21,7 +21,7 @@ function hours() {
 }
 
 function logout() {
-    auth.clear();
+	auth.clear();
 	transition.out.trigger({ reverse: true }).then(() => router.push("/"));
 }
 </script>
