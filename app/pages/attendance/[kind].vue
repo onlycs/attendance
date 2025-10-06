@@ -254,126 +254,126 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="header page-transition">
-    {{ title ?? "Attendance" }}
-  </div>
+	<div class="header page-transition">
+		{{ title ?? "Attendance" }}
+	</div>
 
-  <div class="container">
-    <FocusCards :animate="false" :length="1" show-text>
-      <FocusCard class="card" title="Back" :icon="`hugeicons:${backIcon}`" ref="back" @mouseenter="backHover"
-        @mouseleave="backUnhover" @click="exit" />
-    </FocusCards>
-    <div class="box" ref="main">
-      <div class="textbox">
-        <Icon name="hugeicons:mortarboard-01" :size="size" :customize="Customize.StrokeWidth(0.5)" mode="svg" />
-        Student ID
-      </div>
+	<div class="container">
+		<FocusCards :animate="false" :length="1" show-text>
+			<FocusCard class="card" title="Back" :icon="`hugeicons:${backIcon}`" ref="back" @mouseenter="backHover"
+				@mouseleave="backUnhover" @click="exit" />
+		</FocusCards>
+		<div class="box" ref="main">
+			<div class="textbox">
+				<Icon name="hugeicons:mortarboard-01" :size="size" :customize="Customize.StrokeWidth(0.5)" mode="svg" />
+				Student ID
+			</div>
 
-      <div class="form-container">
-        <SizeDependent>
-          <FormStudentId :size="screenSize === 1 ? 'md' : 'lg'" :loading="loading" @submit="roster" autofocus />
-        </SizeDependent>
-      </div>
+			<div class="form-container">
+				<SizeDependent>
+					<FormStudentId :size="screenSize === 1 ? 'md' : 'lg'" :loading="loading" @submit="roster" autofocus />
+				</SizeDependent>
+			</div>
 
-      <div />
-    </div>
-  </div>
+			<div />
+		</div>
+	</div>
 
-  <DrawerRoot should-scale-background :open="ForceFormOpen" @close="ForceFormClose">
-    <DrawerPortal>
-      <DrawerOverlay class="drawer-overlay" />
-      <DrawerContent class="dialog force">
-        <DrawerHandle class="handle" />
+	<DrawerRoot should-scale-background :open="ForceFormOpen" @close="ForceFormClose">
+		<DrawerPortal>
+			<DrawerOverlay class="drawer-overlay" />
+			<DrawerContent class="dialog force">
+				<DrawerHandle class="handle" />
 
-        <div class="title">
-          Are you sure?
-        </div>
+				<div class="title">
+					Are you sure?
+				</div>
 
-        You signed in less than three minutes ago
+				You signed in less than three minutes ago
 
 
-        <div class="buttons">
-          <Button kind="error" @click="ForceFormSubmit">
-            Sign me out!
-          </Button>
+				<div class="buttons">
+					<Button kind="error" @click="ForceFormSubmit">
+						Sign me out!
+					</Button>
 
-          <Button kind="card-2" @click="ForceFormClose">
-            Keep me in
-          </Button>
-        </div>
-      </DrawerContent>
-    </DrawerPortal>
-  </DrawerRoot>
+					<Button kind="card-2" @click="ForceFormClose">
+						Keep me in
+					</Button>
+				</div>
+			</DrawerContent>
+		</DrawerPortal>
+	</DrawerRoot>
 
-  <DrawerRoot should-scale-background :open="NewFormOpen" @close="NewFormClose">
-    <DrawerPortal>
-      <DrawerOverlay class="drawer-overlay" />
-      <DrawerContent class="dialog new">
-        <DrawerHandle class="handle" />
+	<DrawerRoot should-scale-background :open="NewFormOpen" @close="NewFormClose">
+		<DrawerPortal>
+			<DrawerOverlay class="drawer-overlay" />
+			<DrawerContent class="dialog new">
+				<DrawerHandle class="handle" />
 
-        <div class="title">
-          New Student
-        </div>
+				<div class="title">
+					New Student
+				</div>
 
-        <Form @cancel="NewFormClose" @submit="NewFormSubmit" :schema="NewFormSchema" :meta="{
-          first: {
-            title: 'First Name',
-            placeholder: 'John',
-          },
-          last: {
-            title: 'Last Name',
-            placeholder: 'Doe',
-          },
-        }" />
-      </DrawerContent>
-    </DrawerPortal>
-  </DrawerRoot>
+				<Form @cancel="NewFormClose" @submit="NewFormSubmit" :schema="NewFormSchema" :meta="{
+					first: {
+						title: 'First Name',
+						placeholder: 'John',
+					},
+					last: {
+						title: 'Last Name',
+						placeholder: 'Doe',
+					},
+				}" />
+			</DrawerContent>
+		</DrawerPortal>
+	</DrawerRoot>
 </template>
 
 <style scoped>
 @reference '~/style/tailwind.css';
 
 .container {
-  @apply flex flex-col md:flex-row justify-center items-center;
-  @apply gap-8;
+	@apply flex flex-col md:flex-row justify-center items-center;
+	@apply gap-8;
 }
 
 .box {
-  @apply relative bg-drop rounded-lg flex flex-col items-center;
-  @apply max-md:w-[calc(100%-1.5rem)] md:w-[28rem] lg:w-[36rem] xl:w-[42rem] 2xl:w-[48rem];
-  @apply md:h-full h-[24rem];
+	@apply relative bg-drop rounded-lg flex flex-col items-center;
+	@apply max-md:w-[calc(100%-1.5rem)] md:w-[28rem] lg:w-[36rem] xl:w-[42rem] 2xl:w-[48rem];
+	@apply md:h-full h-[24rem];
 }
 
 .textbox {
-  @apply flex justify-center items-center gap-6;
-  @apply mt-8 text-xl md:text-lg lg:text-xl select-none;
+	@apply flex justify-center items-center gap-6;
+	@apply mt-8 text-xl md:text-lg lg:text-xl select-none;
 }
 
 .header {
-  @apply absolute top-10;
-  @apply text-4xl max-md:hidden;
-  @apply select-none;
+	@apply absolute top-10;
+	@apply text-4xl max-md:hidden;
+	@apply select-none;
 }
 
 .form-container {
-  @apply absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+1rem)];
+	@apply absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+1rem)];
 }
 
 .dialog.force {
-  @apply h-72;
+	@apply h-72;
 
-  .title {
-    @apply mb-2;
-  }
+	.title {
+		@apply mb-2;
+	}
 
-  .buttons {
-    @apply flex flex-col gap-4;
-    @apply w-full max-md:px-8 md:w-96 mt-8;
+	.buttons {
+		@apply flex flex-col gap-4;
+		@apply w-full max-md:px-8 md:w-96 mt-8;
 
-    button {
-      @apply w-full;
-    }
-  }
+		button {
+			@apply w-full;
+		}
+	}
 }
 </style>
 
@@ -381,11 +381,11 @@ onMounted(() => {
 @reference '~/style/tailwind.css';
 
 .container>div.card-container>div.card {
-  @apply w-[calc(100%-1.5rem)] md:w-36 lg:w-42 xl:w-52 2xl:w-60;
-  @apply h-36 md:h-52 lg:h-72 xl:h-84 2xl:h-92;
+	@apply w-[calc(100%-1.5rem)] md:w-36 lg:w-42 xl:w-52 2xl:w-60;
+	@apply h-36 md:h-52 lg:h-72 xl:h-84 2xl:h-92;
 }
 
 .container>div.card-container {
-  @apply max-md:w-full;
+	@apply max-md:w-full;
 }
 </style>

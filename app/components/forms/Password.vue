@@ -89,20 +89,28 @@ watch(password, async (password) => {
 </script>
 
 <template>
-  <OTPInput v-slot="{ slots }" v-model="password" :maxlength="PASSWORD_LENGTH" inputmode="text" :pattern="Alphanumeric"
-    type="password" autocomplete="off" spellcheck="false">
-    <div class="flex">
-      <OTPSlot v-for="(slot, idx) in slots" v-bind="slot" :key="idx" :size="$props.size" hidden />
-    </div>
-    <Icon v-if="loading" name="svg-spinners:ring-resize" :class="cn('icon', icon)"
-      :customize="Customize.StrokeWidth(1.75)" mode="svg" />
-  </OTPInput>
+	<OTPInput
+		v-slot="{ slots }"
+		v-model="password"
+		:maxlength="PASSWORD_LENGTH"
+		inputmode="text"
+		:pattern="Alphanumeric"
+		type="password"
+		autocomplete="off"
+		spellcheck="false"
+	>
+		<div class="flex">
+			<OTPSlot v-for="(slot, idx) in slots" v-bind="slot" :key="idx" :size="$props.size" hidden />
+		</div>
+		<Icon v-if="loading" name="svg-spinners:ring-resize" :class="cn('icon', icon)"
+			:customize="Customize.StrokeWidth(1.75)" mode="svg" />
+	</OTPInput>
 </template>
 
 <style scoped>
 @reference '~/style/tailwind.css';
 
 .icon {
-  @apply absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+1rem)];
+	@apply absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+1rem)];
 }
 </style>

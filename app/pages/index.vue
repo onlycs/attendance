@@ -265,8 +265,6 @@ function adminSubmit() {
 }
 
 async function studentSubmit(id: string) {
-	auth.setType("student");
-
 	atEnd.value = false;
 
 	// check to make sure the student exists
@@ -276,7 +274,6 @@ async function studentSubmit(id: string) {
 
 	if (exists.isErr()) {
 		apiToast(exists.error, router.push);
-		auth.setType("error");
 		return;
 	}
 
@@ -285,11 +282,14 @@ async function studentSubmit(id: string) {
 		toast.warning(
 			"You don't have any hours logged. Come back when you get some hours!",
 		);
-		auth.clear();
+				auth.clear();
 		return;
 	}
 
-	auth.setStudent(id);
+	if (auth.student.value.status !== "ok") {
+        auth.student.value.set(id);
+	}
+
 	transition.out.trigger().then(() => router.push("/student"));
 }
 
@@ -361,8 +361,8 @@ onMounted(() => {
 @reference "~/style/tailwind.css";
 
 .form {
-	@apply absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%];
-	@apply opacity-0;
+	@apply fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%];
+	@apply opacity-0 overflow-hidden;
 	@apply bg-drop max-md:w-[calc(100%-1.5rem)] md:w-[28rem] lg:w-[36rem] xl:w-[48rem] 2xl:w-[64rem] h-[32rem] rounded-xl shadow-xl;
 	@apply flex flex-col justify-between items-center;
 }

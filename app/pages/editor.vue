@@ -1010,122 +1010,122 @@ definePageMeta({ layout: "admin-protected" });
 </script>
 
 <template>
-  <div v-if="!ready" class="loading">
-    Loading editor
-    <br />
-    This may take a while...
+	<div v-if="!ready" class="loading">
+		Loading editor
+		<br />
+		This may take a while...
 
-    <div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
-      If you notice lag, you're not going insane!
-      <br />
-      Firefox has some performance issues which
-      <br />
-      I have been pulling my hair out over.
-      <br />
-      Sorry about that, and good luck
-      <Icon name="hugeicons:favourite" class="text-red-500" size="16" />
-    </div>
-  </div>
+		<div v-if="isFirefox" class="text-[1.25rem] absolute left-1/2 -translate-x-1/2 bottom-24">
+			If you notice lag, you're not going insane!
+			<br />
+			Firefox has some performance issues which
+			<br />
+			I have been pulling my hair out over.
+			<br />
+			Sorry about that, and good luck
+			<Icon name="hugeicons:favourite" class="text-red-500" size="16" />
+		</div>
+	</div>
 
-  <div v-else-if="noData" class="loading">
-    No data (yet!)
-    <br />
-    Come back when there are
-    <br />
-    students with hours!
+	<div v-else-if="noData" class="loading">
+		No data (yet!)
+		<br />
+		Come back when there are
+		<br />
+		students with hours!
 
-    <Button kind="card" class="button" @click="$router.push('/admin?reverse=true')">
-      <Icon name="hugeicons:arrow-left-01" size="48" />
-    </Button>
-  </div>
+		<Button kind="card" class="button" @click="$router.push('/admin?reverse=true')">
+			<Icon name="hugeicons:arrow-left-01" size="48" />
+		</Button>
+	</div>
 
-  <div class="page" v-else>
-    <div class="utilities">
-      <Button kind="card" class="button exit" @click="$router.push('/admin?reverse=true')">
-        <Icon name="hugeicons:logout-02" size="22" />
-        Exit
-      </Button>
+	<div class="page" v-else>
+		<div class="utilities">
+			<Button kind="card" class="button exit" @click="$router.push('/admin?reverse=true')">
+				<Icon name="hugeicons:logout-02" size="22" />
+				Exit
+			</Button>
 
-      <Button kind="card" class="button" @click="exportCSV">
-        <Icon name="hugeicons:file-export" size="22" />
-        Export
-      </Button>
+			<Button kind="card" class="button" @click="exportCSV">
+				<Icon name="hugeicons:file-export" size="22" />
+				Export
+			</Button>
 
-      <Button :disabled="undoStack.length === 0" kind="card" class="button" @click="undo">
-        <Icon name="hugeicons:undo" size="22" />
-        Undo
-      </Button>
+			<Button :disabled="undoStack.length === 0" kind="card" class="button" @click="undo">
+				<Icon name="hugeicons:undo" size="22" />
+				Undo
+			</Button>
 
-      <Button :disabled="redoStack.length === 0" kind="card" class="button" @click="redo">
-        <Icon name="hugeicons:redo" size="22" />
-        Redo
-      </Button>
+			<Button :disabled="redoStack.length === 0" kind="card" class="button" @click="redo">
+				<Icon name="hugeicons:redo" size="22" />
+				Redo
+			</Button>
 
-      <Button v-if="!connected" kind="error-transparent" class="button" @click="reconnect">
-        <Icon name="hugeicons:connect" size="22" />
-        Reconnect
-      </Button>
+			<Button v-if="!connected" kind="error-transparent" class="button" @click="reconnect">
+				<Icon name="hugeicons:connect" size="22" />
+				Reconnect
+			</Button>
 
-      <Icon v-if="txnInProgress && connected" name="svg-spinners:ring-resize" :customize="Customize.StrokeWidth(2)"
-        mode="svg" size="22" class="ml-2" />
-    </div>
+			<Icon v-if="txnInProgress && connected" name="svg-spinners:ring-resize" :customize="Customize.StrokeWidth(2)"
+				mode="svg" size="22" class="ml-2" />
+		</div>
 
-    <div class="table-container">
-      <canvas ref="table" class="table" @wheel.prevent="canvasScroll" @click.prevent="canvasClick" />
-    </div>
+		<div class="table-container">
+			<canvas ref="table" class="table" @wheel.prevent="canvasScroll" @click.prevent="canvasClick" />
+		</div>
 
-    <div class="hideaway left vertical" />
-    <div class="hideaway right vertical end" />
-    <div class="hideaway top horizontal" />
-    <div class="hideaway bottom horizontal end" />
-  </div>
+		<div class="hideaway left vertical" />
+		<div class="hideaway right vertical end" />
+		<div class="hideaway top horizontal" />
+		<div class="hideaway bottom horizontal end" />
+	</div>
 
-  <HoverCard v-model:open="cardOpen" ref="card">
-    <Edit :entries="entries" :push="push" :hashed="hashed" :date="date" />
-  </HoverCard>
+	<HoverCard v-model:open="cardOpen" ref="card">
+		<Edit :entries="entries" :push="push" :hashed="hashed" :date="date" />
+	</HoverCard>
 </template>
 
 <style scoped>
 @reference '~/style/tailwind.css';
 
 .page {
-  @apply flex flex-col;
-  @apply w-full h-full;
+	@apply flex flex-col;
+	@apply w-full h-full;
 }
 
 .table-container {
-  @apply flex flex-row px-2 pb-2;
-  @apply flex-1 min-h-0;
+	@apply flex flex-row px-2 pb-2;
+	@apply flex-1 min-h-0;
 
-  .table {
-    @apply w-full h-full;
-  }
+	.table {
+		@apply w-full h-full;
+	}
 }
 
 .utilities {
-  @apply flex flex-row items-center;
-  @apply w-full p-2 gap-2;
+	@apply flex flex-row items-center;
+	@apply w-full p-2 gap-2;
 
-  .button {
-    @apply flex flex-row items-center gap-2;
+	.button {
+		@apply flex flex-row items-center gap-2;
 
-    &.exit {
-      @apply text-red-500;
-    }
-  }
+		&.exit {
+			@apply text-red-500;
+		}
+	}
 }
 
 .loading {
-  @apply flex flex-col justify-center items-center;
-  @apply w-full h-full;
-  @apply text-4xl select-none font-semibold text-center;
+	@apply flex flex-col justify-center items-center;
+	@apply w-full h-full;
+	@apply text-4xl select-none font-semibold text-center;
 
-  .button {
-    @apply flex justify-center items-center w-64;
-    @apply mt-8;
-    @apply text-lg;
-  }
+	.button {
+		@apply flex justify-center items-center w-64;
+		@apply mt-8;
+		@apply text-lg;
+	}
 
-  line-height: 1.25;
+	line-height: 1.25;
 }
 </style>
