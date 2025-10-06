@@ -14,5 +14,8 @@ watch(time, (t) => {
 </script>
 
 <template>
-	<TimePicker v-model:time="temporary" @submit="(t) => emit('update:time', t)" />
+	<TimePicker
+	    :time="temporary"
+		@submit="(t) => emit('update:time', t)"
+	/>
 </template>

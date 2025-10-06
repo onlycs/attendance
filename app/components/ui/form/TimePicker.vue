@@ -17,14 +17,8 @@ const etime = computed({
 		return time.value ?? temp.value;
 	},
 	set(v: Temporal.PlainTime) {
-		if (active.value >= 6) {
-			time.value = Temporal.PlainTime.from(v);
-			temp.value = Temporal.PlainTime.from(v);
-			return;
-		}
-
-		if (time.value) time.value = Temporal.PlainTime.from(v);
-		else temp.value = Temporal.PlainTime.from(v);
+		if (time.value) time.value = v;
+		else temp.value = v;
 	},
 });
 
@@ -66,7 +60,7 @@ function end() {
 function blur() {
 	if ((time.value || active.value === 6) && active.value !== 0) {
 		if (!time.value) time.value = Temporal.PlainTime.from(etime.value);
-		emit("submit", Temporal.PlainTime.from(etime.value));
+		emit("submit", Temporal.PlainTime.from(time.value));
 	}
 
 	active.value = -1;
@@ -113,7 +107,7 @@ function keypress(kp: KeyboardEvent) {
 		const h24 = etime.value.hour;
 
 		if (isA && h24 >= 12) etime.value = etime.value.with({ hour: h24 - 12 });
-		if (!isA && h24 < 12) etime.value = etime.value.with({ hour: h24 + 12 });
+		else if (!isA && h24 < 12) etime.value = etime.value.with({ hour: h24 + 12 });
 
 		return end();
 	}
@@ -138,11 +132,10 @@ function keypress(kp: KeyboardEvent) {
 		}
 	};
 
-	const tensLim = [1, 5, 5][Math.floor(active.value / 2)]!;
-	const setter = [setH12, setMinutes, setSeconds][
-		Math.floor(active.value / 2)
-	]!;
-	const ref = [hour, minute, seconds][Math.floor(active.value / 2)]!;
+    const index = Math.floor(active.value / 2);
+	const tensLim = [1, 5, 5][index]!;
+	const setter = [setH12, setMinutes, setSeconds][index]!;
+	const ref = [hour, minute, seconds][index]!;
 
 	activate(tensLim, setter, ref);
 	active.value++;
@@ -175,15 +168,15 @@ const iconClass = computed(() => {
 
 		<div class="display">
 			{{ timestr }}
-		
-			<div 
-				v-for="i in 8" 
-				:key="i - 1" 
+
+			<div
+				v-for="i in 8"
+				:key="i - 1"
 				:class="cn(
-					'line', 
+					'line',
 					i !== 8 && active === i - 1 ? 'active' : '',
 					active === 6 && i === 8 ? 'active' : ''
-				)" 
+				)"
 				:style="{
 					left: `${Math2.round(9.6 * placement(i - 1), 1)}px`
 				}"
@@ -225,7 +218,7 @@ const iconClass = computed(() => {
 	@apply absolute top-[24px] h-[1px] w-[9.6px] ;
 	@apply border-b-sub border-b border-dotted;
 	@apply transition-all duration-200;
-	
+
 	&.active {
 		@apply border-solid border-white;
 	}

@@ -23,8 +23,8 @@ function entryLabel(entry: TimeEntry) {
 	<div class="mroot">
 		<div v-for="entry in entries" class="entry" :key="entry.value.id" :id="entry.value.id">
 			<div class="header">
-				<Button 
-					kind="error-transparent" 
+				<Button
+					kind="error-transparent"
 					class="button"
 					@click="() => {
 						push({
@@ -33,7 +33,7 @@ function entryLabel(entry: TimeEntry) {
 						})
 					}"
 				>
-					<Icon 
+					<Icon
 						name="hugeicons:delete-02"
 						size="20"
 					/>
@@ -65,7 +65,7 @@ function entryLabel(entry: TimeEntry) {
 			/>
 
 			<div class="times">
-				<TimePickerModelSubmit 
+				<TimePickerModelSubmit
 					:time="entry.value.start.toPlainTime()"
 					@update:time="(time) => {
 						push({
@@ -86,7 +86,7 @@ function entryLabel(entry: TimeEntry) {
 					color="green"
 				/>
 
-				<TimePickerModelSubmit 
+				<TimePickerModelSubmit
 					:time="entry.value.end ? entry.value.end.toPlainTime() : undefined"
 					@update:time="(time) => {
 						push({
@@ -109,28 +109,26 @@ function entryLabel(entry: TimeEntry) {
 			</div>
 		</div>
 
-		<Button 
-			kind="background" 
+		<Button
+			kind="background"
 			class="button-add"
 			@click="() => {
+				const now = Temporal.Now.zonedDateTimeISO().with({
+					year: date.year,
+					month: date.month,
+					day: date.day,
+				});
+
 				push({
 					type: 'Create',
 					studentId: hashed,
-					signIn: Temporal.Now.zonedDateTimeISO().with({
-						year: date.year,
-						month: date.month,
-						day: date.day,
-					}),
-					signOut: Temporal.Now.zonedDateTimeISO().with({
-						year: date.year,
-						month: date.month,
-						day: date.day,
-					}),
+					signIn: now.with({ minute: now.minute - 5 }),
+					signOut: now,
 					hourType: 'learning',
 				})
 			}"
 		>
-			<Icon 
+			<Icon
 				name="tabler:plus"
 				size="20"
 			/>
