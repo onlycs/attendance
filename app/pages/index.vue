@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import type { FocusCard, FocusCards } from "#components";
-import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
 import { ApiClient, apiToast } from "~/utils/api";
 
 const { $gsap } = useNuxtApp();
@@ -158,6 +157,11 @@ function click(clicked: "student" | "admin") {
 
 	if (!card || !title || !container || !icon || !other || !form) return;
 
+	if (isMobile) {
+        router.push(`/mlogin/${clicked}`);
+        return;
+	}
+
 	atStart.value = false;
 	active.value = Some(clicked);
 
@@ -282,7 +286,7 @@ async function studentSubmit(id: string) {
 		toast.warning(
 			"You don't have any hours logged. Come back when you get some hours!",
 		);
-				auth.clear();
+		auth.clear();
 		return;
 	}
 

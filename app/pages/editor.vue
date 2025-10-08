@@ -1073,11 +1073,6 @@ definePageMeta({ layout: "admin-protected" });
 		<div class="table-container">
 			<canvas ref="table" class="table" @wheel.prevent="canvasScroll" @click.prevent="canvasClick" />
 		</div>
-
-		<div class="hideaway left vertical" />
-		<div class="hideaway right vertical end" />
-		<div class="hideaway top horizontal" />
-		<div class="hideaway bottom horizontal end" />
 	</div>
 
 	<HoverCard v-model:open="cardOpen" ref="card">

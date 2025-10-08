@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { Icon } from "#components";
 
-defineProps<{
+const props = defineProps<{
 	title: string;
 	icon: string;
 	customize?: (content: string) => string;
+    animate?: boolean;
+    showText?: boolean;
 }>();
 
-const animate = inject<Ref<boolean>>("animate");
-const showText = inject<Ref<boolean>>("showText");
+const animate = inject<Ref<boolean>>("animate", ref(props.animate ?? true));
+const showText = inject<Ref<boolean>>("showText", ref(props.showText ?? false));
 
 const card = ref<HTMLDivElement>();
 const icon = ref<InstanceType<typeof Icon>>();
