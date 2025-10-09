@@ -44,6 +44,8 @@ function back() {
 }
 
 onMounted(async () => {
+    await new Promise((res, _) => setTimeout(res, 150));
+
 	if (auth.student.value.status !== "ok") {
 		auth.clear();
 		redirect("/");

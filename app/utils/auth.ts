@@ -200,7 +200,7 @@ export class AuthState {
 		| { status: "ok"; id: Ref<string> }
 		| { status: "pending"; set: (id: string) => void }
 	> = computed(() => {
-		if (!this.data.token.value || !this.data.password.value)
+		if (!this.data.id.value)
 			return { status: "pending", set: this.setStudent.bind(this) };
 
 		return {
