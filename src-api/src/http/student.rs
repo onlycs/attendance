@@ -24,6 +24,13 @@ impl HoursResponse {
     }
 }
 
+#[tracing::instrument(
+    name = "student::hours",
+    skip(pg),
+    fields(id = %&id[..7]),
+    ret,
+    err
+)]
 pub(super) async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError> {
     super::roster::delete_expired(pg).await?;
 
@@ -48,9 +55,21 @@ pub(super) async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, Rout
         hours.add(record.hour_type, dt);
     }
 
+    tracing::Span::current().record("build", hours.build);
+    tracing::Span::current().record("learning", hours.learning);
+    tracing::Span::current().record("demo", hours.demo);
+    tracing::Span::current().record("offseason", hours.offseason);
+
     Ok(hours)
 }
 
+#[tracing::instrument(
+    name = "student::exists",
+    skip(pg),
+    fields(id = %&id[..7]),
+    ret,
+    err
+)]
 pub(super) async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
     let student = sqlx::query!(
         r#"

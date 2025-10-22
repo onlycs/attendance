@@ -60,12 +60,23 @@ pub struct RosterRequest {
     pub force: bool,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct RosterResponse {
     pub action: RosterAction,
     pub denied: bool,
 }
 
+#[tracing::instrument(
+    name = "roster::record",
+    skip(pg),
+    fields(
+        id = %&id[..7],
+        force = %force,
+        hour_type = %hour_type,
+    ),
+    ret,
+    err
+)]
 pub(super) async fn record(
     RosterRequest {
         id,
@@ -139,6 +150,7 @@ pub(super) async fn record(
     }
 }
 
+#[tracing::instrument(name = "roster::delete", skip(pg), err)]
 pub(super) async fn delete_expired(pg: &PgPool) -> Result<(), RouteError> {
     sqlx::query!(
         r#"

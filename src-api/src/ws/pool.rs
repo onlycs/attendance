@@ -6,7 +6,7 @@ use std::{
 use sqlx::PgPool;
 use tokio::sync::{RwLock, mpsc::UnboundedSender};
 
-use super::{session::Session, subscription::Subscription};
+use super::{Subscription, session::Session};
 use crate::ws::{WsError, editor, student_data};
 
 pub struct SubPool {

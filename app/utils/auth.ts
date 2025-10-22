@@ -44,17 +44,19 @@ export const Actions = narrow({
 	},
 } satisfies Record<string, Action>);
 
-const useSessionStorage = memoize(
-	(key: string, options?: UseStorageOptions<string | null>) => {
-		return useSessionStoragePrim(key, null as string | null, options);
-	},
-);
+const useSessionStorage = (
+	key: string,
+	options?: UseStorageOptions<string | null>,
+) => {
+	return useSessionStoragePrim(key, null as string | null, options);
+};
 
-const useLocalStorage = memoize(
-	(key: string, options?: UseStorageOptions<string | null>) => {
-		return useLocalStoragePrim(key, null as string | null, options);
-	},
-);
+const useLocalStorage = (
+	key: string,
+	options?: UseStorageOptions<string | null>,
+) => {
+	return useLocalStoragePrim(key, null as string | null, options);
+};
 
 export interface TokenStore {
 	token: string;

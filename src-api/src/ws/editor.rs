@@ -4,6 +4,7 @@ use actix_web::rt;
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use sqlx::{PgExecutor, PgPool, QueryBuilder, postgres::PgListener};
 use tokio::sync::{RwLock, mpsc};
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::{
     http::roster::HourType,
@@ -11,7 +12,7 @@ use crate::{
     ws::{WsError, message::ServerMessage, pool::SubPool, session::Session},
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 enum Operation {
     Insert,
@@ -19,7 +20,7 @@ enum Operation {
     Delete,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct PgWatchUpdate {
     operation: Operation,
     id: String,
@@ -115,6 +116,7 @@ pub enum ReplicateQuery<'a> {
     },
 }
 
+#[instrument(name = "editor_init", skip(pg))]
 async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sqlx::Error> {
     let initial =
         sqlx::query!(
@@ -127,9 +129,8 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
             .await?;
 
     info!(
-        event_type = "editor_initialization",
         record_count = initial.len(),
-        "Editor data initialization completed"
+        "Editor initialization completed"
     );
 
     let mut added_dates = Vec::new();
@@ -140,15 +141,8 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
         let time_in = record.sign_in;
         let time_out = record.sign_out;
 
-        // times are stored as utc, we can convert them to non-naive datetime
-        let time_in = time_in.and_utc();
-        let time_out = time_out.map(|t| t.and_utc());
-
-        // i want to give them back as local, i.e. America/New_York
-        let time_in = time_in.with_timezone(&Local);
-        let time_out = time_out.map(|t| t.with_timezone(&Local));
-
-        // keep track of the day this is for
+        let time_in = time_in.and_utc().with_timezone(&Local);
+        let time_out = time_out.map(|t| t.and_utc().with_timezone(&Local));
         let day = time_in.date_naive();
 
         // if we haven't seen this day before, we need to add it to every row
@@ -171,7 +165,6 @@ async fn init(pg: &PgPool) -> Result<(Vec<NaiveDate>, HashMap<String, Row>), sql
             kind: record.hour_type,
         };
 
-        // update for the student
         rows.entry(student_id.clone())
             .or_insert_with(|| Row {
                 id: student_id.clone(),
@@ -198,23 +191,23 @@ async fn add_thread(
     mut rx: mpsc::UnboundedReceiver<Session>,
     data: Arc<RwLock<HashMap<String, Row>>>,
 ) -> Result<!, sqlx::Error> {
+    info!("Editor add thread started");
+
     while let Some(mut session) = rx.recv().await {
-        // send an initial response with the current data
+        let session_id = session.id;
         let data = data.read().await;
         let rq = ReplicateQuery::Full { data: &data };
 
         if let Err(_) = session.send(ServerMessage::EditorData(&rq)).await {
-            warn!(
-                event_type = "editor_initial_send_failed",
-                session_id = %format!("{:#x}", session.id),
-                "Failed to send initial editor data to WebSocket session"
-            );
+            warn!(session_id = %format!("{:#x}", session_id), "Failed to send initial data to session");
+        } else {
+            debug!(session_id = %format!("{:#x}", session_id), "Sent initial data to session");
         }
 
         subs.write().await.insert(session.id, session);
     }
 
-    panic!("[Editor] Add thread terminated unexpectedly");
+    panic!("Editor add thread terminated unexpectedly");
 }
 
 #[allow(clippy::too_many_lines)]
@@ -226,30 +219,24 @@ async fn watch_thread(
     let mut watcher = PgListener::connect(&env::var("DATABASE_URL")?).await?;
     watcher.listen("record_update").await?;
 
-    info!(
-        event_type = "editor_db_listener_started",
-        "Editor database listener started for roster updates"
-    );
+    info!("Editor watch thread started, listening for roster updates");
 
     while let Ok(notification) = watcher.recv().await {
         let payload = notification.payload();
-
-        debug!(
-            event_type = "editor_db_notification",
-            "Database notification received for roster update"
-        );
 
         // parse the payload as a JSON string
         let change: PgWatchUpdate = match serde_json::from_str(payload) {
             Ok(change) => change,
             Err(_) => {
-                warn!(
-                    event_type = "editor_notification_parse_failed",
-                    "Failed to parse database notification payload"
-                );
+                warn!("Failed to parse database notification payload");
                 continue;
             }
         };
+
+        debug!(
+            change = ?change,
+            "Database notification received for roster update"
+        );
 
         let sign_in = change.sign_in.and_utc().with_timezone(&Local);
         let sign_out = change.sign_out.map(|t| t.and_utc().with_timezone(&Local));
@@ -260,11 +247,7 @@ async fn watch_thread(
             Operation::Delete => {
                 let mut rows = data.write().await;
                 let Some(row) = rows.get_mut(&change.student_id) else {
-                    warn!(
-                        event_type = "editor_unknown_student_delete",
-                        student_id_prefix = %&change.student_id[..7],
-                        "Received delete operation for unknown student"
-                    );
+                    warn!(student_id_prefix = %&change.student_id[..7], "Delete for unknown student");
                     continue;
                 };
 
@@ -273,15 +256,13 @@ async fn watch_thread(
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        event_type = "editor_unknown_date_delete",
                         student_id_prefix = %&change.student_id[..7],
                         date = %day,
-                        "Received delete operation for unknown date"
+                        "Delete for unknown date"
                     );
                     continue;
                 };
 
-                // remove the entry for this date
                 entries.remove(&change.id);
 
                 rq = ReplicateQuery::Delete {
@@ -333,24 +314,20 @@ async fn watch_thread(
                 }
 
                 let Some(row) = rows.get_mut(&change.student_id) else {
-                    warn!(
-                        event_type = "editor_unknown_student_insert",
-                        student_id_prefix = %&change.student_id[..7],
-                        "Received insert operation for unknown student"
-                    );
+                    warn!(student_id_prefix = %&change.student_id[..7], "Insert for unknown student");
                     continue;
                 };
 
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        "Received insert operation for student {:.7} on unknown date: {day}",
-                        &change.student_id,
+                        student_id_prefix = %&change.student_id[..7],
+                        date = %day,
+                        "Insert for unknown date"
                     );
                     continue;
                 };
 
-                // create a new time entry for this change
                 let entry = TimeEntry {
                     id: change.id,
                     start: sign_in,
@@ -358,7 +335,6 @@ async fn watch_thread(
                     kind: change.kind,
                 };
 
-                // add the entry for this date
                 entries.insert(entry.id.clone(), entry.clone());
 
                 rq = ReplicateQuery::Create {
@@ -370,10 +346,7 @@ async fn watch_thread(
             Operation::Update => {
                 let mut rows = data.write().await;
                 let Some(row) = rows.get_mut(&change.student_id) else {
-                    warn!(
-                        "Received update operation for unknown student: {:.7}",
-                        change.student_id
-                    );
+                    warn!(student_id_prefix = %&change.student_id[..7], "Update for unknown student");
                     continue;
                 };
 
@@ -382,8 +355,9 @@ async fn watch_thread(
                 let Some(Cell { entries, .. }) = row.cells.iter_mut().find(|cell| cell.date == day)
                 else {
                     warn!(
-                        "Received update operation for student {:.7} on unknown date: {day}",
-                        change.student_id
+                        student_id_prefix = %&change.student_id[..7],
+                        date = %day,
+                        "Update for unknown date"
                     );
                     continue;
                 };
@@ -403,10 +377,10 @@ async fn watch_thread(
                     entry.kind = change.kind;
                 } else {
                     warn!(
-                        "Received update operation for student {} on date {} with unknown id: {}",
-                        &change.student_id[..7],
-                        day,
-                        &change.id[..7]
+                        student_id_prefix = %&change.student_id[..7],
+                        date = %day,
+                        id_prefix = %&change.id[..7],
+                        "Update for unknown entry"
                     );
                 }
 
@@ -420,8 +394,12 @@ async fn watch_thread(
         }
 
         let mut subs = subs.write().await;
+        let sub_count = subs.len();
 
-        info!("[Editor] Broadcasting update to {} subscribers", subs.len());
+        debug!(
+            subscriber_count = sub_count,
+            "Broadcasting update to subscribers"
+        );
 
         // send the update to all subscribers
         let futures = subs
@@ -432,12 +410,23 @@ async fn watch_thread(
             .await
             .into_iter()
             .filter_map(Result::err)
-            .for_each(|err| error!("[Editor] Failed to send update message: {err}"));
+            .for_each(|err| error!(error = %err, "Failed to send update message"));
     }
 
-    panic!("[Editor] Watch thread terminated unexpectedly");
+    panic!("Watch thread terminated unexpectedly");
 }
 
+#[instrument(
+    name = "editor_process_update",
+    skip(pg, pool, query),
+    fields(
+        query_type = tracing::field::Empty,
+        student_id = tracing::field::Empty,
+        entry_id = tracing::field::Empty,
+        hour_type = tracing::field::Empty,
+        update_count = tracing::field::Empty,
+    )
+)]
 async fn process_update(
     pg: impl PgExecutor<'_>,
     pool: &PgPool,
@@ -450,6 +439,10 @@ async fn process_update(
             sign_out,
             hour_type,
         } => {
+            tracing::Span::current().record("query_type", "create");
+            tracing::Span::current().record("student_id", &student_id[..7]);
+            tracing::Span::current().record("hour_type", format!("{:?}", hour_type).as_str());
+
             sqlx::query!(
                 r#"
                 INSERT INTO records (id, student_id, in_progress, sign_in, sign_out, hour_type)
@@ -469,6 +462,10 @@ async fn process_update(
             id: entry_id,
             updates,
         } => {
+            tracing::Span::current().record("query_type", "update");
+            tracing::Span::current().record("entry_id", &entry_id[..7]);
+            tracing::Span::current().record("update_count", updates.len());
+
             let mut query = QueryBuilder::new("UPDATE records SET ");
 
             for (i, update) in updates.iter().enumerate() {
@@ -503,6 +500,9 @@ async fn process_update(
             query.build().execute(pg).await?;
         }
         UpdateQuery::Delete { id } => {
+            tracing::Span::current().record("query_type", "delete");
+            tracing::Span::current().record("entry_id", &id[..7]);
+
             sqlx::query!(
                 r#"
                     DELETE FROM records
@@ -514,6 +514,8 @@ async fn process_update(
             .await?;
         }
         UpdateQuery::Batch(mut queries) => {
+            tracing::Span::current().record("query_type", "batch");
+
             queries = queries
                 .into_iter()
                 .flat_map(|q| match q {
@@ -521,6 +523,8 @@ async fn process_update(
                     other => vec![other],
                 })
                 .collect();
+
+            debug!(batch_size = queries.len(), "Processing batch");
 
             let mut tx = pool.begin().await.unwrap();
 
@@ -540,11 +544,13 @@ async fn update_thread(
     subscriptions: Arc<RwLock<HashMap<u64, Session>>>,
     mut rx: mpsc::UnboundedReceiver<(String, u64)>,
 ) -> ! {
+    info!("Editor update thread started");
+
     while let Some((message, session_id)) = rx.recv().await {
         let query: UpdateQuery = match serde_json::from_str(&message) {
             Ok(data) => data,
             Err(err) => {
-                error!("[Editor] Failed to deserialize message: {err}");
+                error!(error = %err, session_id = %format!("{:#x}", session_id), "Failed to deserialize message");
                 continue;
             }
         };
@@ -576,12 +582,12 @@ async fn update_thread(
             }
         }
 
-        error!("[Editor] Failed to process update: {err}");
-        warn!("[Editor] Sent error response to session {session_id}: {hr_error}");
+        error!(error = %err, session_id = %format!("{:#x}", session_id), "Failed to process update");
+        warn!(session_id = %format!("{:#x}", session_id), error_type = ?hr_error, "Sent error response to session");
 
         let mut subs = subscriptions.write().await;
         let Some(session) = subs.get_mut(&session_id) else {
-            warn!("[Editor] Could not find session {session_id} to send error response");
+            warn!(session_id = %format!("{:#x}", session_id), "Could not find session to send error response");
             continue;
         };
 
@@ -592,24 +598,28 @@ async fn update_thread(
             })
             .await
         {
-            error!("[Editor] Failed to send error message: {err}");
+            error!(error = %err, session_id = %format!("{:#x}", session_id), "Failed to send error message");
         }
     }
 
-    panic!("[Editor] Update thread terminated unexpectedly");
+    panic!("Update thread terminated unexpectedly");
 }
 
 async fn remove_thread(
     subs: Arc<RwLock<HashMap<u64, Session>>>,
     mut rx: mpsc::UnboundedReceiver<u64>,
 ) -> ! {
+    info!("Editor remove thread started");
+
     while let Some(id) = rx.recv().await {
+        debug!(session_id = %format!("{:#x}", id), "Removing session");
         subs.write().await.remove(&id);
     }
 
-    panic!("[Editor] Remove thread terminated unexpectedly");
+    panic!("Editor remove thread terminated unexpectedly");
 }
 
+#[instrument(name = "editor_pool_init", skip(pg))]
 pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, remove_rx) = mpsc::unbounded_channel();
@@ -627,11 +637,7 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         let pool_update = Arc::clone(&pg);
 
         let (dates, data) = init(&pg).await.unwrap_or_else(|err| {
-            error!(
-                event_type = "editor_init_failed",
-                error = %err,
-                "Failed to initialize editor roster data"
-            );
+            error!(error = %err, "Failed to initialize editor roster data");
             (Vec::new(), HashMap::new())
         });
 

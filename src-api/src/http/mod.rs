@@ -59,6 +59,13 @@ pub(crate) async fn check_token(
     req: HttpRequest,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
+    info!(
+        event_type = "request",
+        path = "/auth/valid",
+        method = "get",
+        "Requested token validation"
+    );
+
     let token = auth::parse_header(&req)?;
     let res = auth::check(token, &state.pg).await?;
 
@@ -70,6 +77,13 @@ pub(crate) async fn deauthorize(
     req: HttpRequest,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
+    info!(
+        event_type = "request",
+        path = "/auth",
+        method = "delete",
+        "Requested token deauthorization"
+    );
+
     let token = auth::parse_header(&req)?;
     auth::deauthorize(token, &state.pg).await?;
 
@@ -82,6 +96,13 @@ pub(crate) async fn record(
     body: web::Json<RosterRequest>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
+    info!(
+        event_type = "request",
+        path = "/roster",
+        method = "post",
+        "Entry submitted to roster"
+    );
+
     auth::check_throw(&auth::parse_header(&req)?, &state.pg).await?;
     let res = roster::record(body.into_inner(), &state.pg).await?;
 

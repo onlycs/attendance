@@ -3,7 +3,6 @@ mod message;
 mod pool;
 mod session;
 mod student_data;
-mod subscription;
 
 use std::{backtrace::Backtrace, panic::Location};
 
@@ -14,8 +13,15 @@ use message::ClientMessage;
 use pool::SubPools;
 use session::Session;
 use thiserror::Error;
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::{AppState, http::auth, prelude::*, ws::message::ServerMessage};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub enum Subscription {
+    StudentData,
+    Editor,
+}
 
 #[serde_as]
 #[derive(Error, Debug, Serialize)]
@@ -70,26 +76,22 @@ pub enum WsError {
     Auth,
 }
 
+#[instrument(name = "ws_handler", skip(req, stream, state))]
 pub(crate) async fn ws(
     req: HttpRequest,
     stream: web::Payload,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    // setup stream
     let (res, session, stream) = actix_ws::handle(&req, stream)?;
 
     let mut stream = stream
         .aggregate_continuations()
         .max_continuation_size(2usize.pow(20));
 
-    // setup session
     let mut session = Session::new(session).await;
 
-    info!(
-        event_type = "websocket_connection_opened",
-        session_id = %format!("{:#x}", session.id),
-        "WebSocket connection established"
-    );
+    info!(session_id = %format!("{:#x}", session.id), "WebSocket connection established");
+
     rt::spawn(async move {
         let mut auth_token = None;
 
@@ -98,11 +100,11 @@ pub(crate) async fn ws(
                 match msg {
                     Ok(AggregatedMessage::Text(msg)) => {
                         let message = serde_json::from_slice::<ClientMessage>(msg.as_bytes())?;
+
                         debug!(
-                            event_type = "websocket_message_received",
                             session_id = %format!("{:#x}", session.id),
                             message_type = ?std::mem::discriminant(&message),
-                            "WebSocket message received"
+                            "Message received"
                         );
 
                         match message {
@@ -113,20 +115,15 @@ pub(crate) async fn ws(
 
                                 auth_token = Some(token);
 
-                                info!(
-                                    event_type = "websocket_authenticated",
-                                    session_id = %format!("{:#x}", session.id),
-                                    "WebSocket session authenticated"
-                                );
+                                info!(session_id = %format!("{:#x}", session.id), "Session authenticated");
 
                                 let res = serde_json::to_string(&ServerMessage::AuthenticateOk)?;
 
                                 if session.text(res).await.is_err() {
                                     warn!(
-                                        event_type = "websocket_send_failed",
                                         session_id = %format!("{:#x}", session.id),
                                         message_type = "AuthenticateOk",
-                                        "WebSocket closed while sending response"
+                                        "Connection closed while sending response"
                                     );
                                 }
                             }
@@ -144,10 +141,9 @@ pub(crate) async fn ws(
 
                                 if pool.sessions.read().await.contains_key(&session.id) {
                                     warn!(
-                                        event_type = "websocket_duplicate_subscription",
                                         session_id = %format!("{:#x}", session.id),
                                         subscription = ?sub,
-                                        "WebSocket attempted duplicate subscription"
+                                        "Attempted duplicate subscription"
                                     );
                                     return Ok(());
                                 }
@@ -155,10 +151,9 @@ pub(crate) async fn ws(
                                 pool.add.send(session.clone()).map_err(|_| WsError::Send)?;
 
                                 info!(
-                                    event_type = "websocket_subscribed",
                                     session_id = %format!("{:#x}", session.id),
                                     subscription = ?sub,
-                                    "WebSocket subscribed to service"
+                                    "Subscribed to service"
                                 );
                             }
 
@@ -183,11 +178,7 @@ pub(crate) async fn ws(
                     Ok(AggregatedMessage::Close(_)) => {
                         SubPools::instance().remove_all(session.id).await?;
 
-                        info!(
-                            event_type = "websocket_connection_closed",
-                            session_id = %format!("{:#x}", session.id),
-                            "WebSocket connection closed"
-                        );
+                        info!(session_id = %format!("{:#x}", session.id), "Connection closed");
                     }
                     _ => {}
                 }
@@ -202,18 +193,16 @@ pub(crate) async fn ws(
                     meta: error,
                 }) else {
                     error!(
-                        event_type = "websocket_error_serialization_failed",
                         session_id = %format!("{:#x}", session.id),
-                        "Failed to serialize WebSocket error message"
+                        "Failed to serialize error message"
                     );
                     continue;
                 };
 
                 if session.text(res).await.is_err() {
                     warn!(
-                        event_type = "websocket_error_send_failed",
                         session_id = %format!("{:#x}", session.id),
-                        "WebSocket closed while sending error response"
+                        "Connection closed while sending error response"
                     );
                 }
             }

@@ -2,7 +2,7 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::subscription::Subscription;
+use super::Subscription;
 use crate::ws::{WsError, editor::ReplicateQuery};
 
 #[derive(Clone, PartialEq, Eq, Deserialize)]

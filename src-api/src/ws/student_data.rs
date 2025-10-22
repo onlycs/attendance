@@ -3,10 +3,12 @@ use std::{collections::HashMap, sync::Arc};
 use actix_web::rt;
 use sqlx::PgPool;
 use tokio::sync::{RwLock, mpsc};
+use tracing::{debug, error, info, instrument, warn};
 
 use super::session::Session;
 use crate::ws::{message::ServerMessage, pool::SubPool};
 
+#[instrument(name = "student_data_pool_init", skip(pg))]
 pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
     let (add_tx, mut add_rx) = mpsc::unbounded_channel::<Session>();
     let (remove_tx, mut remove_rx) = mpsc::unbounded_channel();
@@ -24,17 +26,17 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         let subscriptions_add = Arc::clone(&subscriptions);
         let subscriptions_remove = Arc::clone(&subscriptions);
         let subscriptions_update = Arc::clone(&subscriptions);
-
         let pool_add = pg;
         let pool_update = Arc::clone(&pool_add);
 
         rt::spawn(async move {
+            info!("Student data add thread started");
+
             loop {
                 let Some(mut session) = add_rx.recv().await else {
                     continue;
                 };
 
-                // send an initial response with the current data
                 let data = sqlx::query!(
                     r#"
                     SELECT student_data FROM cryptstore
@@ -50,9 +52,13 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
 
                 if let Err(_) = session.send(ServerMessage::StudentData(data)).await {
                     warn!(
-                        event_type = "student_data_initial_send_failed",
                         session_id = %format!("{:#x}", session.id),
-                        "Failed to send initial student data to WebSocket session"
+                        "Failed to send initial student data to session"
+                    );
+                } else {
+                    debug!(
+                        session_id = %format!("{:#x}", session.id),
+                        "Sent initial student data to session"
                     );
                 }
 
@@ -65,12 +71,17 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
         });
 
         rt::spawn(async move {
+            info!("Student data remove thread started");
+
             while let Some(to_remove) = remove_rx.recv().await {
+                debug!(session_id = %format!("{:#x}", to_remove), "Removing session");
                 subscriptions_remove.write().await.remove(&to_remove);
             }
         });
 
         rt::spawn(async move {
+            info!("Student data update thread started");
+
             loop {
                 let Some((data, _)) = update_rx.recv().await else {
                     continue;
@@ -88,19 +99,22 @@ pub fn pool(pg: Arc<PgPool>) -> Arc<SubPool> {
                 .execute(&*pool_update)
                 .await
                 {
-                    error!(
-                        event_type = "student_data_db_update_failed",
-                        error = %err,
-                        "Failed to update student data in database"
-                    );
+                    error!(error = %err, "Failed to update student data in database");
                 }
 
-                for session in subscriptions_update.write().await.values_mut() {
+                let mut subs = subscriptions_update.write().await;
+                let sub_count = subs.len();
+
+                debug!(
+                    subscriber_count = sub_count,
+                    "Broadcasting student data update"
+                );
+
+                for session in subs.values_mut() {
                     if let Err(_) = session.send(ServerMessage::StudentData(data.clone())).await {
                         warn!(
-                            event_type = "student_data_update_send_failed",
                             session_id = %format!("{:#x}", session.id),
-                            "Failed to send student data update to WebSocket session"
+                            "Failed to send student data update to session"
                         );
                     }
                 }

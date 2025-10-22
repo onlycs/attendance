@@ -284,7 +284,7 @@ defineExpose({ transition: controls });
 @reference "~/style/tailwind.css";
 
 #content {
-  @apply flex-1;
+  @apply flex-1 overflow-hidden;
   @apply flex flex-col justify-center items-center;
   @apply bg-background;
   @apply w-full;

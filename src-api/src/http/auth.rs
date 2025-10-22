@@ -83,10 +83,19 @@ pub(super) async fn register_finish(
     Ok(())
 }
 
+#[tracing::instrument(name = "auth::login::start", skip(pg), err)]
 pub(super) async fn login_start(pg: &PgPool) -> Result<LoginStartResponse, RouteError> {
+    info!("Starting login flow");
+
     let auth_info = sqlx::query!(r#"SELECT salt, verifier FROM cryptstore"#)
         .fetch_one(pg)
         .await?;
+
+    debug!(
+        salt_len = auth_info.salt.len(),
+        verifier_len = auth_info.verifier.len(),
+        "SRP: Fetched authentication information"
+    );
 
     let mut b = [0u8; 64];
     rng().fill_bytes(&mut b);
@@ -104,21 +113,46 @@ pub(super) async fn login_start(pg: &PgPool) -> Result<LoginStartResponse, Route
     .execute(pg)
     .await?;
 
+    debug!(
+        b_len = b_pub.len(),
+        "SRP: Created and updated random ephemeral"
+    );
+
     Ok(LoginStartResponse {
         salt: hex::encode(auth_info.salt),
         b: hex::encode(b_pub),
     })
 }
 
+#[tracing::instrument(
+    name = "auth::login::finish",
+    skip(pg, a, m1),
+    fields(
+        a_length = a.len(),
+        m1_length = m1.len(),
+        token = tracing::field::Empty,
+        expires = tracing::field::Empty,
+    ),
+    err
+)]
 pub(super) async fn login_finish(
     LoginFinishRequest { a, m1 }: LoginFinishRequest,
     pg: &PgPool,
 ) -> Result<LoginFinishResponse, RouteError> {
+    info!("Finishing login flow");
+
     let auth_info = sqlx::query!(r#"SELECT salt, verifier, b FROM cryptstore"#)
         .fetch_one(pg)
         .await?;
 
+    debug!(
+        salt_len = auth_info.salt.len(),
+        verifier_len = auth_info.verifier.len(),
+        "SRP: Fetched authentication information"
+    );
+
     let Some(b) = auth_info.b else {
+        warn!("Login finish called without prior login_start - no 'b' value found");
         return Err(RouteError::BadAuth);
     };
 
@@ -126,7 +160,10 @@ pub(super) async fn login_finish(
     let v = server.process_reply(&b, &auth_info.verifier, &hex::decode(a)?)?;
     v.verify_client(&hex::decode(m1)?)?;
 
+    info!("Successfully authenticated client");
+
     let token = cuid2();
+    tracing::Span::current().record("token", &token.as_str());
 
     sqlx::query!(
         r#"
@@ -153,6 +190,10 @@ pub(super) async fn login_finish(
         .and_utc()
         .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
+    tracing::Span::current().record("expires", &fmt.as_str());
+
+    info!("Login finish completed successfully");
+
     Ok(LoginFinishResponse {
         token,
         expires: fmt,
@@ -160,20 +201,24 @@ pub(super) async fn login_finish(
     })
 }
 
+#[tracing::instrument(name = "auth::deauthorize", skip(pg), err)]
 pub(super) async fn deauthorize(token: String, pg: &PgPool) -> Result<(), RouteError> {
     sqlx::query!(
         r#"
         DELETE FROM tokens
         WHERE token = $1
-     "#,
+        "#,
         token
     )
     .execute(pg)
     .await?;
 
+    info!("Token deauthorized");
+
     Ok(())
 }
 
+#[tracing::instrument(name = "auth::check", skip(pg), ret, err)]
 pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError> {
     let token = token.trim_start_matches("Bearer ");
 

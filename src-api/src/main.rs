@@ -6,8 +6,8 @@
 extern crate tracing;
 
 pub mod error;
+pub mod headers;
 pub mod http;
-pub mod middleware;
 pub mod prelude;
 pub mod serde;
 pub mod ws;
@@ -22,12 +22,10 @@ use actix_web::{
 };
 use dotenvy::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
-use tracing::level_filters::LevelFilter;
+use tracing_actix_web::TracingLogger;
+use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{
-    middleware::{ErrorLog, RequestLog, SecurityHeaders},
-    prelude::*,
-};
+use crate::{headers::SecurityHeaders, prelude::*};
 
 pub struct AppState {
     pub pg: Arc<PgPool>,
@@ -35,24 +33,21 @@ pub struct AppState {
 
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
-    if cfg!(debug_assertions) {
-        // Development: pretty formatted logs with debug level
-        tracing_subscriber::fmt()
-            .pretty()
-            .with_max_level(LevelFilter::DEBUG)
-            .with_thread_names(true)
-            .with_level(true)
-            .init();
-    } else {
-        // Production: one-line compact logs for better parsing and OWASP compliance
-        tracing_subscriber::fmt()
-            .compact()
-            .with_max_level(LevelFilter::INFO)
-            .with_target(false)
-            .with_thread_names(false)
-            .init();
-    }
+    #[cfg(debug_assertions)]
+    const LOG_LEVEL: tracing::Level = tracing::Level::DEBUG;
+    #[cfg(not(debug_assertions))]
+    const LOG_LEVEL: tracing::Level = tracing::Level::INFO;
 
+    #[cfg(debug_assertions)]
+    let fmt = tracing_subscriber::fmt::layer().pretty();
+    #[cfg(not(debug_assertions))]
+    let fmt = tracing_subscriber::fmt::layer().json();
+
+    let filter = Targets::new()
+        .with_default(LOG_LEVEL)
+        .with_target("sqlx", tracing::Level::WARN);
+
+    tracing_subscriber::registry().with(filter).with(fmt).init();
     dotenv().ok();
 
     let pool = Arc::new(
@@ -80,8 +75,7 @@ async fn main() -> Result<(), InitError> {
         App::new()
             .wrap(cors)
             .wrap(Governor::new(&gov))
-            .wrap(ErrorLog)
-            .wrap(RequestLog)
+            .wrap(TracingLogger::default())
             .wrap(SecurityHeaders)
             .app_data(Data::new(AppState { pg }))
             .service(http::index)
@@ -89,6 +83,7 @@ async fn main() -> Result<(), InitError> {
             .service(http::register_finish)
             .service(http::login_start)
             .service(http::login_finish)
+            .service(http::deauthorize)
             .service(http::student_hours)
             .service(http::student_exists)
             .service(http::record)
