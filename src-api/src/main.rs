@@ -45,7 +45,7 @@ async fn main() -> Result<(), InitError> {
 
     let filter = Targets::new()
         .with_default(LOG_LEVEL)
-        .with_target("sqlx", tracing::Level::WARN);
+        .with_target("sqlx", tracing::Level::DEBUG);
 
     tracing_subscriber::registry().with(filter).with(fmt).init();
     dotenv().ok();

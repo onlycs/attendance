@@ -49,8 +49,8 @@ pub struct ReplicateEntryAdd {
 #[serde(tag = "key", content = "value", rename_all = "lowercase")]
 pub enum EntryFieldUpdate {
     Kind(HourType),
-    Start(DateTime<Local>),
-    End(Option<DateTime<Local>>),
+    Start(#[serde(with = "chrono_temporal")] DateTime<Local>),
+    End(#[serde(with = "chrono_temporal::optional")] Option<DateTime<Local>>),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

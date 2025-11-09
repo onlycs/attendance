@@ -46,7 +46,7 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useAgData(data: ComputedRef<Student[]>) {
+export function useAgData(data: Ref<Student[]>) {
     const ag = computedWithControl(data, () => {
         const students = data.value;
         if (students.length === 0) {
@@ -86,42 +86,50 @@ export function useAgData(data: ComputedRef<Student[]>) {
                     ...students[0]!.cells.map((cell) => ({
                         field: cell.date.toJSON(),
                         headerName: dateFmt(cell.date),
-                        columnGroupShow: "open" as const,
                         cellRenderer: "Dropdown",
                         sortable: false,
                         filter: false,
                     })),
+                ],
+            },
+            {
+                headerName: "Totals",
+                children: [
                     {
                         field: "offseason",
                         headerName: "Offseason",
-                        columnGroupShow: "closed",
+                        columnGroupShow: "open",
+                        pinned: "right",
                         valueFormatter: hourFormat,
                     },
                     {
                         field: "build",
                         headerName: "Build",
-                        columnGroupShow: "closed",
+                        columnGroupShow: "open",
+                        pinned: "right",
                         valueFormatter: hourFormat,
                     },
                     {
                         field: "learning",
                         headerName: "Learning",
-                        columnGroupShow: "closed",
+                        columnGroupShow: "open",
+                        pinned: "right",
                         valueFormatter: hourFormat,
                     },
                     {
                         field: "demo",
                         headerName: "Outreach",
-                        columnGroupShow: "closed",
+                        columnGroupShow: "open",
+                        pinned: "right",
+                        valueFormatter: hourFormat,
+                    },
+                    {
+                        field: "total",
+                        headerName: "Total",
+                        pinned: "right",
                         valueFormatter: hourFormat,
                     },
                 ],
-            },
-            {
-                field: "total",
-                headerName: "Total",
-                pinned: "right",
-                valueFormatter: hourFormat,
             },
         ] as const;
 

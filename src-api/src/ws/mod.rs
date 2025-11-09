@@ -88,6 +88,7 @@ pub(crate) async fn ws(
                 warn!(
                     session_id = %format!("{:#x}", session.id()),
                     error = %format!("{error}"),
+                    dbg = ?error,
                     "Websocket error occurred, sending error response"
                 );
 

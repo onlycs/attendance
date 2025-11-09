@@ -8,7 +8,7 @@ import type { Entry } from "~/utils/zodws/schema/table";
 defineProps<{
     hashed: string;
     date: Temporal.PlainDate;
-    entries: Array<Entry>;
+    entries: Entry[];
     push: (repl: ReplicationOutgoing) => void;
 }>();
 
@@ -23,7 +23,7 @@ function entryLabel(entry: Entry) {
 <template>
     <div class="mroot">
         <div
-            v-for="entry in entries"
+            v-for="entry in $props.entries"
             class="entry"
             :key="entry.id"
             :id="entry.id"

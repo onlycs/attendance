@@ -5,30 +5,30 @@ import type { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import { AgGridVue } from "ag-grid-vue3";
 import { Temporal } from "temporal-polyfill";
 import { type AgRow, Theme } from "~/composables/useAgData";
+import type { Entry } from "~/utils/zodws/schema/table";
 
 const router = useRouter();
 const auth = useAuth();
 
-const loading = ref(false);
-
-const { send, data, ready, reconnect } = useTable({
+const { send, data, ready, reconnect, update } = useTable({
     auth,
     router,
-    loading,
 });
 const { columns, rows } = useAgData(data);
 
 const hashed = ref("");
 const date = ref<Temporal.PlainDate>(Temporal.Now.plainDateISO());
 const open = ref(false);
-const entries = computed(() => {
-    const student = data.value.find((s) => s.hashed === hashed.value);
+const entries = ref<Entry[]>([]);
+
+watch([data, hashed, date], ([data, hashed, date]) => {
+    const student = data.find((s) => s.hashed === hashed);
     if (!student) return [];
 
-    const cell = student.cells.find((c) => c.date.equals(date.value));
+    const cell = student.cells.find((c) => c.date.equals(date));
     if (!cell) return [];
 
-    return cell.entries;
+    entries.value = cell.entries;
 });
 
 function card(row: AgRow, col: ColDef<AgRow>) {
@@ -170,15 +170,6 @@ defineExpose({ Dropdown });
                 <Icon name="hugeicons:connect" size="22" />
                 Reconnect
             </Button>
-
-            <Icon
-                v-if="loading"
-                name="svg-spinners:ring-resize"
-                :customize="Customize.StrokeWidth(2)"
-                mode="svg"
-                size="22"
-                class="ml-2"
-            />
         </div>
 
         <div class="table-container">
@@ -191,7 +182,7 @@ defineExpose({ Dropdown });
                     resizable: true,
                     sortable: true,
                     filter: true,
-                    suppressMovable: false,
+                    suppressMovable: true,
                 }"
                 @cellValueChanged="edit"
             ></AgGridVue>
@@ -199,7 +190,13 @@ defineExpose({ Dropdown });
     </div>
 
     <HoverCard v-model:open="open">
-        <Edit :entries="entries" :push="send" :hashed="hashed" :date="date" />
+        <Edit
+            :key="update"
+            :entries="entries"
+            :push="send"
+            :hashed="hashed"
+            :date="date"
+        />
     </HoverCard>
 </template>
 

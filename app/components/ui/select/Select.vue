@@ -1,6 +1,4 @@
-<script setup lang="ts" generic="
-    Options extends Record<string, string>,
-">
+<script setup lang="ts" generic="Options extends Record<string, string>">
 defineProps<{
     options: Options;
 }>();

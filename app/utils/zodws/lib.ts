@@ -160,6 +160,11 @@ export class ZodWsClient<Api extends ZodWsApi, Status extends ClientStatus> {
         );
     }
 
+    close() {
+        this.socket.onclose = null;
+        this.socket.close();
+    }
+
     reconnect() {
         if (this.socket?.readyState === WebSocket.OPEN) return;
         this.socket = new WebSocket(this.url, []);

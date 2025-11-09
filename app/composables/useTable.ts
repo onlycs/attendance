@@ -20,18 +20,15 @@ export interface Student {
 interface TableProps {
     auth: AuthState;
     router: ReturnType<typeof useRouter>;
-    loading: Ref<boolean>;
 }
 
-export function useTable({ auth, router, loading }: TableProps) {
+export function useTable({ auth, router }: TableProps) {
     const creds = computed(() => {
         const admin = auth.admin.value;
         return admin.status === "ok" ? admin : undefined;
     });
 
     const data: Student[] = [];
-    const applied: ReplicationOutgoing[] = [];
-    const unapplied: ReplicationOutgoing[] = [];
     const update = ref(0);
     const ready = {
         ok: ref(false),
@@ -40,22 +37,10 @@ export function useTable({ auth, router, loading }: TableProps) {
         progressmax: ref(2),
     };
 
-    async function apply(
-        repl: ReplicationIncoming,
-        bucket: ReplicationOutgoing[] = applied,
-        clearRedo: boolean = true,
-    ) {
-        async function inner(
-            repl: ReplicationIncoming,
-            bucket: ReplicationOutgoing[] = applied,
-            clearRedo: boolean = true,
-        ) {
+    async function apply(repl: ReplicationIncoming) {
+        async function inner(repl: ReplicationIncoming) {
             const cryptkey = creds.value?.password.value;
             if (!cryptkey) return;
-
-            if (clearRedo) {
-                unapplied.splice(0, unapplied.length);
-            }
 
             if (repl.type === "Full") {
                 ready.task.value = "Decrypting student data";
@@ -107,11 +92,6 @@ export function useTable({ auth, router, loading }: TableProps) {
                     cells: repl.cells,
                 });
 
-                bucket.push({
-                    type: "DeleteStudent",
-                    hashed: repl.student.hashed,
-                });
-
                 return;
             }
 
@@ -119,31 +99,20 @@ export function useTable({ auth, router, loading }: TableProps) {
                 const student = data.find((s) => s.hashed === repl.hashed);
                 if (!student) return;
 
-                const undos: z.output<typeof StudentFieldUpdateSchema>[] = [];
                 const incoming = repl.updates;
 
                 for (const update of incoming) {
                     if (update.key === "first") {
-                        undos.push({
-                            key: "first",
-                            value: student.first,
-                        });
-                        student.first = update.value;
+                        student.first = await Crypt.decrypt(
+                            update.value,
+                            cryptkey,
+                        );
                     } else if (update.key === "last") {
-                        undos.push({
-                            key: "last",
-                            value: student.last,
-                        });
-                        student.last = update.value;
+                        student.last = await Crypt.decrypt(
+                            update.value,
+                            cryptkey,
+                        );
                     }
-                }
-
-                if (undos.length > 0) {
-                    bucket.push({
-                        type: "UpdateStudent",
-                        hashed: repl.hashed,
-                        updates: undos,
-                    });
                 }
 
                 return;
@@ -155,17 +124,6 @@ export function useTable({ auth, router, loading }: TableProps) {
 
                 const removed = data.splice(index, 1)[0]!;
 
-                bucket.push({
-                    type: "AddStudent",
-                    student: {
-                        id: await Crypt.encrypt(removed.id, cryptkey),
-                        hashed: removed.hashed,
-                        first: await Crypt.encrypt(removed.first, cryptkey),
-                        last: await Crypt.encrypt(removed.last, cryptkey),
-                    },
-                    cells: removed.cells,
-                });
-
                 return;
             }
 
@@ -173,14 +131,17 @@ export function useTable({ auth, router, loading }: TableProps) {
                 const student = data.find((s) => s.hashed === repl.hashed);
                 if (!student) return;
 
-                let cell = student.cells.find((c) => c.date === repl.date);
+                let cell = student.cells.find((c) => c.date.equals(repl.date));
                 if (!cell) {
                     // insert into every student, sorted.
                     for (const s of data) {
                         const newCell = { date: repl.date, entries: [] };
-                        const index = s.cells.findIndex(
-                            (c) => c.date > repl.date,
-                        );
+                        const index = s.cells.findIndex((c) => {
+                            return (
+                                c.date.since(repl.date).total("milliseconds")
+                                    > 0
+                            );
+                        });
 
                         if (index === -1) s.cells.push(newCell);
                         else s.cells.splice(index, 0, newCell);
@@ -192,12 +153,6 @@ export function useTable({ auth, router, loading }: TableProps) {
                 }
 
                 cell.entries.push(repl.entry);
-                bucket.push({
-                    type: "DeleteEntry",
-                    hashed: repl.hashed,
-                    date: repl.date,
-                    id: repl.entry.id,
-                });
 
                 return;
             }
@@ -206,7 +161,7 @@ export function useTable({ auth, router, loading }: TableProps) {
                 const student = data.find((s) => s.hashed === repl.hashed);
                 if (!student) return;
 
-                const cell = student.cells.find((c) => c.date === repl.date);
+                const cell = student.cells.find((c) => c.date.equals(repl.date));
                 if (!cell) return;
 
                 const entry = cell.entries.find((e) => e.id === repl.id);
@@ -237,16 +192,6 @@ export function useTable({ auth, router, loading }: TableProps) {
                     }
                 }
 
-                if (undos.length > 0) {
-                    bucket.push({
-                        type: "UpdateEntry",
-                        hashed: repl.hashed,
-                        date: repl.date,
-                        id: repl.id,
-                        updates: undos,
-                    });
-                }
-
                 return;
             }
 
@@ -254,29 +199,20 @@ export function useTable({ auth, router, loading }: TableProps) {
                 const student = data.find((s) => s.hashed === repl.hashed);
                 if (!student) return;
 
-                const cell = student.cells.find((c) => c.date === repl.date);
+                const cell = student.cells.find((c) => c.date.equals(repl.date));
                 if (!cell) return;
 
                 const index = cell.entries.findIndex((e) => e.id === repl.id);
                 if (index === -1) return;
 
-                const removed = cell.entries.splice(index, 1)[0]!;
-
-                bucket.push({
-                    type: "AddEntry",
-                    hashed: repl.hashed,
-                    date: repl.date,
-                    entry: removed,
-                });
+                cell.entries.splice(index, 1);
 
                 return;
             }
         }
 
-        loading.value = true;
-        await inner(repl, bucket, clearRedo);
+        await inner(repl);
         update.value++;
-        loading.value = false;
     }
 
     const reconnect = ref(false);
@@ -312,8 +248,7 @@ export function useTable({ auth, router, loading }: TableProps) {
             attempts += 1;
             timer.value = attempts * 5;
 
-            toast.warning("Reconnecting\u2026", {
-                duration: timer.value * 1000,
+            const id = toast.warning("Reconnecting\u2026", {
                 description: defineComponent({
                     setup() {
                         const remaining = ref(timer.value);
@@ -330,7 +265,10 @@ export function useTable({ auth, router, loading }: TableProps) {
                 }),
             });
 
-            countdown(() => sock.reconnect());
+            countdown(() => {
+                toast.dismiss(id);
+                sock.reconnect();
+            });
         },
 
         messages: {
@@ -339,7 +277,7 @@ export function useTable({ auth, router, loading }: TableProps) {
 
                 apply(repl).catch((err) => {
                     toast.error(`Failed to apply replication: ${err}`);
-                    loading.value = false;
+                    err.stack && console.error(err.stack);
                 });
             },
 
@@ -363,10 +301,18 @@ export function useTable({ auth, router, loading }: TableProps) {
         websocket.send("Replicate", repl);
     }
 
+    onBeforeUnmount(() => {
+        websocket.close();
+    });
+
     return {
-        data: computedWithControl(update, () => data),
+        data: computed(() => {
+            update.value; // depend on update ref.
+            return [...data];
+        }),
         ready,
         reconnect,
         send,
+        update,
     };
 }
