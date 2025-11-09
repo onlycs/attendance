@@ -1,379 +1,549 @@
 <script setup lang="ts">
-import { toast } from "vue-sonner";
 import type { FocusCard, FocusCards } from "#components";
+import type { WatchHandle } from "vue";
+import { toast } from "vue-sonner";
+import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
+import type { IdSubmitEvent } from "~/components/forms/StudentId.vue";
 import { ApiClient, apiToast } from "~/utils/api";
 
 const { $gsap } = useNuxtApp();
 
-const active = ref<Option<"student" | "admin">>(None);
-const atStart = ref<boolean>(true);
-const atEnd = ref<boolean>(false);
-const hovered = ref<boolean>(false);
+interface Context {
+    card: Ref<InstanceType<typeof FocusCard> | undefined>;
+    form: Ref<HTMLDivElement | undefined>;
+    hovered: Ref<boolean>;
+    presize: [number, number];
+    preposition: [number, number];
+    watcher?: WatchHandle;
+}
 
-const cards = ref<InstanceType<typeof FocusCards>>();
-const student = ref<InstanceType<typeof FocusCard>>();
-const admin = ref<InstanceType<typeof FocusCard>>();
+interface Active {
+    current: Ref<Option<"student" | "admin">>;
+    ref: ComputedRef<Option<Context>>;
+    antiref: ComputedRef<Option<Context>>;
+    fetch: (previous: "student" | "admin") => Context;
+    antifetch: (current: "student" | "admin") => Context;
+}
 
-const adminForm = ref<HTMLDivElement>();
-const studentForm = ref<HTMLDivElement>();
+const student_card = ref<InstanceType<typeof FocusCard>>();
+const student_form = ref<HTMLDivElement>();
+const student_loading = ref<boolean>(false);
+const admin_card = ref<InstanceType<typeof FocusCard>>();
+const admin_form = ref<HTMLDivElement>();
+
+const student: Context = {
+    card: student_card,
+    form: student_form,
+    hovered: ref<boolean>(false),
+    presize: [0, 0],
+    preposition: [0, 0],
+};
+
+const admin: Context = {
+    card: admin_card,
+    form: admin_form,
+    hovered: ref<boolean>(false),
+    presize: [0, 0],
+    preposition: [0, 0],
+};
+
+const active: Active = {
+    current: ref<Option<"student" | "admin">>(None),
+    ref: computed(() => {
+        return active.current.value.map(active.fetch);
+    }),
+    antiref: computed(() => {
+        return active.current.value.map(active.antifetch);
+    }),
+    fetch: (previous: "student" | "admin") => {
+        return previous === "admin" ? admin : student;
+    },
+    antifetch: (current: "student" | "admin") => {
+        return current === "admin" ? student : admin;
+    },
+};
+
+const Position = {
+    edge: Convert.remToPx(1),
+    fade: Convert.remToPx(20),
+} as const;
+
+const frozen = ref<boolean>(false);
+const constrained = computed(() => active.current.value.isSome());
+
+const container = ref<InstanceType<typeof FocusCards>>();
 
 const params = useUrlSearchParams();
 const screenSize = useScreenSize();
-const mobile = computed(() => screenSize.value === 0);
+const isMobile = useMobile(screenSize);
 
 const transition = injectTransition();
 const router = useRouter();
 
 const auth = useAuth();
 
-function activeRef(using?: string) {
-	const cmpValue = using
-		? using
-		: active.value.isSome()
-			? active.value.value
-			: undefined;
-
-	if (!cmpValue) return;
-	if (cmpValue === "student") return student;
-	else return admin;
+function mix<A, B, C>(base: A, desktop: B, mobile: C): A & (B | C) {
+    return isMobile.value ? { ...base, ...mobile } : { ...base, ...desktop };
 }
 
-function activeForm(using?: string) {
-	const cmpValue = using
-		? using
-		: active.value.isSome()
-			? active.value.value
-			: undefined;
-
-	if (!cmpValue) return;
-	if (cmpValue === "student") return studentForm;
-	else return adminForm;
+function match<B, C>(desktop: B, mobile: C): B | C {
+    return mix({}, desktop, mobile);
 }
 
-function unactiveRef(using?: string) {
-	const cmpValue = using
-		? using
-		: active.value.isSome()
-			? active.value.value
-			: undefined;
+function back() {
+    if (frozen.value) return;
+    if (!active.current.value.isSome()) return;
 
-	if (!cmpValue) return;
-	if (cmpValue === "student") return admin;
-	else return student;
-}
+    const wasActive = active.current.value.value;
+    const context = active.ref.value.unwrap();
+    const card = context.card.value;
+    const form = context.form.value;
+    const other = active.antiref.value.unwrap().card.value;
+    const iconDst = card?.icon?.$el.children[0] as SVGGElement | undefined;
+    const iconSrc = card?.icon?.$el.children[1] as SVGGElement | undefined;
 
-function backClick() {
-	if (!active.value.isSome()) return;
-	const wasActive = active.value.value;
+    if (
+        !card?.prim
+        || !card.title
+        || !other?.prim
+        || !container.value?.prim
+        || !form
+        || !iconDst
+        || !iconSrc
+    ) {
+        return;
+    }
 
-	const isMobile = mobile.value;
-	const current = activeRef();
-	const icon = current?.value?.icon;
-	const card = current?.value?.card;
-	const title = current?.value?.title;
-	const titleText = wasActive.slice(0, 1).toUpperCase() + wasActive.slice(1);
-	const other = unactiveRef()?.value?.card;
-	const container = cards.value?.container;
-	const form = activeForm()?.value;
+    frozen.value = true;
+    active.current.value = None;
 
-	if (!icon || !card || !title || !other || !container || !form) return;
+    const tl = $gsap.timeline();
 
-	atEnd.value = false;
-	hovered.value = false;
-	active.value = None;
+    tl.set(
+        card.prim,
+        mix(
+            {
+                clearProps: "position,top,left,bottom",
+                height: `calc(100% - ${2 * Position.edge}px)`,
+            },
+            { x: -context.preposition[0] + Position.edge + 3 },
+            { y: -context.preposition[1] + Position.edge + 3 },
+        ),
+    );
 
-	const x = card.getBoundingClientRect().width / 2;
-	const y = card.getBoundingClientRect().height / 3;
+    tl.set(other.prim, match({ x: -Position.fade }, { y: -Position.fade }));
 
-	$gsap.to(form, {
-		x: !isMobile ? `${x + Convert.remToPx(PreTranslateOffset + 0.75)}px` : "",
-		y: isMobile ? `${y + Convert.remToPx(PreTranslateOffset + 0.75)}px` : "",
-		opacity: 0,
-		...Timing.out,
-	});
+    tl.to(
+        card.prim,
+        mix(
+            {
+                width: context.presize[0],
+                height: context.presize[1],
+                clearProps: "all",
+                ...Timing.out,
+            },
+            { x: 0 },
+            { y: 0 },
+        ),
+    );
 
-	$gsap.to(title, {
-		text: titleText,
-		...Timing.out,
-	});
+    tl.to(
+        card.title,
+        {
+            text: wasActive.slice(0, 1).toUpperCase() + wasActive.slice(1),
+            ...Timing.out,
+        },
+        0,
+    );
 
-	const from = icon.$el.children[0] as SVGGElement;
-	const to = icon.$el.children[1] as SVGGElement;
+    tl.to(
+        iconDst.children[0] as SVGPathElement,
+        { morphSVG: iconSrc.children[0] as SVGPathElement, ...Timing.fast.out },
+        0,
+    );
 
-	$gsap.to(from.children[0] as SVGPathElement, {
-		morphSVG: to.children[0] as SVGPathElement,
-		...Timing.fast.out,
-	});
+    tl.to(
+        iconDst.children[1] as SVGPathElement,
+        { morphSVG: iconSrc.children[1] as SVGPathElement, ...Timing.fast.out },
+        0,
+    );
 
-	$gsap.to(from.children[1] as SVGPathElement, {
-		morphSVG: to.children[1] as SVGPathElement,
-		...Timing.fast.out,
-	});
+    tl.to(
+        other.prim,
+        mix(
+            { opacity: 1, clearProps: "all", ...Timing.out },
+            { x: 0 },
+            {
+                y: 0,
+            },
+        ),
+        0,
+    );
 
-	$gsap.set(other, {
-		x: !isMobile ? `-${PreTranslateOffset}rem` : "",
-		y: isMobile ? `-${PreTranslateOffset}rem` : "",
-		opacity: 0,
-	});
+    tl.to(
+        form,
+        mix(
+            { opacity: 0, clearProps: "all", ...Timing.out },
+            { x: context.presize[0] / 2 + Position.edge + Position.fade },
+            { y: context.presize[1] / 2 + Position.edge + Position.fade },
+        ),
+        0,
+    );
 
-	$gsap.to(other, {
-		x: 0,
-		y: 0,
-		opacity: 1,
-		clearProps: "all",
-		...Timing.out,
-	});
+    tl.set(container.value.prim, { clearProps: "all" });
 
-	$gsap.to(card, {
-		left: "0",
-		top: "0",
-		height: "",
-		width: "",
-		clearProps: "all",
-		...Timing.out,
-	});
-
-	$gsap.set(container, { height: "", width: "" });
-
-	setTimeout(() => {
-		atStart.value = true;
-		$gsap.set(form, {
-			x: "-100vw",
-		});
-	}, Timing.in.duration * 1000);
+    tl.call(() => {
+        frozen.value = false;
+    });
 }
 
 function click(clicked: "student" | "admin") {
-	if (active.value.isSome()) return backClick();
+    if (frozen.value) return;
+    if (active.current.value.isSome()) return back();
 
-	const isMobile = mobile.value;
-	const current = activeRef(clicked);
-	const icon = current?.value?.icon;
-	const card = current?.value?.card;
-	const title = current?.value?.title;
-	const other = unactiveRef(clicked)?.value?.card;
-	const container = cards.value?.container;
-	const form = activeForm(clicked)?.value;
+    const context = active.fetch(clicked);
+    const card = context.card.value;
+    const form = context.form.value;
+    const icon = card?.icon?.$el.children[0] as SVGGElement | undefined;
+    const other = active.antifetch(clicked).card.value;
 
-	if (!card || !title || !container || !icon || !other || !form) return;
-
-	if (isMobile) {
-        router.push(`/mlogin/${clicked}`);
+    if (
+        !card?.prim
+        || !card.title
+        || !other?.prim
+        || !container.value?.prim
+        || !form
+        || !icon
+    ) {
         return;
-	}
+    }
+    frozen.value = true;
+    active.current.value = Some(clicked);
 
-	atStart.value = false;
-	active.value = Some(clicked);
+    const bbox = card.prim.getBoundingClientRect();
 
-	$gsap.set(container, {
-		height: !isMobile ? "100%" : "",
-		width: isMobile ? "100%" : "",
-	});
+    context.presize = [bbox.width, bbox.height];
+    context.preposition = [bbox.left, bbox.top];
 
-	$gsap.to(card, {
-		left: !isMobile ? `calc(-${card.offsetLeft}px + 0.75rem)` : "",
-		height: !isMobile ? "calc(100% - 1.5rem)" : "",
-		top: isMobile ? `calc(-${card.offsetTop}px + 0.75rem)` : "",
-		width: isMobile ? "calc(100% - 1.5rem)" : "",
-		...Timing.in,
-	});
+    const tl = $gsap.timeline();
 
-	$gsap
-		.to(other, {
-			x: !isMobile ? `-${PreTranslateOffset}rem` : "",
-			y: isMobile ? `-${PreTranslateOffset}rem` : "",
-			opacity: 0,
-			...Timing.in,
-		})
-		.then(() => {
-			$gsap.set(other, {
-				x: "-100vw",
-			});
-		});
+    tl.set(container.value.prim, match({ height: "100%" }, { width: "100%" }));
 
-	const iconSrc = icon.$el.children[0] as SVGGElement;
-	const chevron = isMobile ? ChevronUp : ChevronLeft;
+    tl.set(
+        form,
+        mix(
+            { opacity: 0, zIndex: 10 },
+            { x: bbox.width / 2 + Position.edge + Position.fade },
+            {
+                y: bbox.height + 2 * Position.edge + Position.fade,
+                height: `calc(100% - ${3 * Position.edge + bbox.height}px)`,
+                width: `calc(100% - ${2 * Position.edge}px)`,
+            },
+        ),
+    );
 
-	$gsap.to(iconSrc.children[0] as SVGPathElement, {
-		morphSVG: chevron,
-		...Timing.fast.in,
-	});
+    tl.to(
+        card.prim,
+        mix(
+            Timing.in,
+            {
+                x: -context.preposition[0] + Position.edge + 3,
+                height: `calc(100% - ${2 * Position.edge}px)`,
+            },
+            {
+                y: -context.preposition[1] + Position.edge + 3,
+                width: `calc(100% - ${2 * Position.edge}px)`,
+            },
+        ),
+    );
 
-	$gsap.to(iconSrc.children[1] as SVGPathElement, {
-		morphSVG: chevron,
-		...Timing.fast.in,
-	});
+    const chevron = isMobile.value ? ChevronUp : ChevronLeft;
+    tl.to(
+        icon.children[0] as SVGPathElement,
+        { morphSVG: chevron, ...Timing.fast.in },
+        0,
+    );
 
-	$gsap.to(title, {
-		text: "Back",
-		...Timing.in,
-	});
+    tl.to(
+        icon.children[1] as SVGPathElement,
+        { morphSVG: chevron, ...Timing.fast.in },
+        0,
+    );
 
-	const x = card.getBoundingClientRect().width / 2;
-	const y = card.getBoundingClientRect().height / 3;
+    tl.to(card.title, { text: "Back", ...Timing.in }, 0);
 
-	$gsap.set(form, {
-		x: !isMobile ? `${x + Convert.remToPx(PreTranslateOffset + 0.75)}px` : "",
-		y: isMobile ? `${y + Convert.remToPx(PreTranslateOffset + 0.75)}px` : "",
-		opacity: 0,
-	});
+    tl.to(
+        other.prim,
+        mix(
+            { opacity: 0, ...Timing.in },
+            { x: -Position.fade },
+            { y: -Position.fade },
+        ),
+        0,
+    );
 
-	$gsap.to(form, {
-		x: !isMobile ? `${x + Convert.remToPx(0.75)}px` : "",
-		y: isMobile ? `${y + Convert.remToPx(0.75)}px` : "",
-		opacity: 1,
-		delay: Timing.fast.offset,
-		...Timing.in,
-	});
+    tl.to(
+        form,
+        mix(
+            { opacity: 1, ...Timing.in },
+            { x: bbox.width / 2 + Position.edge },
+            { y: 0.5 * (bbox.height + Position.edge) },
+        ),
+        Timing.offset,
+    );
 
-	setTimeout(() => {
-		atEnd.value = true;
-		if (card.matches(":hover")) hover(true, true);
-	}, Timing.in.duration * 1000);
+    tl.call(() => {
+        const bbox = card.prim!.getBoundingClientRect();
+
+        $gsap.set(
+            card.prim!,
+            mix(
+                {
+                    position: "absolute",
+                    top: Position.edge,
+                    left: Position.edge,
+                },
+                { height: bbox.height, bottom: Position.edge, clearProps: "x" },
+                { width: bbox.width, right: Position.edge, clearProps: "y" },
+            ),
+        );
+
+        $gsap.set(other.prim!, match({ x: "-100vw" }, { y: "-100vh" }));
+
+        frozen.value = false;
+    });
 }
 
-function hover(enter: boolean, force?: boolean) {
-	const card = activeRef()?.value?.card;
-	const form = activeForm()?.value;
+async function studentSubmit({ id }: IdSubmitEvent) {
+    student_loading.value = true;
+    auth.clear();
 
-	if (!card || !form || mobile.value) return;
-	if ((!atEnd.value || hovered.value === enter) && !force) return;
-	hovered.value = enter;
+    const res = await ApiClient.fetch("student/info", {
+        params: { id: Crypt.sha256(id) },
+    });
 
-	const bbox = card.getBoundingClientRect();
-	const width = bbox.right - bbox.left;
-	const tl = $gsap.timeline();
-	const isStudent = active.value.unwrap("student") === "student";
+    if (res.isErr()) {
+        student_loading.value = false;
 
-	tl.to(card, {
-		width: `calc(${width}px ${enter ? "+" : "-"} 4rem)`,
-		left: isStudent
-			? `${card.style.left.slice(0, card.style.left.length - 1)} ${enter ? "+" : "-"} 4rem)`
-			: `${card.style.left.slice(0, card.style.left.length - 1)}`,
-		...(enter ? Timing.in : Timing.out),
-	});
+        apiToast(res.error, {
+            handle: {
+                [404]: () => {
+                    toast.warning(
+                        "You haven't signed in before. Try again when you have hours!",
+                    );
+                },
+            },
+        });
 
-	tl.to(
-		form,
-		{
-			x: `${(bbox.width + Convert.remToPx(4) * (+enter * 2 - 1)) / 2 + Convert.remToPx(0.75)}px`,
-			...(enter ? Timing.in : Timing.out),
-		},
-		Timing.offset,
-	);
+        return back();
+    }
+
+    const studentAuth = auth.student.value;
+
+    if (studentAuth.status === "ok") studentAuth.id.value = id;
+    else studentAuth.set(id);
+
+    transition.out.trigger().then(() => router.push("/student"));
 }
 
-function adminSubmit() {
-	atEnd.value = false;
-	transition.out.trigger().then(() => router.push("/admin"));
+function adminSubmit(ev: PasswordSubmitEvent) {
+    auth.clear();
+
+    const adminAuth = auth.admin.value;
+
+    if (adminAuth.status === "ok") {
+        adminAuth.password.value = ev.password;
+        adminAuth.token.value = {
+            token: ev.token,
+            expiry: ev.expires,
+        };
+    } else {
+        adminAuth.set(ev.password, ev.token, ev.expires);
+    }
+
+    transition.out.trigger().then(() => router.push("/admin"));
 }
 
-async function studentSubmit(id: string) {
-	atEnd.value = false;
+const studentClick = () => click("student");
+const adminClick = () => click("admin");
 
-	// check to make sure the student exists
-	const exists = await ApiClient.fetch("student/exists", {
-		params: { id: Crypt.sha256(id) },
-	});
+watch([active.current, isMobile], ([current, mobile], [old, _]) => {
+    if (mobile) return;
 
-	if (exists.isErr()) {
-		apiToast(exists.error, router.push);
-		return;
-	}
+    if (!current.isSome()) {
+        if (!old.isSome()) return;
 
-	if (!exists.value) {
-		// student doesn't exist
-		toast.warning(
-			"You don't have any hours logged. Come back when you get some hours!",
-		);
-		auth.clear();
-		return;
-	}
+        const context = active.fetch(old.value);
+        context.watcher?.();
+        context.watcher = undefined;
+        return;
+    }
 
-	if (auth.student.value.status !== "ok") {
-        auth.student.value.set(id);
-	}
+    const context = active.fetch(current.value);
 
-	transition.out.trigger().then(() => router.push("/student"));
-}
+    context.watcher = watch(
+        [context.hovered, context.card, context.form, frozen],
+        ([hovered, card, form, frozen]) => {
+            if (frozen) return;
+            if (!card?.prim || !form) return;
 
-onMounted(() => {
-	window?.addEventListener("resize", () => {
-		if (!mobile.value) backClick();
-	});
+            const offset = hovered ? Convert.remToPx(4) : 0;
+            const tl = $gsap.timeline();
 
-	$gsap.set([studentForm.value, adminForm.value], {
-		x: "-100vw",
-	});
+            tl.to(card.prim, {
+                width: context.presize[0] + offset,
+                ...Timing.in,
+            });
 
-	if (params.error === "session-expired") {
-		toast.error("Session expired. Please log in again.");
-		delete params.error;
-	}
+            tl.to(
+                form,
+                {
+                    x: context.presize[0] / 2 + Position.edge + offset / 2,
+                    ...Timing.in,
+                },
+                Timing.slow.offset,
+            );
+        },
+    );
 });
+
+onMounted(() => window.addEventListener("resize", back));
 </script>
 
 <template>
-	<RequireStorage ref="storage" :actions="narrow([Actions.TokenFound, Actions.StudentIdFound])">
-		<FocusCards ref="cards" :animate="atStart" :length="2" show-text>
-			<FocusCard
-				ref="student"
-				@click="() => click('student')"
-				@mouseenter="() => hover(true)"
-				@mouseleave="() => hover(false)"
-				title="Student"
-				icon="hugeicons:mortarboard-01"
-				:customize="Customize.Duplicate()"
-			/>
+    <RequireStorage
+        ref="storage"
+        :actions="narrow([Actions.TokenFound, Actions.StudentIdFound])"
+    >
+        <div class="stack">
+            <div class="item">
+                <FocusCards
+                    class="cards"
+                    ref="container"
+                    :length="2"
+                    :animate="!frozen && !constrained"
+                    show-text
+                >
+                    <FocusCard
+                        ref="student_card"
+                        title="Student"
+                        icon="hugeicons:mortarboard-01"
+                        @mouseenter="student.hovered.value = true"
+                        @mouseleave="student.hovered.value = false"
+                        @click="studentClick"
+                        :customize="Customize.Duplicate()"
+                    />
 
-			<FocusCard
-				ref="admin"
-				@click="() => click('admin')"
-				@mouseenter="() => hover(true)"
-				@mouseleave="() => hover(false)"
-				title="Admin"
-				icon="hugeicons:user-lock-01"
-				:customize="Customize.Duplicate()"
-			/>
-		</FocusCards>
-		<div class="absolute w-full">
-			<div class="form" ref="adminForm">
-				<div class="textbox">
-					<Icon name="hugeicons:user-lock-01" size="64" :customize="Customize.StrokeWidth(0.5)" mode="svg" />
-					Admin Password
-				</div>
-				<div />
-				<SizeDependent ref="adminFormRender">
-					<FormPassword class="form password" :size="screenSize <= 1 ? 'md' : 'lg'" @submit="adminSubmit" />
-				</SizeDependent>
-				<div />
-			</div>
-			<div class="form" ref="studentForm">
-				<div class="textbox">
-					<Icon name="hugeicons:mortarboard-01" size="64" :customize="Customize.StrokeWidth(0.5)" mode="svg" />
-					Student ID
-				</div>
-				<div />
-				<FormStudentId class="form studentid" size="lg" @submit="studentSubmit" />
-				<div />
-			</div>
-		</div>
-	</RequireStorage>
+                    <FocusCard
+                        ref="admin_card"
+                        title="Admin"
+                        icon="hugeicons:user-lock-01"
+                        @mouseenter="admin.hovered.value = true"
+                        @mouseleave="admin.hovered.value = false"
+                        @click="adminClick"
+                        :customize="Customize.Duplicate()"
+                    />
+                </FocusCards>
+            </div>
+
+            <div class="item">
+                <div class="form" ref="admin_form">
+                    <div class="textbox">
+                        <Icon
+                            name="hugeicons:user-lock-01"
+                            size="64"
+                            :customize="Customize.StrokeWidth(
+                                0.5,
+                            )"
+                            mode="svg"
+                        />
+                        Admin Password
+                    </div>
+                    <div />
+                    <SizeDependent ref="adminFormRender">
+                        <FormPassword
+                            class="form password"
+                            :size="([
+                                'md',
+                                'sm',
+                                'md',
+                                'lg',
+                                'lg',
+                            ] as const)[
+                                screenSize
+                            ]!"
+                            @submit="adminSubmit"
+                        />
+                    </SizeDependent>
+                    <div />
+                </div>
+            </div>
+
+            <div class="item">
+                <div class="form" ref="student_form">
+                    <div class="textbox">
+                        <Icon
+                            name="hugeicons:mortarboard-01"
+                            size="64"
+                            :customize="Customize.StrokeWidth(
+                                0.5,
+                            )"
+                            mode="svg"
+                        />
+                        Student ID
+                    </div>
+                    <div />
+                    <SizeDependent>
+                        <FormStudentId
+                            class="form studentid"
+                            :loading="student_loading"
+                            :size="([
+                                'lg',
+                                'md',
+                                'lg',
+                                'lg',
+                                'lg',
+                            ] as const)[
+                                screenSize
+                            ]!"
+                            @submit="studentSubmit"
+                        />
+                    </SizeDependent>
+                    <div />
+                </div>
+            </div>
+        </div>
+    </RequireStorage>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
+.stack {
+    @apply w-full h-full grid;
+    @apply grid-cols-1 grid-rows-1;
+
+    .item {
+        grid-area: 1/1;
+        @apply w-full h-full;
+        @apply flex items-center justify-center;
+    }
+}
+
+.cards {
+    @apply max-md:w-full md:h-full;
+}
+
 .form {
-	@apply fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%];
-	@apply opacity-0 overflow-hidden;
-	@apply bg-drop max-md:w-[calc(100%-1.5rem)] md:w-[28rem] lg:w-[36rem] xl:w-[48rem] 2xl:w-[64rem] h-[32rem] rounded-xl shadow-xl;
-	@apply flex flex-col justify-between items-center;
+    @apply bg-drop md:w-[28rem] lg:w-[36rem] xl:w-[48rem] 2xl:w-[64rem]
+        h-[32rem] rounded-xl shadow-xl;
+    @apply flex flex-col justify-between items-center;
+    @apply md:-translate-x-[100vw] max-md:-translate-y-[100vh];
 }
 
 .textbox {
-	@apply absolute flex items-center gap-6;
-	@apply mt-8;
-	@apply text-xl select-none;
+    @apply absolute flex items-center gap-6;
+    @apply mt-8;
+    @apply text-xl select-none;
 }
 </style>

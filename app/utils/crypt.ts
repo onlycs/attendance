@@ -2,84 +2,88 @@ import sha256 from "crypto-js/sha256";
 import cuid2 from "cuid";
 
 export const Crypt = {
-	toUint8Array(str: string): Uint8Array<ArrayBuffer> {
-		return new TextEncoder().encode(str);
-	},
+    bufferize(str: string): Uint8Array<ArrayBuffer> {
+        return new TextEncoder().encode(str);
+    },
 
-	async derkey(password: string, salt: Uint8Array<ArrayBuffer>) {
-		const material = await crypto.subtle.importKey(
-			"raw",
-			Crypt.toUint8Array(password),
-			"PBKDF2",
-			false,
-			["deriveKey"],
-		);
+    unbufferize(buf: AllowSharedBufferSource): string {
+        return new TextDecoder().decode(buf);
+    },
 
-		return crypto.subtle.deriveKey(
-			{
-				name: "PBKDF2",
-				salt,
-				iterations: 600_000,
-				hash: "SHA-256",
-			},
-			material,
-			{ name: "AES-GCM", length: 256 },
-			false,
-			["encrypt", "decrypt"],
-		);
-	},
+    async derkey(password: string, salt: Uint8Array<ArrayBuffer>) {
+        const material = await crypto.subtle.importKey(
+            "raw",
+            Crypt.bufferize(password),
+            "PBKDF2",
+            false,
+            ["deriveKey"],
+        );
 
-	async encrypt(text: string, password: string) {
-		const iv = crypto.getRandomValues(new Uint8Array(12));
-		const salt = crypto.getRandomValues(new Uint8Array(16));
-		const key = await Crypt.derkey(password, salt);
+        return crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt,
+                iterations: 600_000,
+                hash: "SHA-256",
+            },
+            material,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"],
+        );
+    },
 
-		const encrypted = await crypto.subtle.encrypt(
-			{ name: "AES-GCM", iv: iv },
-			key,
-			Crypt.toUint8Array(text),
-		);
+    async encrypt(text: string, password: string) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const key = await Crypt.derkey(password, salt);
 
-		const result = new Uint8Array([
-			...salt,
-			...iv,
-			...new Uint8Array(encrypted),
-		]);
-		return btoa(String.fromCharCode(...result));
-	},
+        const encrypted = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            Crypt.bufferize(text),
+        );
 
-	async decrypt(encrypted: string, password: string) {
-		const data = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
-		const salt = data.slice(0, 16);
-		const iv = data.slice(16, 16 + 12);
-		const cipher = data.slice(16 + 12);
+        const result = new Uint8Array([
+            ...salt,
+            ...iv,
+            ...new Uint8Array(encrypted),
+        ]);
+        return btoa(String.fromCharCode(...result));
+    },
 
-		const key = await Crypt.derkey(password, salt);
-		const decrypted = await crypto.subtle.decrypt(
-			{ name: "AES-GCM", iv: iv },
-			key,
-			cipher,
-		);
+    async decrypt(encrypted: string, password: string) {
+        const data = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+        const salt = data.slice(0, 16);
+        const iv = data.slice(16, 16 + 12);
+        const cipher = data.slice(16 + 12);
 
-		return new TextDecoder().decode(decrypted);
-	},
+        const key = await Crypt.derkey(password, salt);
+        const decrypted = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            cipher,
+        );
 
-	sha256(text: string) {
-		return sha256(text).toString();
-	},
+        return new TextDecoder().decode(decrypted);
+    },
 
-	cuid() {
-		return cuid2();
-	},
+    sha256(text: string) {
+        return sha256(text).toString();
+    },
 
-	hex(number: bigint) {
-		const s = number.toString(16);
+    cuid() {
+        return cuid2();
+    },
 
-		if (s.length % 2 === 1) return `0${s}`;
-		return s;
-	},
+    hex(number: bigint) {
+        const s = number.toString(16);
 
-	fromHex(hex: string) {
-		return BigInt(`0x${hex}`);
-	},
+        if (s.length % 2 === 1) return `0${s}`;
+        return s;
+    },
+
+    fromHex(hex: string) {
+        return BigInt(`0x${hex}`);
+    },
 };

@@ -10,9 +10,9 @@ export * from "./roster";
 export * from "./student";
 
 export const ApiSchema = makeApi([
-	...auth.AuthEndpoints,
-	...roster.RosterEndpoints,
-	...student.StudentEndpoints,
+    ...auth.AuthEndpoints,
+    ...roster.RosterEndpoints,
+    ...student.StudentEndpoints,
 ]);
 
 export type Api = typeof ApiSchema;

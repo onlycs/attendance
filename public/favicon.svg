@@ -2,88 +2,97 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="512mm"
-   height="512mm"
-   viewBox="0 0 512 512"
-   version="1.1"
-   id="svg1"
-   inkscape:export-filename="favicon.png"
-   inkscape:export-xdpi="2.3812499"
-   inkscape:export-ydpi="2.3812499"
-   sodipodi:docname="favicon.svg"
-   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview1"
-     pagecolor="#565656"
-     bordercolor="#4d4d4d"
-     borderopacity="0.24705882"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="true"
-     inkscape:deskcolor="#303030"
-     inkscape:document-units="mm"
-     inkscape:zoom="0.38033853"
-     inkscape:cx="665.19687"
-     inkscape:cy="1004.3684"
-     inkscape:window-width="1934"
-     inkscape:window-height="1216"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer1">
-    <inkscape:page
-       x="0"
-       y="0"
-       width="512"
-       height="512"
-       id="page2"
-       margin="0"
-       bleed="0" />
-  </sodipodi:namedview>
-  <defs
-     id="defs1" />
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1">
-    <ellipse
-       style="fill:none;stroke:#0254a4;stroke-width:42.3057;stroke-dasharray:none;stroke-opacity:1"
-       id="path1"
-       cy="255.99998"
-       cx="255.99997"
-       rx="234.84712"
-       ry="234.84714" />
-    <circle
-       style="fill:none;stroke:#0254a4;stroke-width:19.05;stroke-dasharray:none;stroke-opacity:1"
-       id="path2"
-       cx="256"
-       cy="256"
-       r="32" />
-    <circle
-       style="fill:none;stroke:#0254a4;stroke-width:16.9333;stroke-dasharray:none;stroke-opacity:1"
-       id="path2-1"
-       cx="256.69565"
-       cy="109.40668"
-       r="24" />
-    <circle
-       style="fill:none;stroke:#0254a4;stroke-width:16.9333;stroke-dasharray:none;stroke-opacity:1"
-       id="path2-1-1"
-       cx="332.46664"
-       cy="332.46664"
-       r="24" />
-    <path
-       style="fill:none;stroke:#0254a4;stroke-width:19.05;stroke-dasharray:none;stroke-opacity:1"
-       d="m 255.75917,221.97869 0.48166,-87.08755"
-       id="path3" />
-    <path
-       style="fill:none;stroke:#0254a4;stroke-width:19.05;stroke-dasharray:none;stroke-opacity:1"
-       d="M 275.22538,275.15703 320.69564,321.23"
-       id="path3-3"
-       inkscape:transform-center-x="-23.100702"
-       inkscape:transform-center-y="22.521844" />
-  </g>
+    width="512mm"
+    height="512mm"
+    viewBox="0 0 512 512"
+    version="1.1"
+    id="svg1"
+    inkscape:export-filename="favicon.png"
+    inkscape:export-xdpi="2.3812499"
+    inkscape:export-ydpi="2.3812499"
+    sodipodi:docname="favicon.svg"
+    inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:svg="http://www.w3.org/2000/svg"
+>
+    <sodipodi:namedview
+        id="namedview1"
+        pagecolor="#565656"
+        bordercolor="#4d4d4d"
+        borderopacity="0.24705882"
+        inkscape:showpageshadow="2"
+        inkscape:pageopacity="0.0"
+        inkscape:pagecheckerboard="true"
+        inkscape:deskcolor="#303030"
+        inkscape:document-units="mm"
+        inkscape:zoom="0.38033853"
+        inkscape:cx="665.19687"
+        inkscape:cy="1004.3684"
+        inkscape:window-width="1934"
+        inkscape:window-height="1216"
+        inkscape:window-x="0"
+        inkscape:window-y="0"
+        inkscape:window-maximized="1"
+        inkscape:current-layer="layer1"
+    >
+        <inkscape:page
+            x="0"
+            y="0"
+            width="512"
+            height="512"
+            id="page2"
+            margin="0"
+            bleed="0"
+        />
+    </sodipodi:namedview>
+    <defs id="defs1" />
+    <g
+        inkscape:label="Layer 1"
+        inkscape:groupmode="layer"
+        id="layer1"
+    >
+        <ellipse
+            style="fill: none; stroke: #0254a4; stroke-width: 42.3057; stroke-dasharray: none; stroke-opacity: 1"
+            id="path1"
+            cy="255.99998"
+            cx="255.99997"
+            rx="234.84712"
+            ry="234.84714"
+        />
+        <circle
+            style="fill: none; stroke: #0254a4; stroke-width: 19.05; stroke-dasharray: none; stroke-opacity: 1"
+            id="path2"
+            cx="256"
+            cy="256"
+            r="32"
+        />
+        <circle
+            style="fill: none; stroke: #0254a4; stroke-width: 16.9333; stroke-dasharray: none; stroke-opacity: 1"
+            id="path2-1"
+            cx="256.69565"
+            cy="109.40668"
+            r="24"
+        />
+        <circle
+            style="fill: none; stroke: #0254a4; stroke-width: 16.9333; stroke-dasharray: none; stroke-opacity: 1"
+            id="path2-1-1"
+            cx="332.46664"
+            cy="332.46664"
+            r="24"
+        />
+        <path
+            style="fill: none; stroke: #0254a4; stroke-width: 19.05; stroke-dasharray: none; stroke-opacity: 1"
+            d="m 255.75917,221.97869 0.48166,-87.08755"
+            id="path3"
+        />
+        <path
+            style="fill: none; stroke: #0254a4; stroke-width: 19.05; stroke-dasharray: none; stroke-opacity: 1"
+            d="M 275.22538,275.15703 320.69564,321.23"
+            id="path3-3"
+            inkscape:transform-center-x="-23.100702"
+            inkscape:transform-center-y="22.521844"
+        />
+    </g>
 </svg>

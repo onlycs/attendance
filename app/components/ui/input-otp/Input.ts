@@ -8,9 +8,9 @@ import { OTPInput } from "vue-input-otp";
 type Props = InstanceType<typeof OTPInput>["$props"];
 
 export default defineComponent({
-	name: "OTPInput",
-	inheritAttrs: false,
-	setup(props: Props, { attrs, slots }) {
-		return () => h(OTPInput, { ...attrs, ...props }, slots);
-	},
+    name: "OTPInput",
+    inheritAttrs: false,
+    setup(props: Props, { attrs, slots }) {
+        return () => h(OTPInput, { ...attrs, ...props }, slots);
+    },
 });

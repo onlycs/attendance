@@ -12,31 +12,45 @@ const animate = transition.ready;
 const auth = useAuth();
 
 onMounted(() => {
-	transition.in.trigger({ reverse: params.reverse === "true" });
-	delete params.reverse;
+    transition.in.trigger({ reverse: params.reverse === "true" });
+    delete params.reverse;
 });
 
 function hours() {
-	transition.out.trigger().then(() => router.push("/hours"));
+    transition.out.trigger().then(() => router.push("/hours"));
 }
 
 function logout() {
-	auth.clear();
-	transition.out.trigger({ reverse: true }).then(() => router.push("/"));
+    auth.clear();
+    transition.out.trigger({ reverse: true }).then(() => router.push("/"));
 }
 </script>
 
 <template>
-	<FocusCards :class="cn(!show && 'opacity-0')" :length="2" :animate="animate" ref="container">
-		<FocusCard title="Check Hours" icon="hugeicons:user-time-01" @click="hours"  />
-		<FocusCard title="Log Out" icon="hugeicons:logout-05" class="logout" @click="logout" />
-	</FocusCards>
+    <FocusCards
+        :class="cn(!show && 'opacity-0')"
+        :length="2"
+        :animate="animate"
+        ref="container"
+    >
+        <FocusCard
+            title="Check Hours"
+            icon="hugeicons:user-time-01"
+            @click="hours"
+        />
+        <FocusCard
+            title="Log Out"
+            icon="hugeicons:logout-05"
+            class="logout"
+            @click="logout"
+        />
+    </FocusCards>
 </template>
 
 <style>
 @reference "~/style/tailwind.css";
 
 .logout * {
-	@apply text-red-500;
+    @apply text-red-500;
 }
 </style>

@@ -103,6 +103,9 @@ pub enum RouteError {
 
     #[error("Invalid hour type: cannot log {hour_type} hours {}", hour_type.when_invalid())]
     HourType { hour_type: HourType },
+
+    #[error("No such student")]
+    StudentNotFound,
 }
 
 impl ResponseError for RouteError {
@@ -110,6 +113,7 @@ impl ResponseError for RouteError {
         match self {
             RouteError::BadAuth => StatusCode::UNAUTHORIZED,
             RouteError::HourType { .. } => StatusCode::BAD_REQUEST,
+            RouteError::StudentNotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -118,6 +122,7 @@ impl ResponseError for RouteError {
         match self {
             RouteError::BadAuth => HttpResponse::Unauthorized().body(format!("{self}")),
             RouteError::HourType { .. } => HttpResponse::BadRequest().body(format!("{self}")),
+            RouteError::StudentNotFound => HttpResponse::NotFound().body(format!("{self}")),
             _ => HttpResponse::InternalServerError().body(format!("{self}")),
         }
     }

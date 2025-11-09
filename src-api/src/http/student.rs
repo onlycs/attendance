@@ -1,15 +1,15 @@
 use super::roster::HourType;
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct HoursResponse {
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
+pub struct Hours {
     build: f64,
     learning: f64,
     demo: f64,
     offseason: f64,
 }
 
-impl HoursResponse {
+impl Hours {
     fn type_mut(&mut self, kind: HourType) -> &mut f64 {
         match kind {
             HourType::Build => &mut self.build,
@@ -24,15 +24,37 @@ impl HoursResponse {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StudentData {
+    pub id: String,
+    pub first: String,
+    pub last: String,
+    pub hashed: String,
+}
+
 #[tracing::instrument(
-    name = "student::hours",
+    name = "student::info",
     skip(pg),
     fields(id = %&id[..7]),
     ret,
     err
 )]
-pub(super) async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, RouteError> {
+pub(super) async fn info(id: String, pg: &PgPool) -> Result<Hours, RouteError> {
     super::roster::delete_expired(pg).await?;
+
+    if sqlx::query!(
+        r#"
+        SELECT student_id FROM records
+        WHERE student_id = $1
+        "#,
+        id
+    )
+    .fetch_optional(pg)
+    .await?
+    .is_none()
+    {
+        return Err(RouteError::StudentNotFound);
+    }
 
     let records = sqlx::query!(
         r#"
@@ -47,7 +69,7 @@ pub(super) async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, Rout
     .fetch_all(pg)
     .await?;
 
-    let mut hours = HoursResponse::default();
+    let mut hours = Hours::default();
 
     for record in records {
         let dt = record.sign_out - record.sign_in;
@@ -63,23 +85,29 @@ pub(super) async fn hours(id: String, pg: &PgPool) -> Result<HoursResponse, Rout
     Ok(hours)
 }
 
-#[tracing::instrument(
-    name = "student::exists",
-    skip(pg),
-    fields(id = %&id[..7]),
-    ret,
-    err
-)]
-pub(super) async fn exists(id: String, pg: &PgPool) -> Result<bool, RouteError> {
-    let student = sqlx::query!(
+#[tracing::instrument(name = "student::add", skip(id, first, last, pg), ret, err)]
+pub(super) async fn add(
+    StudentData {
+        id,
+        first,
+        last,
+        hashed,
+    }: StudentData,
+    pg: &PgPool,
+) -> Result<(), RouteError> {
+    sqlx::query!(
         r#"
-        SELECT student_id FROM records
-        WHERE student_id = $1
+        INSERT INTO student_data (id, first, last, hashed)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (id) DO NOTHING
         "#,
-        id
+        id,
+        first,
+        last,
+        hashed
     )
-    .fetch_optional(pg)
+    .execute(pg)
     .await?;
 
-    Ok(student.is_some())
+    Ok(())
 }

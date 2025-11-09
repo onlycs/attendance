@@ -63,6 +63,8 @@ async fn main() -> Result<(), InitError> {
         .finish()
         .expect("Unreachable: Fully configured governor");
 
+    ws::init();
+
     // spawn blocking on current thread
     HttpServer::new(move || {
         let pg = Arc::clone(&pool);
@@ -84,8 +86,7 @@ async fn main() -> Result<(), InitError> {
             .service(http::login_start)
             .service(http::login_finish)
             .service(http::deauthorize)
-            .service(http::student_hours)
-            .service(http::student_exists)
+            .service(http::student_info)
             .service(http::record)
             .service(http::clear)
             .service(http::check_token)

@@ -54,7 +54,7 @@ pub(crate) async fn register_finish(
     Ok(HttpResponse::Forbidden().body("Routes to register are closed, temporarily"))
 }
 
-#[get("/auth/valid")]
+#[get("/auth")]
 pub(crate) async fn check_token(
     req: HttpRequest,
     state: web::Data<AppState>,
@@ -120,24 +120,24 @@ pub(crate) async fn clear(
     Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
 }
 
-#[get("/student/{id}/hours")]
-pub(crate) async fn student_hours(
+#[get("/student/{id}")]
+pub(crate) async fn student_info(
     path: web::Path<String>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    let res = student::hours(path.into_inner(), &state.pg).await?;
-
+    let res = student::info(path.into_inner(), &state.pg).await?;
     Ok(HttpResponse::Ok().json(res))
 }
 
-#[get("/student/{id}/exists")]
-pub(crate) async fn student_exists(
-    path: web::Path<String>,
+#[post("/student")]
+pub(crate) async fn student_create(
+    req: HttpRequest,
+    body: web::Json<student::StudentData>,
     state: web::Data<AppState>,
 ) -> Result<impl Responder, RouteError> {
-    let res = student::exists(path.into_inner(), &state.pg).await?;
-
-    Ok(HttpResponse::Ok().json(res))
+    auth::check_throw(&auth::parse_header(&req)?, &state.pg).await?;
+    student::add(body.into_inner(), &state.pg).await?;
+    Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
 }
 
 #[get("/")]

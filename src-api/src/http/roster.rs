@@ -28,7 +28,7 @@ impl HourType {
         match self {
             HourType::Build => "after April",
             HourType::Learning => "before November",
-            HourType::Demo => "",
+            HourType::Demo => unreachable!(),
             HourType::Offseason => "before May",
         }
     }
