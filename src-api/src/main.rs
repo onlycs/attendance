@@ -76,7 +76,6 @@ async fn main() -> Result<(), InitError> {
 
         App::new()
             .wrap(cors)
-            .wrap(Governor::new(&gov))
             .wrap(TracingLogger::default())
             .wrap(SecurityHeaders)
             .app_data(Data::new(AppState { pg }))
