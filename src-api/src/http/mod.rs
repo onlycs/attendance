@@ -130,7 +130,7 @@ pub(crate) async fn student_info(
 }
 
 #[post("/student")]
-pub(crate) async fn student_create(
+pub(crate) async fn student_add(
     req: HttpRequest,
     body: web::Json<student::StudentData>,
     state: web::Data<AppState>,

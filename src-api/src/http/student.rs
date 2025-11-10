@@ -40,12 +40,10 @@ pub struct StudentData {
     err
 )]
 pub(super) async fn info(id: String, pg: &PgPool) -> Result<Hours, RouteError> {
-    super::roster::delete_expired(pg).await?;
-
     if sqlx::query!(
         r#"
-        SELECT student_id FROM records
-        WHERE student_id = $1
+        SELECT hashed FROM student_data
+        WHERE hashed = $1
         "#,
         id
     )
@@ -99,7 +97,7 @@ pub(super) async fn add(
         r#"
         INSERT INTO student_data (id, first, last, hashed)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (id) DO NOTHING
+        ON CONFLICT (hashed) DO NOTHING
         "#,
         id,
         first,

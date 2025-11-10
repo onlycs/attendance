@@ -1,6 +1,7 @@
 import { makeEndpoint } from "@zodios/core";
 import { z } from "zod";
 import { ApiErrors } from "./error";
+import { AuthorizationHeader } from "./auth";
 
 export const RosterActionSchema = z.enum(["login", "logout"]);
 
@@ -37,6 +38,7 @@ export const Roster = makeEndpoint({
             type: "Body",
             schema: RosterRequestSchema,
         },
+        AuthorizationHeader,
     ],
     response: RosterResponseSchema,
     errors: ApiErrors,

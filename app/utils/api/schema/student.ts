@@ -2,6 +2,7 @@ import { makeEndpoint } from "@zodios/core";
 import { z } from "zod";
 import { ApiErrors } from "./error";
 import { HourTypeSchema } from "./roster";
+import { AuthorizationHeader } from "./auth";
 
 export const StudentDataSchema = z.object({
     id: z.string(),
@@ -26,7 +27,7 @@ export const StudentInfo = makeEndpoint({
 
 export const StudentAdd = makeEndpoint({
     method: "post",
-    path: "/student/add",
+    path: "/student",
     alias: "student/add",
     parameters: [
         {
@@ -34,8 +35,9 @@ export const StudentAdd = makeEndpoint({
             type: "Body",
             schema: StudentDataSchema,
         },
+        AuthorizationHeader,
     ],
-    response: z.void(),
+    response: z.object({ status: z.literal("ok") }),
     errors: ApiErrors,
 });
 

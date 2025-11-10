@@ -91,6 +91,20 @@ pub(super) async fn record(
         return Err(RouteError::HourType { hour_type });
     }
 
+    println!("{id}");
+
+    let records = sqlx::query!(
+        r#"
+        SELECT id, in_progress, hour_type as "hour_type: HourType" FROM records
+        WHERE student_id = $1
+        "#,
+        id,
+    )
+    .fetch_all(pg)
+    .await?;
+
+    println!("Records: {:#?}", records);
+
     let record = sqlx::query!(
         r#"
         SELECT id, sign_in FROM records
@@ -133,8 +147,8 @@ pub(super) async fn record(
     } else {
         sqlx::query!(
             r#"
-            INSERT INTO records (id, student_id, sign_in, hour_type)
-            VALUES ($1, $2, NOW(), $3)
+            INSERT INTO records (id, student_id, sign_in, hour_type, in_progress)
+            VALUES ($1, $2, NOW(), $3, true)
             "#,
             cuid2(),
             id,

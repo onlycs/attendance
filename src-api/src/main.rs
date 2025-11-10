@@ -87,6 +87,7 @@ async fn main() -> Result<(), InitError> {
             .service(http::login_finish)
             .service(http::deauthorize)
             .service(http::student_info)
+            .service(http::student_add)
             .service(http::record)
             .service(http::clear)
             .service(http::check_token)

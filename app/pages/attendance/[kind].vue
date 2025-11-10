@@ -23,7 +23,7 @@ const screenSize = useScreenSize();
 const mobile = useMobile(screenSize);
 const auth = useAuth();
 
-const creds = ref<{ token: string; password: string; } | null>(null);
+const creds = ref<{ token: string; password: string } | null>(null);
 const kind = route.params.kind as "build" | "learning" | "demo";
 
 const size = computed(() => [64, 32, 48, 52, 64][screenSize.value]);
@@ -74,17 +74,22 @@ async function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
     const firstCrypt = await Crypt.encrypt(data.first, creds.value!.password);
     const lastCrypt = await Crypt.encrypt(data.last, creds.value!.password);
 
-    const res = await ApiClient.fetch("student/add", {
-        id: idCrypt,
-        first: firstCrypt,
-        last: lastCrypt,
-    });
+    const res = await ApiClient.fetch(
+        "student/add",
+        {
+            id: idCrypt,
+            hashed: Crypt.sha256(currentId.value),
+            first: firstCrypt,
+            last: lastCrypt,
+        },
+        { headers: { Authorization: creds.value!.token } },
+    );
 
     if (res.isErr()) {
         return apiToast(res.error, { redirect401: redirect });
     }
 
-    roster();
+    roster(undefined, true);
 }
 
 /// Force Sign Out Form
@@ -120,7 +125,7 @@ async function roster(id?: string, force = false) {
         params: { id: Crypt.sha256(id) },
     });
 
-    if (info.isErr()) {
+    if (info.isErr() && !force) {
         loading.value = false;
         return apiToast(info.error, {
             handle: {
