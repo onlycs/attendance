@@ -19,12 +19,13 @@ const icon = {
     lg: "max-md:size-8 size-12",
 }[props.size ?? "md"];
 
-watch(id, (id) => {
-    if (id.length !== LENGTH) {
+watch(id, (studentId) => {
+    if (studentId.length !== LENGTH) {
         return;
     }
 
-    emit("submit", { id });
+    emit("submit", { id: studentId });
+    id.value = "";
 });
 </script>
 
