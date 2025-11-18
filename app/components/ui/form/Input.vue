@@ -3,9 +3,11 @@ const { $gsap } = useNuxtApp();
 
 const wrapper = ref<HTMLElement | null>(null);
 const input = ref<HTMLInputElement | null>(null);
+const value = defineModel<string>();
 
 const radius = 100;
 const visible = ref(false);
+const active = ref(false);
 const mouseX = ref(0);
 const mouseY = ref(0);
 
@@ -47,7 +49,12 @@ function update() {
     });
 }
 
-defineEmits<(e: "update:modelValue", value: string | number | null) => void>();
+watch(value, (next) => {
+    input.value!.value = next!;
+});
+
+defineExpose({ active, blur: () => input.value?.blur() });
+defineOptions({ inheritAttrs: false });
 </script>
 
 <template>
@@ -63,10 +70,9 @@ defineEmits<(e: "update:modelValue", value: string | number | null) => void>();
             class="input"
             v-bind="$attrs"
             autocomplete="off"
-            @input="$emit(
-                'update:modelValue',
-                ($event.target as HTMLInputElement).value,
-            )"
+            @input="(ev) => value = (ev.target as HTMLInputElement).value"
+            @focusin="active = true"
+            @focusout="active = false"
         />
     </div>
 </template>
@@ -75,7 +81,7 @@ defineEmits<(e: "update:modelValue", value: string | number | null) => void>();
 @reference "~/style/tailwind.css";
 
 .wrapper {
-    @apply rounded-lg p-[1px] transition;
+    @apply w-full rounded-lg p-[1px] transition z-40;
 }
 
 .input {

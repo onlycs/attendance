@@ -70,7 +70,7 @@ definePageMeta({ layout: "admin-protected" });
 <template>
     <FocusCards
         :class="cn(!show && 'opacity-0')"
-        :animate="animate"
+        :animate
         :length="length + 2"
         ref="container"
         v-if="transition.setup"

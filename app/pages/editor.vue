@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import "~/style/tailwind.css";
-import { Dropdown, type HoverCard } from "#components";
-import type { CellValueChangedEvent, ColDef } from "ag-grid-community";
+import { EditorDropdown } from "#components";
+import type {
+    CellValueChangedEvent,
+    ColDef,
+    SelectionChangedEvent,
+} from "ag-grid-community";
 import { AgGridVue } from "ag-grid-vue3";
 import { Temporal } from "temporal-polyfill";
+import type { AddDateSubmission } from "~/components/editor/AddDate.vue";
 import { type AgRow, Theme } from "~/composables/useAgData";
 import type { Entry } from "~/utils/zodws/schema/table";
 
@@ -20,6 +24,7 @@ const hashed = ref("");
 const date = ref<Temporal.PlainDate>(Temporal.Now.plainDateISO());
 const open = ref(false);
 const entries = ref<Entry[]>([]);
+const selected = ref<string[]>([]);
 
 watch([data, hashed, date], ([data, hashed, date]) => {
     const student = data.find((s) => s.hashed === hashed);
@@ -79,17 +84,6 @@ async function edit(edit: CellValueChangedEvent<AgRow, string>) {
 
 provide("onopen", card);
 
-onMounted(async () => {
-    const font = new FontFace(
-        "JetBrainsMono Nerd Font",
-        "url('/fonts/JetBrainsMono.ttf')",
-        { style: "normal", weight: "400" },
-    );
-
-    await font.load();
-    document.fonts.add(font);
-});
-
 // export
 function exportCSV() {
     const header = [
@@ -133,12 +127,72 @@ function exportCSV() {
     link.click();
 }
 
-definePageMeta({ layout: "admin-protected" });
+function onDelete() {
+    selected.value.forEach((id) => {
+        send({
+            type: "DeleteStudent",
+            hashed: Crypt.sha256(id),
+        });
+    });
+}
 
-defineExpose({ Dropdown });
+const AddStudentOpen = ref(false);
+const AddStudentSubmit = async (id: string, first: string, last: string) => {
+    const admin = auth.admin.value;
+
+    if (admin.status !== "ok") return;
+
+    send({
+        type: "AddStudent",
+        student: {
+            id: await Crypt.encrypt(id, admin.password.value),
+            hashed: Crypt.sha256(id),
+            first: await Crypt.encrypt(first, admin.password.value),
+            last: await Crypt.encrypt(last, admin.password.value),
+        },
+    });
+};
+
+const AddDateOpen = ref(false);
+const AddDateSubmit = async (sub: AddDateSubmission) => {
+    const admin = auth.admin.value;
+
+    if (admin.status !== "ok") return;
+
+    const now = Temporal.Now.zonedDateTimeISO();
+
+    send({
+        type: "AddEntry",
+        date: sub.date,
+        hashed: Crypt.sha256(sub.student),
+        entry: {
+            start: sub.date.toPlainDateTime(sub.start).toZonedDateTime(now),
+            end: sub.date.toPlainDateTime(sub.end).toZonedDateTime(now),
+            kind: sub.kind as any,
+        },
+    });
+};
+
+definePageMeta({ layout: "admin-protected" });
+defineExpose({ Dropdown: EditorDropdown });
 </script>
 
 <template>
+    <EditorAddStudent
+        v-model:open="AddStudentOpen"
+        @submit="AddStudentSubmit"
+    />
+
+    <EditorAddDate
+        v-model:open="AddDateOpen"
+        :students="Object.fromEntries(
+            rows.map((
+                row,
+            ) => [row.studentId, row.first + ' ' + row.last]),
+        )"
+        @submit="AddDateSubmit"
+    />
+
     <div v-if="!ready.ok.value" class="loading">
         <div class="title">Loading Editor</div>
 
@@ -163,7 +217,35 @@ defineExpose({ Dropdown });
 
             <Button kind="card" class="button" @click="exportCSV">
                 <Icon name="hugeicons:file-export" size="22" />
-                Export
+                Export All
+            </Button>
+
+            <Button
+                kind="card"
+                class="button"
+                @click="() => AddStudentOpen = true"
+            >
+                <Icon name="hugeicons:user-add-01" size="22" />
+                Add Student
+            </Button>
+
+            <Button
+                kind="card"
+                class="button"
+                @click="() => AddDateOpen = true"
+            >
+                <Icon name="hugeicons:calendar-add-01" size="22" />
+                Add Date
+            </Button>
+
+            <Button
+                kind="error-transparent"
+                class="button"
+                :disabled="selected.length === 0"
+                @click="onDelete"
+            >
+                <Icon name="hugeicons:delete-03" size="22" />
+                Delete {{ selected.length }} Students
             </Button>
 
             <Button v-if="reconnect" kind="error-transparent" class="button">
@@ -178,6 +260,12 @@ defineExpose({ Dropdown });
                 :columnDefs="columns"
                 :rowData="rows"
                 :theme="Theme"
+                :rowSelection="{
+                    mode: 'multiRow',
+                }"
+                :selectionColumnDef="{
+                    pinned: 'left',
+                }"
                 :defaultColDef="{
                     resizable: true,
                     sortable: true,
@@ -185,17 +273,22 @@ defineExpose({ Dropdown });
                     suppressMovable: true,
                 }"
                 @cellValueChanged="edit"
+                @selection-changed="(event: SelectionChangedEvent<AgRow>) => {
+                    selected = event.api
+                        .getSelectedRows()
+                        .map((row) => row.studentId);
+                }"
             ></AgGridVue>
         </div>
     </div>
 
     <HoverCard v-model:open="open">
-        <Edit
+        <EditorCard
             :key="update"
-            :entries="entries"
+            :entries
             :push="send"
-            :hashed="hashed"
-            :date="date"
+            :hashed
+            :date
         />
     </HoverCard>
 </template>
@@ -237,7 +330,7 @@ defineExpose({ Dropdown });
 
     @apply flex items-center justify-center flex-col gap-3;
     @apply text-xl;
-    @apply absolute top-[62%]; /* golden ratio cooks */
+    @apply absolute top-[62%];
 
     line-height: 1.25;
 }

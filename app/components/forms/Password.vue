@@ -3,7 +3,7 @@ import type { Temporal } from "temporal-polyfill";
 import { SRPClientSession, SRPParameters, SRPRoutines } from "tssrp6a";
 import { REGEXP_ONLY_DIGITS_AND_CHARS as Alphanumeric } from "vue-input-otp";
 import { ApiClient, apiToast } from "~/utils/api";
-import type { SlotSize } from "../ui/input-otp/Slot.vue";
+import type { SlotSize } from "../ui/form/otp/Slot.vue";
 
 const PASSWORD_LENGTH = 8;
 
@@ -100,25 +100,14 @@ watch(password, async (password) => {
 </script>
 
 <template>
-    <OTPInput
-        v-slot="{ slots }"
-        v-model="password"
-        :maxlength="PASSWORD_LENGTH"
-        inputmode="text"
-        :pattern="Alphanumeric"
-        type="password"
-        autocomplete="off"
-        spellcheck="false"
+    <OTPField
+        :length="PASSWORD_LENGTH"
+        :regex="Alphanumeric"
+        :size="$props.size"
+        v-model:otp="password"
+        mode="text"
+        password
     >
-        <div class="flex">
-            <OTPSlot
-                v-for="(slot, idx) in slots"
-                v-bind="slot"
-                :key="idx"
-                :size="$props.size"
-                hidden
-            />
-        </div>
         <Icon
             v-if="loading"
             name="svg-spinners:ring-resize"
@@ -126,7 +115,7 @@ watch(password, async (password) => {
             :customize="Customize.StrokeWidth(1.75)"
             mode="svg"
         />
-    </OTPInput>
+    </OTPField>
 </template>
 
 <style scoped>

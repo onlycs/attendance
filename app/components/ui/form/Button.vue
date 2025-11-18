@@ -22,7 +22,7 @@ defineProps<{
             $props.static && 'no-animate',
         )"
         v-bind="$attrs"
-        :disabled="disabled"
+        :disabled
     >
         <slot />
     </button>
@@ -76,7 +76,7 @@ defineProps<{
         }
     }
 
-    &.background {
+    &.bg {
         @apply bg-background hover:bg-card-active;
 
         &:not(.no-animate) {

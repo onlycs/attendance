@@ -23,7 +23,7 @@ function entryLabel(entry: Entry) {
 <template>
     <div class="mroot">
         <div
-            v-for="entry in $props.entries"
+            v-for="entry of $props.entries"
             class="entry"
             :key="entry.id"
             :id="entry.id"

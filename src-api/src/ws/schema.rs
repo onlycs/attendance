@@ -68,7 +68,10 @@ pub struct ReplicateEntryDelete {
     pub id: String,
 }
 
-pub type ReplicateStudentAdd = StudentData;
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ReplicateStudentAdd {
+    pub student: StudentData,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "key", content = "value", rename_all = "lowercase")]

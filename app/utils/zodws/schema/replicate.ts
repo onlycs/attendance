@@ -37,7 +37,6 @@ export const DeleteEntrySchema = z.object({
 export const AddStudentSchema = z.object({
     type: z.literal("AddStudent"),
     student: StudentDataSchema,
-    cells: z.array(CellSchema),
 });
 
 export const StudentFieldUpdateSchema = z.union([

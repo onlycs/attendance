@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import {
-    DrawerContent,
-    DrawerHandle,
-    DrawerOverlay,
-    DrawerPortal,
-    DrawerRoot,
-} from "vaul-vue";
 import { useAuth } from "~/utils/auth";
 import DefaultLayout from "./Default.vue";
 
@@ -15,8 +8,6 @@ const forceClose = ref(false);
 const isMobile = useMobile();
 const router = useRouter();
 const app = useNuxtApp();
-const drawer = ref<InstanceType<typeof DrawerRoot>>();
-
 const layout = ref<InstanceType<typeof DefaultLayout>>();
 
 function redirect() {
@@ -61,59 +52,35 @@ onMounted(() => {
     <DefaultLayout ref="layout">
         <slot />
 
-        <DrawerRoot
-            class="absolute"
-            ref="drawer"
-            should-scale-background
+        <Drawer
             :open="!ok && !forceClose"
+            @close="redirect"
         >
-            <DrawerPortal>
-                <DrawerOverlay @click="redirect" />
-                <DrawerContent class="dialog password">
-                    <DrawerHandle class="handle" />
+            <div class="title">
+                Enter Password to Continue
+            </div>
 
-                    <div class="title">
-                        Enter Password to Continue
-                    </div>
-
-                    <div class="form">
-                        <SizeDependent>
-                            <FormPassword
-                                :size="isMobile
-                                ? 'md'
-                                : 'lg'"
-                            />
-                        </SizeDependent>
-                    </div>
-                </DrawerContent>
-            </DrawerPortal>
-        </DrawerRoot>
+            <div class="form">
+                <SizeDependent>
+                    <FormPassword
+                        :size="isMobile
+                        ? 'md'
+                        : 'lg'"
+                    />
+                </SizeDependent>
+            </div>
+        </Drawer>
     </DefaultLayout>
 </template>
 
-<style>
+<style scoped>
 @reference "~/style/tailwind.css";
 
-.dialog {
-    @apply fixed bottom-0 right-0 left-0;
-    @apply flex flex-col items-center z-50;
-    @apply rounded-t-lg;
-    @apply bg-card;
+.title {
+    @apply text-xl md:text-2xl;
+}
 
-    &.password {
-        @apply h-64;
-    }
-
-    .handle {
-        @apply mb-6 mt-4;
-    }
-
-    .title {
-        @apply text-xl md:text-2xl;
-    }
-
-    .form {
-        @apply my-8;
-    }
+.form {
+    @apply my-8;
 }
 </style>

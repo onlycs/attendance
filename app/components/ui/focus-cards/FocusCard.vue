@@ -64,7 +64,7 @@ defineExpose({ prim, icon, title });
     @apply py-4 px-5;
 }
 
-.background {
+.bg {
     @apply absolute inset-0 flex items-end;
 
     @apply md:group-hover/card:bg-drop;

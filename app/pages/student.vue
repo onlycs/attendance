@@ -30,7 +30,7 @@ function logout() {
     <FocusCards
         :class="cn(!show && 'opacity-0')"
         :length="2"
-        :animate="animate"
+        :animate
         ref="container"
     >
         <FocusCard

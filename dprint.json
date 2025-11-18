@@ -1,14 +1,21 @@
 {
     "indentWidth": 4,
     "typescript": {
-        "semiColons": "always"
+        "semiColons": "always",
+        "typeParameters.trailingCommas": "never"
     },
     "json": {},
     "markdown": {},
     "toml": {},
     "dockerfile": {},
     "malva": {},
-    "markup": {},
+    "markup": {
+        "vBindStyle": "short",
+        "vOnStyle": "short",
+        "vForDelimiterStyle": "of",
+        "vSlotStyle": "short",
+        "vBindSameNameShortHand": true
+    },
     "yaml": {
         "indentWidth": 2
     },

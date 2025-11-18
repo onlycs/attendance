@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { REGEXP_ONLY_DIGITS as Numeric } from "vue-input-otp";
-import type { SlotSize } from "../ui/input-otp/Slot.vue";
+import type { SlotSize } from "../ui/form/otp/Slot.vue";
 
 const LENGTH = 5;
 
@@ -30,24 +30,13 @@ watch(id, (studentId) => {
 </script>
 
 <template>
-    <OTPInput
-        v-slot="{ slots }"
-        v-model="id"
-        :maxlength="LENGTH"
-        inputmode="text"
-        :pattern="Numeric"
-        autocomplete="off"
-        spellcheck="false"
+    <OTPField
+        :length="LENGTH"
+        :regex="Numeric"
+        :size="$props.size"
+        mobile="numeric"
+        v-model:otp="id"
     >
-        <div class="flex">
-            <OTPSlot
-                v-for="(slot, idx) in slots"
-                v-bind="slot"
-                :key="idx"
-                :size="$props.size"
-                hidden
-            />
-        </div>
         <Icon
             v-if="loading"
             name="svg-spinners:ring-resize"
@@ -55,14 +44,14 @@ watch(id, (studentId) => {
             :customize="Customize.StrokeWidth(1.75)"
             mode="svg"
         />
-    </OTPInput>
+    </OTPField>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
 .icon {
-    @apply absolute right-0 top-1/2 -translate-y-1/2
-        translate-x-[calc(100%+1rem)];
+    @apply absolute right-0 top-1/2;
+    @apply -translate-y-1/2 translate-x-[calc(100%+1rem)];
 }
 </style>

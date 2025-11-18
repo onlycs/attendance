@@ -17,8 +17,9 @@ export default defineNuxtConfig({
         },
     },
     components: [
-        { path: "~/components/ui/input-otp", prefix: "OTP" },
+        { path: "~/components/ui/form/otp", prefix: "OTP" },
         { path: "~/components/forms", prefix: "Form" },
+        { path: "~/components/editor", prefix: "Editor" },
         { path: "~/components", pathPrefix: false },
     ],
     devtools: {
@@ -34,6 +35,7 @@ export default defineNuxtConfig({
         "v-gsap-nuxt",
         "@vueuse/nuxt",
         "vue-sonner/nuxt",
+        "reka-ui/nuxt",
     ],
     pages: true,
     css: ["~/style/tailwind.css"],

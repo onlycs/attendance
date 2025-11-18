@@ -11,7 +11,7 @@ const props = defineProps<
 >();
 
 const box = {
-    sm: "max-md:size-7 size-9",
+    sm: "max-md:size-7 size-10",
     md: "max-md:size-9 size-12",
     lg: "max-md:size-12 size-16",
 }[props.size ?? "md"];

@@ -5,6 +5,7 @@ import {
     ModuleRegistry,
     NumberFilterModule,
     PaginationModule,
+    RowSelectionModule,
     TextEditorModule,
     TextFilterModule,
     ValidationModule,
@@ -17,6 +18,7 @@ ModuleRegistry.registerModules([
     ClientSideRowModelModule,
     ValidationModule,
     PaginationModule,
+    RowSelectionModule,
 ]);
 
 export default defineNuxtPlugin((nuxtApp) => {

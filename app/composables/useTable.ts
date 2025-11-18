@@ -44,8 +44,7 @@ export function useTable({ auth, router }: TableProps) {
 
             if (repl.type === "Full") {
                 ready.task.value = "Decrypting student data";
-                ready.progress.value = 0;
-                ready.progressmax.value = repl.data.length * 3;
+                ready.progressmax.value += repl.data.length * 3;
 
                 const incoming = repl.data.map(async (row) => {
                     const id = await Crypt.decrypt(row.student.id, cryptkey);
@@ -89,7 +88,7 @@ export function useTable({ auth, router }: TableProps) {
                     hashed: repl.student.hashed,
                     first,
                     last,
-                    cells: repl.cells,
+                    cells: data[0]?.cells.map((c) => ({ date: c.date, entries: [] })) || [],
                 });
 
                 return;
@@ -138,7 +137,7 @@ export function useTable({ auth, router }: TableProps) {
                         const newCell = { date: repl.date, entries: [] };
                         const index = s.cells.findIndex((c) => {
                             return (
-                                c.date.since(repl.date).total("milliseconds")
+                                c.date.until(repl.date).total("milliseconds")
                                     > 0
                             );
                         });
@@ -290,6 +289,14 @@ export function useTable({ auth, router }: TableProps) {
                 toast.error(payload.message);
             },
         },
+    });
+
+    watch(auth.admin, admin => {
+        if (admin.status === "ok") {
+            websocket.send("Authenticate", {
+                token: admin.token.value.token,
+            });
+        }
     });
 
     function send(repl: ReplicationOutgoing) {

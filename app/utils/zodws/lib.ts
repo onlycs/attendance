@@ -19,12 +19,12 @@ export type ServerMessageNames<Api extends ZodWsApi> = Api["server"][number]["na
 
 export type ClientMessage<
     Api extends ZodWsApi,
-    Name extends ClientMessageNames<Api>,
+    Name extends ClientMessageNames<Api>
 > = FilterArrayByValue<Api["client"], { name: Name; }>[number];
 
 export type ServerMessage<
     Api extends ZodWsApi,
-    Name extends ServerMessageNames<Api>,
+    Name extends ServerMessageNames<Api>
 > = FilterArrayByValue<Api["server"], { name: Name; }>[number];
 
 export type ClientMessages<Api extends ZodWsApi> = Api["client"][number];
@@ -167,6 +167,8 @@ export class ZodWsClient<Api extends ZodWsApi, Status extends ClientStatus> {
 
     reconnect() {
         if (this.socket?.readyState === WebSocket.OPEN) return;
+
+        this.socket?.close();
         this.socket = new WebSocket(this.url, []);
 
         this.socket.onopen = this.onConnect.bind(this);

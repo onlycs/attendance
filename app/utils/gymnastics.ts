@@ -20,23 +20,23 @@ type TuplifyUnion<T, L = LastOf<T>> = [T] extends [never] ? []
 
 type BuildTuple<
     N extends number,
-    R extends unknown[] = [],
+    R extends unknown[] = []
 > = R["length"] extends N ? R : BuildTuple<N, [...R, unknown]>;
 
 export type Subtract<
     A extends number,
-    B extends number,
+    B extends number
 > = BuildTuple<A> extends [...infer U, ...BuildTuple<B>] ? U["length"] : never;
 
 export type LessThan<
     N extends number,
-    R extends unknown[] = [],
+    R extends unknown[] = []
 > = R["length"] extends N ? never : R["length"] | LessThan<N, [...R, unknown]>;
 
 export type FixedArray<
     T,
     N extends number,
-    R extends T[] = [],
+    R extends T[] = []
 > = R["length"] extends N ? R : FixedArray<T, N, [...R, T]>;
 
 export type CountKeys<T> = TuplifyUnion<keyof T>["length"];

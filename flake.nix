@@ -68,11 +68,6 @@
           PGHOST = "$PGDATA";
           PGDATABASE = "attendance";
           PGUSER = "$USER";
-
-          shellHook = ''
-            nohup bash "$PWD/.scripts/postgres.sh" &
-            disown
-          '';
         };
       }
     );

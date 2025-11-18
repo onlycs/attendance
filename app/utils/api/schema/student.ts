@@ -1,8 +1,8 @@
 import { makeEndpoint } from "@zodios/core";
 import { z } from "zod";
+import { AuthorizationHeader } from "./auth";
 import { ApiErrors } from "./error";
 import { HourTypeSchema } from "./roster";
-import { AuthorizationHeader } from "./auth";
 
 export const StudentDataSchema = z.object({
     id: z.string(),

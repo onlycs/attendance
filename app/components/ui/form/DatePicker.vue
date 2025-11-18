@@ -1,49 +1,35 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
 import { Math2 } from "~/utils/math";
+import type { InstantPickerProps } from "./TimePicker.vue";
 
-export interface InstantPickerProps {
-    icon?: string;
-    color?: "red" | "green" | "gray";
-    background?: "card" | "bg";
-}
-
-const { icon, color } = defineProps<InstantPickerProps>();
-const time = defineModel<Temporal.PlainTime>("time");
-const temp = ref(time.value ?? Temporal.Now.plainTimeISO());
-const emit = defineEmits<{ submit: [Temporal.PlainTime]; }>();
-const etime = computed({
+const { icon, color, background } = defineProps<InstantPickerProps>();
+const date = defineModel<Temporal.PlainDate>("date");
+const temp = ref(date.value ?? Temporal.Now.plainDateISO());
+const emit = defineEmits<{ submit: [Temporal.PlainDate]; }>();
+const edate = computed({
     get() {
-        return time.value ?? temp.value;
+        return date.value ?? temp.value;
     },
-    set(v: Temporal.PlainTime) {
-        if (time.value) time.value = v;
+    set(v: Temporal.PlainDate) {
+        if (date.value) date.value = v;
         else temp.value = v;
     },
 });
 
-const hour = computed<[number, number]>(() => {
-    const h24 = etime.value.hour;
-    const h12 = h24 % 12 || 12;
-    return [Math.floor(h12 / 10), h12 % 10] as const;
-});
-
-const minute = computed(() => {
-    const m = etime.value.minute;
+const month = computed<[number, number]>(() => {
+    const m = edate.value.month;
     return [Math.floor(m / 10), m % 10] as const;
 });
 
-const seconds = computed(() => {
-    const s = etime.value.second;
-    return [Math.floor(s / 10), s % 10] as const;
+const day = computed(() => {
+    const d = edate.value.day;
+    return [Math.floor(d / 10), d % 10] as const;
 });
 
-const isA = computed(() => {
-    return etime.value.hour < 12;
-});
-
-const period = computed(() => {
-    return isA.value ? "AM" : "PM";
+const year = computed(() => {
+    const y = edate.value.year.toString().slice(2);
+    return y.padStart(2, "0").split("").map(Number) as [number, number];
 });
 
 const active = ref(-1);
@@ -58,9 +44,9 @@ function end() {
 }
 
 function blur() {
-    if ((time.value || active.value === 6) && active.value !== 0) {
-        if (!time.value) time.value = Temporal.PlainTime.from(etime.value);
-        emit("submit", Temporal.PlainTime.from(etime.value));
+    if ((date.value || active.value === 6) && active.value !== 0) {
+        if (!date.value) date.value = Temporal.PlainDate.from(edate.value);
+        emit("submit", Temporal.PlainDate.from(date.value));
     }
 
     active.value = -1;
@@ -70,27 +56,26 @@ function start() {
     active.value = 0;
 }
 
-function setH12(h12u: number) {
-    const h12 = Math2.clamp(h12u, 1, 12);
-    const h24 = isA.value ? h12 % 12 : (h12 % 12) + 12;
-    etime.value = etime.value.with({ hour: h24 });
+function setMonth(m: number) {
+    const month = Math2.clamp(m, 1, 12);
+    edate.value = edate.value.with({ month });
 }
 
-function setMinutes(m: number) {
-    const minute = Math2.clamp(m, 0, 59);
-    etime.value = etime.value.with({ minute });
+function setDay(d: number) {
+    const day = Math2.clamp(d, 1, edate.value.daysInMonth);
+    edate.value = edate.value.with({ day });
 }
 
-function setSeconds(s: number) {
-    const seconds = Math2.clamp(s, 0, 59);
-    etime.value = etime.value.with({ second: seconds });
+function setYear(y: number) {
+    const year = Math2.clamp(y, 0, 99) + 2000;
+    edate.value = edate.value.with({ year });
 }
 
 function keypress(kp: KeyboardEvent) {
     if (active.value === -1) return;
 
     const key = kp.key.toLowerCase();
-    const canForwards = time.value && active.value < 6;
+    const canForwards = date.value && active.value < 5;
     const canBack = active.value > 0;
 
     if (key === "backspace" && canBack) return active.value--;
@@ -99,21 +84,6 @@ function keypress(kp: KeyboardEvent) {
     if (key === "enter") return end();
 
     if (!Math2.bounded(active.value, 0, 6) || key.length !== 1) return;
-
-    if (active.value === 6) {
-        if (!/^[ap]$/.test(key)) return;
-
-        const isA = key === "a";
-        const h24 = etime.value.hour;
-
-        if (isA && h24 >= 12) {
-            etime.value = etime.value.with({ hour: h24 - 12 });
-        } else if (!isA && h24 < 12) {
-            etime.value = etime.value.with({ hour: h24 + 12 });
-        }
-
-        return end();
-    }
 
     if (!/^\d$/.test(key)) return;
     const num = Number(key);
@@ -136,26 +106,27 @@ function keypress(kp: KeyboardEvent) {
     };
 
     const index = Math.floor(active.value / 2);
-    const tensLim = [1, 5, 5][index]!;
-    const setter = [setH12, setMinutes, setSeconds][index]!;
-    const ref = [hour, minute, seconds][index]!;
+    const tensLim = [1, 3, 9][index]!;
+    const setter = [setMonth, setDay, setYear][index]!;
+    const ref = [month, day, year][index]!;
 
     activate(tensLim, setter, ref);
     active.value++;
+
+    if (active.value === 6) end();
 }
 
-const timestr = computed(() => {
-    const hide = !time.value ? active.value : 7;
+const datestr = computed(() => {
+    const hide = !date.value ? active.value : 6;
 
-    const h1 = hide <= 0 ? "-" : hour.value[0];
-    const h2 = hide <= 1 ? "-" : hour.value[1];
-    const m1 = hide <= 2 ? "-" : minute.value[0];
-    const m2 = hide <= 3 ? "-" : minute.value[1];
-    const s1 = hide <= 4 ? "-" : seconds.value[0];
-    const s2 = hide <= 5 ? "-" : seconds.value[1];
-    const p = hide <= 6 ? "--" : period.value;
+    const m1 = hide <= 0 ? "-" : month.value[0];
+    const m2 = hide <= 1 ? "-" : month.value[1];
+    const d1 = hide <= 2 ? "-" : day.value[0];
+    const d2 = hide <= 3 ? "-" : day.value[1];
+    const y1 = hide <= 4 ? "-" : year.value[0];
+    const y2 = hide <= 5 ? "-" : year.value[1];
 
-    return `${h1}${h2}:${m1}${m2}:${s1}${s2} ${p}`;
+    return `${m1}${m2}/${d1}${d2}/${y1}${y2}`;
 });
 
 const iconClass = computed(() => {
@@ -178,21 +149,20 @@ const iconClass = computed(() => {
         @keydown="keypress"
     >
         <Icon
-            :name="icon ?? 'hugeicons:clock-01'"
+            :name="icon ?? 'hugeicons:calendar-03'"
             :class="cn('icon', active !== -1 ? 'focused' : '', iconClass)"
             size="20"
         />
 
         <div class="display">
-            {{ timestr }}
+            {{ datestr }}
 
             <div
-                v-for="i of 8"
+                v-for="i of 6"
                 :key="i - 1"
                 :class="cn(
                     'line',
-                    i !== 8 && active === i - 1 ? 'active' : '',
-                    active === 6 && i === 8 ? 'active' : '',
+                    i !== 7 && active === i - 1 ? 'active' : '',
                 )"
                 :style="{
                     left: `${
@@ -210,7 +180,7 @@ const iconClass = computed(() => {
 .input {
     @apply relative;
     @apply flex flex-row justify-center items-center gap-4 flex-1;
-    @apply rounded-lg px-6 py-4;
+    @apply bg-card rounded-lg px-6 py-4;
     @apply font-["JetBrainsMono_Nerd_Font",monospace] select-none;
     @apply transition-all duration-200;
 }

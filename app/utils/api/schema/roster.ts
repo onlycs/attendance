@@ -1,7 +1,7 @@
 import { makeEndpoint } from "@zodios/core";
 import { z } from "zod";
-import { ApiErrors } from "./error";
 import { AuthorizationHeader } from "./auth";
+import { ApiErrors } from "./error";
 
 export const RosterActionSchema = z.enum(["login", "logout"]);
 

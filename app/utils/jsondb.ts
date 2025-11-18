@@ -42,7 +42,7 @@ type OptionalIfUndefined<T> = Merge<
 type Names<Table extends DbTable> = Table["columns"][number]["name"];
 type ColumnOf<
     Table extends DbTable,
-    Name extends Names<Table>,
+    Name extends Names<Table>
 > = FilterArrayByValue<Table["columns"], { name: Name; }>[number];
 type SchemaOf<Table extends DbTable, Name extends Names<Table>> = ColumnOf<
     Table,

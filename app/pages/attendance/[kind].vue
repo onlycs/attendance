@@ -1,12 +1,5 @@
 <script setup lang="ts">
 import type { FocusCard } from "#components";
-import {
-    DrawerContent,
-    DrawerHandle,
-    DrawerOverlay,
-    DrawerPortal,
-    DrawerRoot,
-} from "vaul-vue";
 import { toast } from "vue-sonner";
 import { z } from "zod";
 import { ApiClient, apiToast } from "~/utils/api";
@@ -23,7 +16,7 @@ const screenSize = useScreenSize();
 const mobile = useMobile(screenSize);
 const auth = useAuth();
 
-const creds = ref<{ token: string; password: string } | null>(null);
+const creds = ref<{ token: string; password: string; } | null>(null);
 const kind = route.params.kind as "build" | "learning" | "demo";
 
 const size = computed(() => [64, 32, 48, 52, 64][screenSize.value]);
@@ -247,7 +240,7 @@ onMounted(() => {
             <div class="textbox">
                 <Icon
                     name="hugeicons:mortarboard-01"
-                    :size="size"
+                    :size
                     :customize="Customize.StrokeWidth(0.5)"
                     mode="svg"
                 />
@@ -258,7 +251,7 @@ onMounted(() => {
                 <SizeDependent>
                     <FormStudentId
                         :size="screenSize === 1 ? 'md' : 'lg'"
-                        :loading="loading"
+                        :loading
                         @submit="(ev) => roster(ev.id)"
                         autofocus
                     />
@@ -269,63 +262,51 @@ onMounted(() => {
         </div>
     </div>
 
-    <DrawerRoot
-        should-scale-background
+    <Drawer
         :open="ForceFormOpen"
         @close="ForceFormClose"
+        class="dialog"
     >
-        <DrawerPortal>
-            <DrawerOverlay class="drawer-overlay" />
-            <DrawerContent class="dialog force">
-                <DrawerHandle class="handle" />
+        <div class="title">Are you sure?</div>
 
-                <div class="title">Are you sure?</div>
+        You signed in less than three minutes ago
 
-                You signed in less than three minutes ago
+        <div class="buttons">
+            <Button kind="error" @click="ForceFormSubmit">
+                Sign me out!
+            </Button>
 
-                <div class="buttons">
-                    <Button kind="error" @click="ForceFormSubmit">
-                        Sign me out!
-                    </Button>
+            <Button kind="card-2" @click="ForceFormClose">
+                Keep me in
+            </Button>
+        </div>
+    </Drawer>
 
-                    <Button kind="card-2" @click="ForceFormClose">
-                        Keep me in
-                    </Button>
-                </div>
-            </DrawerContent>
-        </DrawerPortal>
-    </DrawerRoot>
-
-    <DrawerRoot
-        should-scale-background
+    <Drawer
         :open="NewFormOpen"
         @close="NewFormClose"
+        class="dialog"
     >
-        <DrawerPortal>
-            <DrawerOverlay class="drawer-overlay" />
-            <DrawerContent class="dialog new">
-                <DrawerHandle class="handle" />
+        <div class="title">New Student</div>
 
-                <div class="title">New Student</div>
-
-                <Form
-                    @cancel="NewFormClose"
-                    @submit="NewFormSubmit"
-                    :schema="NewFormSchema"
-                    :meta="{
-                        first: {
-                            title: 'First Name',
-                            placeholder: 'John',
-                        },
-                        last: {
-                            title: 'Last Name',
-                            placeholder: 'Doe',
-                        },
-                    }"
-                />
-            </DrawerContent>
-        </DrawerPortal>
-    </DrawerRoot>
+        <Form
+            @cancel="NewFormClose"
+            @submit="NewFormSubmit"
+            :schema="NewFormSchema"
+            :meta="{
+                first: {
+                    title: 'First Name',
+                    type: 'input',
+                    placeholder: 'John',
+                },
+                last: {
+                    title: 'Last Name',
+                    type: 'input',
+                    placeholder: 'Doe',
+                },
+            }"
+        />
+    </Drawer>
 </template>
 
 <style scoped>
@@ -359,11 +340,11 @@ onMounted(() => {
         translate-y-[calc(-50%+1rem)];
 }
 
-.dialog.force {
+.dialog {
     @apply h-72;
 
     .title {
-        @apply mb-2;
+        @apply mb-2 text-xl md:text-2xl;
     }
 
     .buttons {
