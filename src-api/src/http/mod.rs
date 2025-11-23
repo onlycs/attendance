@@ -7,7 +7,6 @@ use actix_web::{
     web::{self},
 };
 use roster::RosterRequest;
-use serde_json::json;
 use utoipa::{
     Modify, OpenApi,
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -106,7 +105,7 @@ pub(crate) async fn auth_validate(
     tag = "auth",
     description = "Deauthorizes the provided token",
     responses(
-        (status = 200, description = "Token deauthorized", body = String),
+        (status = 200, description = "Token deauthorized"),
         (status = 500, description = "Internal server error", body = String)
     ),
     security(("Token" = []))
@@ -126,7 +125,7 @@ pub(crate) async fn deauthorize(
     let token = auth::parse_header(&req)?;
     auth::deauthorize(token, &state.pg).await?;
 
-    Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
+    Ok(HttpResponse::Ok())
 }
 
 #[utoipa::path(
@@ -169,7 +168,7 @@ pub(crate) async fn roster_record(
     operation_id = "roster::clear",
     tag = "roster",
     responses(
-        (status = 200, description = "Expired roster entries cleared", body = String),
+        (status = 200, description = "Expired roster entries cleared"),
         (status = 401, description = "Invalid token", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
@@ -183,7 +182,7 @@ pub(crate) async fn roster_clear(
     auth::validate(&auth::parse_header(&req)?, &state.pg).await?;
     roster::delete_expired(&state.pg).await?;
 
-    Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
+    Ok(HttpResponse::Ok())
 }
 
 #[utoipa::path(
@@ -218,7 +217,7 @@ pub(crate) async fn student_query(
     description = "Adds a new student",
     request_body = student::StudentData,
     responses(
-        (status = 200, description = "Student added", body = String),
+        (status = 200, description = "Student added"),
         (status = 401, description = "Invalid token", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
@@ -232,7 +231,29 @@ pub(crate) async fn student_add(
 ) -> Result<impl Responder, RouteError> {
     auth::validate(&auth::parse_header(&req)?, &state.pg).await?;
     student::add(body.into_inner(), &state.pg).await?;
-    Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
+    Ok(HttpResponse::Ok())
+}
+
+#[get("/openapi.{format}")]
+pub(crate) async fn schema(path: web::Path<String>) -> impl Responder {
+    let format = path.into_inner();
+    let openapi = ApiDoc::openapi();
+
+    match format.as_str() {
+        "yaml" | "yml" => match openapi.to_yaml() {
+            Ok(yaml_content) => HttpResponse::Ok()
+                .append_header(("Content-Type", "application/x-yaml"))
+                .body(yaml_content),
+            Err(_) => HttpResponse::InternalServerError().body("Failed to generate OpenAPI YAML"),
+        },
+        "json" => match openapi.to_json() {
+            Ok(json_content) => HttpResponse::Ok()
+                .append_header(("Content-Type", "application/json"))
+                .body(json_content),
+            Err(_) => HttpResponse::InternalServerError().body("Failed to generate OpenAPI JSON"),
+        },
+        _ => HttpResponse::BadRequest().body("Unsupported format. Use 'yaml'/'yml' or 'json'."),
+    }
 }
 
 #[get("/")]
@@ -276,7 +297,7 @@ impl Modify for TokenSecurity {
                         .scheme(HttpAuthScheme::Bearer)
                         .bearer_format("token")
                         .description(Some(
-                            "Token-based authentication. Provide the token in the Authorization header as 'Bearer <token>'.",
+                            "Token-based authentication. Provide the token in the Authorization header as 'Bearer [token]'.",
                         ))
                         .build()
                 )

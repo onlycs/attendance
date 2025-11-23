@@ -53,6 +53,7 @@ pub async fn run_server(pool: Arc<PgPool>) -> Result<(), InitError> {
             .wrap(SecurityHeaders)
             .app_data(Data::new(state))
             .service(http::index)
+            .service(http::openapi)
             .service(http::register_start)
             .service(http::login_start)
             .service(http::login_finish)

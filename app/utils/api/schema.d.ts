@@ -243,9 +243,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "text/plain": string;
-                };
+                content?: never;
             };
             /** @description Internal server error */
             500: {
@@ -408,9 +406,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "text/plain": string;
-                };
+                content?: never;
             };
             /** @description Invalid token */
             401: {
@@ -456,9 +452,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "text/plain": string;
-                };
+                content?: never;
             };
             /** @description Invalid token */
             401: {

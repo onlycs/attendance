@@ -37,10 +37,6 @@ paths:
       responses:
         '200':
           description: Token deauthorized
-          content:
-            text/plain:
-              schema:
-                type: string
         '500':
           description: Internal server error
           content:
@@ -145,10 +141,6 @@ paths:
       responses:
         '200':
           description: Expired roster entries cleared
-          content:
-            text/plain:
-              schema:
-                type: string
         '401':
           description: Invalid token
           content:
@@ -178,10 +170,6 @@ paths:
       responses:
         '200':
           description: Student added
-          content:
-            text/plain:
-              schema:
-                type: string
         '401':
           description: Invalid token
           content:
