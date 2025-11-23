@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { FocusCard } from "#components";
 import { identity } from "@vueuse/core";
 import { Temporal } from "temporal-polyfill";
 import type { HourType } from "~/utils/api";

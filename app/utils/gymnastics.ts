@@ -2,7 +2,7 @@
 
 export type { FilterArrayByValue as Filter, Narrow } from "@zodios/core/lib/utils.types";
 
-import type { Narrow } from "@zodios/core/lib/utils.types";
+import type { Narrow, RequiredKeys } from "@zodios/core/lib/utils.types";
 
 type UnionToIntersection<U> = (
     U extends never ? never
@@ -44,6 +44,14 @@ export type CountKeys<T> = TuplifyUnion<keyof T>["length"];
 export type Optionalize<T, K extends keyof T> =
     & Omit<T, K>
     & Partial<Pick<T, K>>;
+
+export type UndefinedIfOptional<T> = RequiredKeys<T> extends never ? undefined : T;
+
+export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
+export type Merge<A, B> = Prettify<
+    & Pick<A, keyof A>
+    & Pick<B, Exclude<keyof B, keyof A>>
+>;
 
 /// Constrain T as much as possible using zodios voodoo magic
 export function narrow<T>(a: Narrow<T>): Narrow<T> {

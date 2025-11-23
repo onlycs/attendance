@@ -1,10 +1,11 @@
 use core::fmt;
 
 use chrono::{Datelike, Local, Utc};
+use utoipa::ToSchema;
 
 use crate::prelude::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash, sqlx::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, sqlx::Type)]
 #[sqlx(type_name = "hour_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum HourType {
@@ -45,14 +46,14 @@ impl fmt::Display for HourType {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum RosterAction {
     Login,
     Logout,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, ToSchema)]
 pub struct RosterRequest {
     pub id: String,
     pub kind: HourType,
@@ -60,7 +61,7 @@ pub struct RosterRequest {
     pub force: bool,
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize, ToSchema)]
 pub struct RosterResponse {
     pub action: RosterAction,
     pub denied: bool,

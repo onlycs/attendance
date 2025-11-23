@@ -76,7 +76,7 @@ defineProps<{
         }
     }
 
-    &.bg {
+    &.background {
         @apply bg-background hover:bg-card-active;
 
         &:not(.no-animate) {

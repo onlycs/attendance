@@ -1,6 +1,12 @@
 import z from "zod";
-import { StudentDataSchema } from "~/utils/api";
 import { CellSchema, EntrySchema, NaiveDate } from "./table";
+
+export const StudentDataSchema = z.object({
+    id: z.string(),
+    first: z.string(),
+    last: z.string(),
+    hashed: z.string(),
+});
 
 export const AddEntrySchema = z.object({
     type: z.literal("AddEntry"),

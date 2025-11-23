@@ -1,7 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import { zPlainDate } from "temporal-zod";
 import z from "zod";
-import { HourTypeSchema } from "~/utils/api";
 
 export const SignIn = z.coerce
     .date()
@@ -14,6 +13,8 @@ export const SignOut = z.preprocess(
 );
 
 export const NaiveDate = zPlainDate;
+
+export const HourTypeSchema = z.enum(["learning", "build", "demo", "offseason"]);
 
 export const EntrySchema = z.object({
     id: z.string(),

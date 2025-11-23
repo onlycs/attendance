@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FocusCards } from "#components";
-import { ApiClient } from "~/utils/api";
+import { api } from "~/utils/api";
 
 const transition = injectTransition();
 const container = ref<InstanceType<typeof FocusCards>>();
@@ -26,10 +26,8 @@ function attendance() {
 
 async function logout() {
     if (auth.admin.value.status === "ok") {
-        ApiClient.fetch("auth/deauthorize", undefined, {
-            headers: {
-                Authorization: `Bearer ${auth.admin.value.token}`,
-            },
+        api("/auth", "delete", {
+            header: { Authorization: `Bearer ${auth.admin.value.token}` },
         });
     }
 

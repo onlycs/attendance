@@ -2,6 +2,15 @@
 name = "attendance-api"
 version = "2.0.0"
 edition = "2024"
+default-run = "attendance-api"
+
+[[bin]]
+name = "attendance-api"
+path = "src/main.rs"
+
+[[bin]]
+name = "openapi"
+path = "src/bin/openapi.rs"
 
 [dependencies]
 actix-cors = "0.7.1"
@@ -29,3 +38,4 @@ tokio = "1.47.1"
 tracing = "0.1.41"
 tracing-actix-web = "0.7.19"
 tracing-subscriber = { version = "0.3.20", features = ["json", "serde"] }
+utoipa = { version = "5.4.0", features = ["actix_extras", "chrono", "yaml"] }

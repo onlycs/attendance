@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import {
-    ApiClient,
-    apiToast,
-    type HoursResponse,
-    type HourType,
-} from "~/utils/api";
+import { api, apiToast, type Hours, type HourType } from "~/utils/api";
 import { Math2 } from "~/utils/math";
 
-const hours = ref<HoursResponse | null>(null);
+const hours = ref<Hours | null>(null);
 const auth = useAuth();
 const transition = injectTransition();
 const router = useRouter();
@@ -51,8 +46,8 @@ onMounted(async () => {
         return redirect("/");
     }
 
-    const res = await ApiClient.fetch("student/info", {
-        params: { id: Crypt.sha256(auth.student.value.id.value) },
+    const res = await api("/student/{id}", "get", {
+        path: { id: Crypt.sha256(auth.student.value.id.value) },
     });
 
     if (res.isErr()) {

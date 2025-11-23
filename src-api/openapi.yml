@@ -1,0 +1,348 @@
+openapi: 3.1.0
+info:
+  title: attendance-api
+  description: ''
+  license:
+    name: ''
+  version: 2.0.0
+paths:
+  /auth:
+    get:
+      tags:
+      - auth
+      description: Checks if the provided token is valid
+      operationId: auth::validate
+      responses:
+        '200':
+          description: Token is valid
+        '401':
+          description: Token is invalid
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
+    delete:
+      tags:
+      - auth
+      description: Deauthorizes the provided token
+      operationId: auth::deauthorize
+      responses:
+        '200':
+          description: Token deauthorized
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
+  /auth/login/finish:
+    post:
+      tags:
+      - auth
+      description: Finishes the srp6a login process
+      operationId: login::finish
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginFinishRequest'
+        required: true
+      responses:
+        '200':
+          description: Login finished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginFinishResponse'
+        '401':
+          description: Incorrect credentials
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+  /auth/login/start:
+    post:
+      tags:
+      - auth
+      description: Starts the srp6a login process
+      operationId: login::start
+      responses:
+        '200':
+          description: Login started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginStartResponse'
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+  /roster:
+    post:
+      tags:
+      - roster
+      description: Records a roster entry (login/logout)
+      operationId: roster::record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RosterRequest'
+        required: true
+      responses:
+        '200':
+          description: Roster entry recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RosterResponse'
+        '400':
+          description: Invalid hour type
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Invalid token
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
+    delete:
+      tags:
+      - roster
+      operationId: roster::clear
+      responses:
+        '200':
+          description: Expired roster entries cleared
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Invalid token
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
+  /student:
+    post:
+      tags:
+      - student
+      description: Adds a new student
+      operationId: student::add
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentData'
+        required: true
+      responses:
+        '200':
+          description: Student added
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Invalid token
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
+  /student/{id}:
+    get:
+      tags:
+      - student
+      description: Querys student hours
+      operationId: student::query
+      parameters:
+      - name: id
+        in: path
+        description: The student's hashed ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Student information fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hours'
+        '404':
+          description: No such student
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    HourType:
+      type: string
+      enum:
+      - build
+      - learning
+      - demo
+      - offseason
+    Hours:
+      type: object
+      required:
+      - build
+      - learning
+      - demo
+      - offseason
+      properties:
+        build:
+          type: number
+          format: double
+        demo:
+          type: number
+          format: double
+        learning:
+          type: number
+          format: double
+        offseason:
+          type: number
+          format: double
+    LoginFinishRequest:
+      type: object
+      required:
+      - a
+      - m1
+      properties:
+        a:
+          type: string
+        m1:
+          type: string
+    LoginFinishResponse:
+      type: object
+      required:
+      - m2
+      - token
+      - expires
+      properties:
+        expires:
+          type: string
+        m2:
+          type: string
+        token:
+          type: string
+    LoginStartResponse:
+      type: object
+      required:
+      - salt
+      - b
+      properties:
+        b:
+          type: string
+        salt:
+          type: string
+    RosterAction:
+      type: string
+      enum:
+      - login
+      - logout
+    RosterRequest:
+      type: object
+      required:
+      - id
+      - kind
+      properties:
+        force:
+          type: boolean
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/HourType'
+    RosterResponse:
+      type: object
+      required:
+      - action
+      - denied
+      properties:
+        action:
+          $ref: '#/components/schemas/RosterAction'
+        denied:
+          type: boolean
+    StudentData:
+      type: object
+      required:
+      - id
+      - first
+      - last
+      - hashed
+      properties:
+        first:
+          type: string
+        hashed:
+          type: string
+        id:
+          type: string
+        last:
+          type: string
+  securitySchemes:
+    Token:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+      description: Token-based authentication. Provide the token in the Authorization header as 'Bearer <token>'.
+tags:
+- name: auth
+  description: Authentication related endpoints
+- name: student
+  description: Student related endpoints
+- name: roster
+  description: Roster related endpoints

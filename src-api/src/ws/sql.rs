@@ -149,7 +149,7 @@ async fn student_watcher() -> Result<!, WsServerError> {
                     hashed: payload.hashed,
                     first: payload.first,
                     last: payload.last,
-                }
+                },
             }),
             Operation::Update => Replication::UpdateStudent(ReplicateStudentUpdate {
                 hashed: payload.hashed,
@@ -276,7 +276,13 @@ pub async fn replicate(repl: Replication, pg: &Pool<Postgres>) -> Result<(), WsE
         }
 
         Replication::AddStudent(ReplicateStudentAdd {
-            student: StudentData { id, hashed, first, last },
+            student:
+                StudentData {
+                    id,
+                    hashed,
+                    first,
+                    last,
+                },
         }) => {
             sqlx::query!(
                 r#"

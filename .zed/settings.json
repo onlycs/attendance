@@ -3,9 +3,41 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
-    "formatter": {
-        "language_server": {
-            "name": "dprint"
+    "languages": {
+        "TypeScript": {
+            "formatter": {
+                "language_server": {
+                    "name": "dprint"
+                }
+            }
+        },
+        "Vue.js": {
+            "formatter": {
+                "language_server": {
+                    "name": "dprint"
+                }
+            }
+        },
+        "CSS": {
+            "formatter": {
+                "language_server": {
+                    "name": "dprint"
+                }
+            }
+        },
+        "Markdown": {
+            "formatter": {
+                "language_server": {
+                    "name": "dprint"
+                }
+            }
+        },
+        "YAML": {
+            "formatter": {
+                "language_server": {
+                    "name": "dprint"
+                }
+            }
         }
     }
 }

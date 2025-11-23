@@ -50,7 +50,7 @@ pub(crate) async fn ws(
 
                         match message {
                             IncomingPayload::Authenticate(AuthenticatePayload {token}) => {
-                                auth::check_throw(&token, &state.pg)
+                                auth::validate(&token, &state.pg)
                                     .await
                                     .map_err(|_| WsError::Auth)?;
 

@@ -2,7 +2,7 @@
 import type { Temporal } from "temporal-polyfill";
 import { SRPClientSession, SRPParameters, SRPRoutines } from "tssrp6a";
 import { REGEXP_ONLY_DIGITS_AND_CHARS as Alphanumeric } from "vue-input-otp";
-import { ApiClient, apiToast } from "~/utils/api";
+import { api, apiDateTime, apiToast } from "~/utils/api";
 import type { SlotSize } from "../ui/form/otp/Slot.vue";
 
 const PASSWORD_LENGTH = 8;
@@ -49,7 +49,7 @@ watch(password, async (password) => {
     const clientA = new SRPClientSession(routines);
     const clientB = await clientA.step1("admin", password);
 
-    const start = await ApiClient.fetch("login/start", undefined);
+    const start = await api("/auth/login/start", "post");
 
     if (start.isErr()) {
         apiToast(start.error);
@@ -63,10 +63,11 @@ watch(password, async (password) => {
         Crypt.fromHex(start.value.b),
     );
 
-    const finish = await ApiClient.fetch("login/finish", {
-        a: Crypt.hex(clientC.A),
-        m1: Crypt.hex(clientC.M1),
-    });
+    const finish = await api(
+        "/auth/login/finish",
+        "post",
+        { a: Crypt.hex(clientC.A), m1: Crypt.hex(clientC.M1) },
+    );
 
     if (finish.isErr()) {
         apiToast(finish.error);
@@ -79,7 +80,7 @@ watch(password, async (password) => {
         auth.admin.value.reset(
             password,
             finish.value.token,
-            finish.value.expires,
+            apiDateTime(finish.value.expires),
         );
     }
 
@@ -87,14 +88,14 @@ watch(password, async (password) => {
         auth.admin.value.set(
             password,
             finish.value.token,
-            finish.value.expires,
+            apiDateTime(finish.value.expires),
         );
     }
 
     emit("submit", {
         password: password,
         token: finish.value.token,
-        expires: finish.value.expires,
+        expires: apiDateTime(finish.value.expires),
     });
 });
 </script>

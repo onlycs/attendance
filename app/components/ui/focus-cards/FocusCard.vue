@@ -31,7 +31,7 @@ defineExpose({ prim, icon, title });
             />
         </div>
 
-        <div class="background" />
+        <div class="bg" />
 
         <div :class="cn('title', !showText && 'animate')" ref="title">
             {{ $props.title }}

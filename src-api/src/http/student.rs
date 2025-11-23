@@ -1,7 +1,9 @@
+use utoipa::ToSchema;
+
 use super::roster::HourType;
 use crate::prelude::*;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, ToSchema, Default)]
 pub struct Hours {
     build: f64,
     learning: f64,
@@ -24,7 +26,7 @@ impl Hours {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct StudentData {
     pub id: String,
     pub first: String,

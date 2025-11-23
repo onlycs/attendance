@@ -1,144 +1,177 @@
 // I really, like really, don't like type gymnastics
 
-import { Zodios } from "@zodios/core";
-import type { ReadonlyDeep, RequiredKeys, UndefinedIfNever } from "@zodios/core/lib/utils.types";
-import type {
-    Aliases,
-    Method,
-    MutationMethod,
-    ZodiosAliasRequest,
-    ZodiosBodyByAlias,
-    ZodiosEndpointDefinitionByAlias,
-    ZodiosMatchingErrorsByAlias,
-    ZodiosMutationAliasRequest,
-    ZodiosRequestOptionsByAlias,
-    ZodiosResponseByAlias,
-} from "@zodios/core/lib/zodios.types";
-import { ResultAsync } from "neverthrow";
+import createClient, { type FetchResponse } from "@onlycs/openapi-fetch";
+import type { RequiredKeys } from "@zodios/core/lib/utils.types";
+import { Err, Ok, Result, ResultAsync } from "neverthrow";
+import { Temporal } from "temporal-polyfill";
 import { toast } from "vue-sonner";
-import type { Optionalize } from "../gymnastics";
-import { type Api, ApiSchema } from "./schema";
-
-export * from "./schema";
+import type { Merge } from "../gymnastics";
+import type { components, operations, paths } from "./schema";
 
 declare global {
     const __API_URL__: string;
 }
 
 export const API_URL = __API_URL__;
+export type * from "./schema";
 
-const NonMutableMethods: Array<Omit<Method, MutationMethod>> = [
-    "get",
-    "delete",
-    "head",
-    "options",
-];
+const client = createClient<paths>({ baseUrl: API_URL });
 
-export function isMutation(method: Method): method is MutationMethod {
-    return !NonMutableMethods.includes(method);
+type Method = "get" | "post" | "put" | "delete" | "patch";
+type OperationOf<P> = P extends operations[keyof operations] ? P : never;
+
+// dprint-ignore
+type Body<O extends operations[keyof operations]["requestBody"]> =
+    O extends { content: { "application/json": infer T } }
+        ? T
+        : undefined;
+
+// not super feature-complete, but enough for right now.
+type HttpBearer = {
+    type: "http";
+    scheme: "bearer";
+};
+
+export type SecurityParams = { header: { Authorization: string; }; };
+
+// dprint-ignore
+export type Params<
+    R extends operations[keyof operations]["parameters"],
+    S extends operations[keyof operations]["security"]
+> = S extends Record<keyof S, HttpBearer>
+    ? Merge<SecurityParams, R>
+    : R;
+
+// dprint-ignore
+export type FetchOptions<R, B> = RequiredKeys<R> extends never
+    ? [B] extends [undefined] ? [body?: B, params?: R] : [body: B, params?: R]
+    : [B] extends [undefined] ? [params: R, body?: B] : [body: B, params: R];
+
+export type PrimitiveResponse<O extends Record<string | number, any>, R, B> = FetchResponse<
+    O,
+    { params: R; body: B; },
+    "application/json"
+>;
+
+export type ValidMethodsForPath<P extends keyof paths> = Method & RequiredKeys<paths[P]>;
+
+async function apiPrimitive<
+    P extends keyof paths,
+    M extends ValidMethodsForPath<P>,
+    O extends paths[P][M] & operations[keyof operations] = OperationOf<paths[P][M]>,
+    S extends O["security"] = O["security"],
+    R extends Params<O["parameters"], S> = Params<O["parameters"], S>,
+    B extends Body<O["requestBody"]> = Body<O["requestBody"]>
+>(
+    path: P,
+    method: M,
+    ...options: FetchOptions<R, B>
+): Promise<
+    Result<
+        Exclude<Response & PrimitiveResponse<O, R, B>["data"], undefined>,
+        Exclude<Response & PrimitiveResponse<O, R, B>["error"], undefined>
+    >
+> {
+    // reconstruct the needed json object
+    let params: R = undefined as any;
+    let body: B = undefined as any;
+
+    if (!options[0]) {
+        body = options[0] ?? {} as B;
+        params = options[1] ?? {} as R;
+    } else if (!options[1]) {
+        // we can be fairly certain we are params-first if options[0] contains
+        // only (but not all of) query/header/path/cookie.
+        // although there is an edge case where the body itself only contains those keys,
+        // there is no way to get that info at runtime, and it would be pretty bad API design
+        const keys = Object.keys(options[0]!);
+        const paramKeys = ["query", "header", "path", "cookie"];
+        const paramsFirst = keys.every((k) => paramKeys.includes(k));
+
+        if (paramsFirst) {
+            params = options[0] as R;
+            body = options[1] ?? {} as B;
+        } else {
+            body = options[0] as B;
+            params = options[1] ?? {} as R;
+        }
+    } else {
+        body = options[0] as B;
+        params = options[1] as R;
+    }
+
+    const remainder = Object.keys(body!).length > 0 ? { body, params } : { params };
+    const response: PrimitiveResponse<O, R, B> = await client.request(
+        method,
+        path as any,
+        remainder,
+    );
+
+    if (response.error) return new Err({ ...response.response, ...response.error });
+    else return new Ok({ ...response.response, ...response.data! });
 }
 
-type FixedError<E extends { response: unknown; }> = Optionalize<E, "response">;
-type AnyError = AliasErrors<Aliases<Api>>;
+export async function api<
+    P extends keyof paths,
+    M extends ValidMethodsForPath<P>,
+    O extends paths[P][M] & operations[keyof operations] = OperationOf<paths[P][M]>,
+    S extends O["security"] = O["security"],
+    R extends Params<O["parameters"], S> = Params<O["parameters"], S>,
+    B extends Body<O["requestBody"]> = Body<O["requestBody"]>
+>(
+    path: P,
+    method: M,
+    ...options: FetchOptions<R, B>
+): Promise<
+    Result<
+        Exclude<Response & PrimitiveResponse<O, R, B>["data"], undefined>,
+        Exclude<Response & PrimitiveResponse<O, R, B>["error"], undefined> | { "text/plain": string; }
+    >
+> {
+    const response = apiPrimitive<P, M, O, S, R, B>(path, method, ...options);
 
-type AliasMethod<Alias extends Aliases<Api>> = ZodiosEndpointDefinitionByAlias<
-    Api,
-    Alias
->[number]["method"];
-type AliasBody<Alias extends Aliases<Api>> = ZodiosBodyByAlias<Api, Alias>;
-type AliasOptions<Alias extends Aliases<Api>> = ZodiosRequestOptionsByAlias<
-    Api,
-    Alias
->;
-type AliasResponse<Alias extends Aliases<Api>> = ZodiosResponseByAlias<
-    Api,
-    Alias
->;
-type AliasFunctionGet<Alias extends Aliases<Api>> = ZodiosAliasRequest<
-    AliasOptions<Alias>,
-    AliasResponse<Alias>
->;
-type AliasFunctionMut<Alias extends Aliases<Api>> = ZodiosMutationAliasRequest<
-    AliasBody<Alias>,
-    AliasOptions<Alias>,
-    AliasResponse<Alias>
->;
-type AliasErrors<Alias extends Aliases<Api>> = FixedError<
-    ZodiosMatchingErrorsByAlias<Api, Alias>
->;
+    return await response.catch((e) => {
+        return new Err({
+            "text/plain": "Could not connect to the server. Are you online?",
+        });
+    });
+}
 
-export const ApiClient = {
-    client: new Zodios(API_URL, ApiSchema),
+export function apiDateTime(datetimestr: string): Temporal.ZonedDateTime {
+    const tz = Temporal.Now.timeZoneId();
 
-    fetch<const Alias extends Aliases<Api>>(
-        alias: Alias,
-        ...remainder: AliasMethod<Alias> extends MutationMethod
-            ? RequiredKeys<AliasOptions<Alias>> extends never
-                ? RequiredKeys<UndefinedIfNever<AliasBody<Alias>>> extends never ? [
-                        body?: ReadonlyDeep<
-                            UndefinedIfNever<AliasBody<Alias>>
-                        >,
-                        options?: ReadonlyDeep<AliasOptions<Alias>>,
-                    ]
-                : [
-                    body: ReadonlyDeep<
-                        UndefinedIfNever<AliasBody<Alias>>
-                    >,
-                    options?: ReadonlyDeep<AliasOptions<Alias>>,
-                ]
-            : [
-                body: ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>>,
-                options: ReadonlyDeep<AliasOptions<Alias>>,
-            ]
-            : RequiredKeys<AliasOptions<Alias>> extends never ? [options?: ReadonlyDeep<AliasOptions<Alias>>]
-            : [options: ReadonlyDeep<AliasOptions<Alias>>]
-    ) {
-        const [a, b] = remainder;
-
-        const body:
-            | ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>>
-            | undefined = isMutation(
-                    ApiSchema.find((ep) => ep.alias === alias)!.method,
-                )
-                ? (a as unknown as ReadonlyDeep<UndefinedIfNever<AliasBody<Alias>>>)
-                : undefined;
-
-        const options = body ? b : a;
-
-        let res: Promise<AliasResponse<Alias>>;
-        if (
-            NonMutableMethods.includes(
-                ApiSchema.find((ep) => ep.alias === alias)!.method,
-            )
-        ) {
-            res = (this.client[alias] as unknown as AliasFunctionGet<Alias>)(
-                options!,
-            );
-        } else {
-            res = (this.client[alias] as unknown as AliasFunctionMut<Alias>)(
-                body!,
-                options!,
-            );
+    try {
+        // Try parsing as ZonedDateTime first (has timezone info)
+        return Temporal.ZonedDateTime.from(datetimestr);
+    } catch {
+        try {
+            // Try parsing as Instant (ends with Z or has offset)
+            const instant = Temporal.Instant.from(datetimestr);
+            return instant.toZonedDateTimeISO(tz);
+        } catch {
+            // Fall back to PlainDateTime (no timezone info)
+            const plain = Temporal.PlainDateTime.from(datetimestr);
+            return plain.toZonedDateTime(tz);
         }
+    }
+}
 
-        return ResultAsync.fromPromise(res, (e) => e as AliasErrors<Alias>);
-    },
-};
+export type ApiError = (Response & { "text/plain": string; }) | { "text/plain": string; };
 
 export interface ApiToastOptions {
     redirect401: (url: string) => void;
-    handle: Record<number, (err: AnyError) => void>;
+    handle: Record<number, (err: ApiError) => void>;
 }
 
 export function apiToast(
-    err: AnyError,
+    err: ApiError,
     { redirect401, handle }: Partial<ApiToastOptions> = {},
 ) {
-    if (!err.response) {
-        return toast.error("Could not connect to the server. Are you online?");
+    if (!("status" in err)) {
+        return toast.error(err["text/plain"]);
     }
 
-    const code = err.response.status as number;
+    const code = err.status as number;
     if (handle && handle[code]) return handle[code](err);
 
     switch (code) {
@@ -157,6 +190,6 @@ export function apiToast(
         }
     }
 
-    if (err.response.data) toast.error(err.response.data);
+    if (err["text/plain"]) toast.error(err["text/plain"]);
     else toast.error("An unknown error occurred.");
 }

@@ -1,35 +1,11 @@
 #![feature(never_type, error_generic_member_access)]
-#![warn(clippy::pedantic)]
-#![allow(clippy::similar_names, clippy::missing_errors_doc)]
-
-#[macro_use]
-extern crate tracing;
-
-pub mod error;
-pub mod headers;
-pub mod http;
-pub mod prelude;
-pub mod serde;
-pub mod ws;
 
 use std::sync::Arc;
 
-use actix_cors::Cors;
-use actix_governor::Governor;
-use actix_web::{
-    App, HttpServer,
-    web::{self, Data},
-};
+use attendance_api::{prelude::*, run_server};
 use dotenvy::dotenv;
-use sqlx::{PgPool, postgres::PgPoolOptions};
-use tracing_actix_web::TracingLogger;
+use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
-
-use crate::{headers::SecurityHeaders, prelude::*};
-
-pub struct AppState {
-    pub pg: Arc<PgPool>,
-}
 
 #[actix_web::main]
 async fn main() -> Result<(), InitError> {
@@ -57,44 +33,5 @@ async fn main() -> Result<(), InitError> {
             .await?,
     );
 
-    let gov = actix_governor::GovernorConfigBuilder::default()
-        .seconds_per_request(5)
-        .burst_size(10)
-        .finish()
-        .expect("Unreachable: Fully configured governor");
-
-    ws::init();
-
-    // spawn blocking on current thread
-    HttpServer::new(move || {
-        let pg = Arc::clone(&pool);
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
-
-        App::new()
-            .wrap(cors)
-            .wrap(TracingLogger::default())
-            .wrap(SecurityHeaders)
-            .app_data(Data::new(AppState { pg }))
-            .service(http::index)
-            .service(http::register_start)
-            .service(http::register_finish)
-            .service(http::login_start)
-            .service(http::login_finish)
-            .service(http::deauthorize)
-            .service(http::student_info)
-            .service(http::student_add)
-            .service(http::record)
-            .service(http::clear)
-            .service(http::check_token)
-            .route("/ws", web::get().to(ws::ws))
-    })
-    .bind(("0.0.0.0", 8080))?
-    .run()
-    .await?;
-
-    Ok(())
+    run_server(pool).await
 }

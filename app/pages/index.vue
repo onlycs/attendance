@@ -4,7 +4,7 @@ import type { WatchHandle } from "vue";
 import { toast } from "vue-sonner";
 import type { PasswordSubmitEvent } from "~/components/forms/Password.vue";
 import type { IdSubmitEvent } from "~/components/forms/StudentId.vue";
-import { ApiClient, apiToast } from "~/utils/api";
+import { api, apiToast } from "~/utils/api";
 
 const { $gsap } = useNuxtApp();
 
@@ -318,8 +318,8 @@ async function studentSubmit({ id }: IdSubmitEvent) {
     student_loading.value = true;
     auth.clear();
 
-    const res = await ApiClient.fetch("student/info", {
-        params: { id: Crypt.sha256(id) },
+    const res = await api("/student/{id}", "get", {
+        path: { id: Crypt.sha256(id) },
     });
 
     if (res.isErr()) {

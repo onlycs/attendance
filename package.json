@@ -6,7 +6,8 @@
         "dev": "nuxt dev",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
-        "postinstall": "nuxt prepare",
+        "postinstall": "nuxt prepare && bun api",
+        "api": "openapi-typescript src-api/openapi.yml -o app/utils/api/schema.d.ts --root-types --root-types-no-schema-prefix",
         "lint": "biome check --fix"
     },
     "dependencies": {
@@ -28,6 +29,7 @@
         "lucide-vue-next": "^0.541.0",
         "neverthrow": "^8.2.0",
         "nuxt": "^4.0.3",
+        "@onlycs/openapi-fetch": "^0.15.0",
         "reka-ui": "2.4.1",
         "tailwind-merge": "^3.3.1",
         "temporal-polyfill": "^0.3.0",
@@ -47,6 +49,7 @@
         "@types/node": "^24.3.0",
         "@zodios/core": "^10.9.6",
         "dprint": "^0.50.2",
+        "@onlycs/openapi-typescript": "^7.10.2",
         "tailwindcss": "^4.1.12",
         "typescript": "^5.9.2",
         "vue-tsc": "^3.0.7"

@@ -2,7 +2,7 @@
 import type { FocusCard } from "#components";
 import { toast } from "vue-sonner";
 import { z } from "zod";
-import { ApiClient, apiToast } from "~/utils/api";
+import { api, apiToast } from "~/utils/api";
 
 definePageMeta({ layout: "admin-protected" });
 
@@ -67,15 +67,16 @@ async function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
     const firstCrypt = await Crypt.encrypt(data.first, creds.value!.password);
     const lastCrypt = await Crypt.encrypt(data.last, creds.value!.password);
 
-    const res = await ApiClient.fetch(
-        "student/add",
+    const res = await api(
+        "/student",
+        "post",
         {
             id: idCrypt,
             hashed: Crypt.sha256(currentId.value),
             first: firstCrypt,
             last: lastCrypt,
         },
-        { headers: { Authorization: creds.value!.token } },
+        { header: { Authorization: creds.value!.token } },
     );
 
     if (res.isErr()) {
@@ -114,8 +115,8 @@ async function roster(id?: string, force = false) {
         return;
     }
 
-    const info = await ApiClient.fetch("student/info", {
-        params: { id: Crypt.sha256(id) },
+    const info = await api("/student/{id}", "get", {
+        path: { id: Crypt.sha256(id) },
     });
 
     if (info.isErr() && !force) {
@@ -130,10 +131,11 @@ async function roster(id?: string, force = false) {
         });
     }
 
-    const res = await ApiClient.fetch(
-        "roster",
+    const res = await api(
+        "/roster",
+        "post",
         { id: Crypt.sha256(id), kind, force },
-        { headers: { Authorization: creds.value!.token } },
+        { header: { Authorization: creds.value!.token } },
     );
 
     if (res.isErr()) {

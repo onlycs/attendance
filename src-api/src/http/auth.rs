@@ -4,33 +4,29 @@ use chrono::Days;
 use rand::{RngCore, rng};
 use sha2::Sha512;
 use srp::{groups::G_2048, server::SrpServer};
+use utoipa::ToSchema;
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RegisterStartRequest {
+#[derive(Clone, Debug, Deserialize, ToSchema)]
+pub struct RegisterRequest {
     v: String,
     s: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RegisterFinish {
-    data: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, ToSchema)]
 pub struct LoginStartResponse {
     pub salt: String,
     pub b: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, ToSchema)]
 pub struct LoginFinishRequest {
     a: String,
     m1: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, ToSchema)]
 pub struct LoginFinishResponse {
     m2: String,
     token: String,
@@ -38,10 +34,10 @@ pub struct LoginFinishResponse {
 }
 
 #[allow(dead_code)]
-pub(super) async fn register_start(
-    RegisterStartRequest { v, s }: RegisterStartRequest,
+pub(super) async fn register(
+    RegisterRequest { v, s }: RegisterRequest,
     pg: &PgPool,
-) -> Result<RegisterFinish, RouteError> {
+) -> Result<(), RouteError> {
     let sbytes = hex::decode(s.trim_start_matches("0x"))?;
     let vbytes = hex::decode(v.trim_start_matches("0x"))?;
 
@@ -52,30 +48,6 @@ pub(super) async fn register_start(
         "#,
         vbytes,
         sbytes
-    )
-    .execute(pg)
-    .await?;
-
-    let encrypted = sqlx::query!(r#"SELECT student_data from cryptstore"#)
-        .fetch_one(pg)
-        .await?;
-
-    Ok(RegisterFinish {
-        data: encrypted.student_data,
-    })
-}
-
-#[allow(dead_code)]
-pub(super) async fn register_finish(
-    RegisterFinish { data }: RegisterFinish,
-    pg: &PgPool,
-) -> Result<(), RouteError> {
-    sqlx::query!(
-        r#"
-        UPDATE cryptstore
-        SET student_data = $1
-        "#,
-        data
     )
     .execute(pg)
     .await?;
@@ -213,14 +185,16 @@ pub(super) async fn deauthorize(token: String, pg: &PgPool) -> Result<(), RouteE
     .execute(pg)
     .await?;
 
-    info!("Token deauthorized");
-
     Ok(())
 }
 
-#[tracing::instrument(name = "auth::check", skip(pg), ret, err)]
-pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError> {
-    let token = token.trim_start_matches("Bearer ");
+#[tracing::instrument(name = "auth::validate", fields(token = token.as_ref()), skip(pg), ret, err)]
+pub(crate) async fn validate(token: impl AsRef<str>, pg: &PgPool) -> Result<(), RouteError> {
+    if let Ok(automation) = env::var("AUTOMATION_TOKEN")
+        && bcrypt::verify(token.as_ref(), &automation).unwrap_or(false)
+    {
+        return Ok(());
+    }
 
     if sqlx::query!(
         r#"
@@ -228,38 +202,12 @@ pub(super) async fn check(token: String, pg: &PgPool) -> Result<bool, RouteError
         WHERE created_at > NOW() - INTERVAL '10 hours'
             AND token = $1
         "#,
-        token
+        token.as_ref()
     )
     .fetch_optional(pg)
     .await?
-    .is_some()
+    .is_none()
     {
-        Ok(true)
-    } else {
-        Err(RouteError::BadAuth)
-    }
-}
-
-pub async fn check_throw(token: &str, pg: &PgPool) -> Result<(), RouteError> {
-    if let Ok(automation) = env::var("AUTOMATION_TOKEN")
-        && bcrypt::verify(token, &automation).unwrap_or(false)
-    {
-        return Ok(());
-    }
-
-    let res = sqlx::query!(
-        r#"
-        SELECT token FROM tokens
-        WHERE token = $1
-            AND created_at > NOW() - INTERVAL '10 hours'
-            AND last_used_at > NOW() - INTERVAL '3 hours'
-        "#,
-        token
-    )
-    .fetch_optional(pg)
-    .await?;
-
-    if res.is_none() {
         return Err(RouteError::BadAuth);
     }
 
@@ -269,7 +217,7 @@ pub async fn check_throw(token: &str, pg: &PgPool) -> Result<(), RouteError> {
         SET last_used_at = NOW()
         WHERE token = $1
         "#,
-        token
+        token.as_ref()
     )
     .fetch_optional(pg)
     .await?;

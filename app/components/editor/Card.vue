@@ -76,6 +76,7 @@ function entryLabel(entry: Entry) {
             <div class="times">
                 <TimePickerModelSubmit
                     :time="entry.start.toPlainTime()"
+                    background="card"
                     @update:time="(time) => {
                         push({
                             type: 'UpdateEntry',
@@ -100,6 +101,7 @@ function entryLabel(entry: Entry) {
                 />
 
                 <TimePickerModelSubmit
+                    background="card"
                     :time="entry.end
                     ? entry.end.toPlainTime()
                     : undefined"
