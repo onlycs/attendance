@@ -1,30 +1,34 @@
 <script setup lang="ts">
-defineProps<{
-    kind:
-        | "primary"
-        | "background"
-        | "card"
-        | "card-2"
-        | "error"
-        | "error-transparent";
+export interface ButtonProps {
     disabled?: boolean;
-    static?: boolean;
-}>();
+    form?: "submit" | "cancel" | "reset";
+    kind?: "primary" | "secondary" | "secondary-card" | "danger" | "none";
+
+    class?: string | string[];
+    "class:hover"?: string | string[];
+    "class:active"?: string | string[];
+    "class:content"?: string | string[];
+}
+
+defineProps<ButtonProps>();
 </script>
 
 <template>
     <button
         :class="cn(
-            'button',
-            $props.kind,
-            $attrs.class as string | undefined,
+            'button group/button',
+            $props.class,
             $props.disabled && 'disabled',
-            $props.static && 'no-animate',
+            $props.kind ?? undefined,
         )"
         v-bind="$attrs"
         :disabled
     >
-        <slot />
+        <div :class="cn('hover', $props['class:hover'])" />
+        <div :class="cn('active', $props['class:active'])" />
+        <div :class="cn('content', $props['class:content'])">
+            <slot />
+        </div>
     </button>
 </template>
 
@@ -32,91 +36,48 @@ defineProps<{
 @reference "~/style/tailwind.css";
 
 .button {
-    @apply p-3 rounded-lg cursor-pointer;
-    @apply transition-all duration-300;
-
-    &:not(.no-animate) {
-        @apply active:scale-95;
-    }
-
-    &.primary {
-        @apply bg-white text-black;
-        @apply hover:bg-white/90;
-
-        &:not(.no-animate) {
-            @apply active:bg-white/80;
-        }
-
-        &.no-animate {
-            @apply active:bg-white;
-        }
-    }
-
-    &.card {
-        @apply bg-card hover:bg-card-hover;
-
-        &:not(.no-animate) {
-            @apply active:bg-card-active;
-        }
-
-        &.no-animate {
-            @apply active:bg-card;
-        }
-    }
-
-    &.card-2 {
-        @apply bg-card-2 hover:bg-card-2-hover;
-
-        &:not(.no-animate) {
-            @apply active:bg-card-2-active;
-        }
-
-        &.no-animate {
-            @apply active:bg-card-2;
-        }
-    }
-
-    &.background {
-        @apply bg-background hover:bg-card-active;
-
-        &:not(.no-animate) {
-            @apply active:bg-background-dark;
-        }
-
-        &.no-animate {
-            @apply active:bg-background;
-        }
-    }
-
-    &.error {
-        @apply bg-red-500 text-white;
-        @apply hover:bg-red-400;
-
-        &:not(.no-animate) {
-            @apply active:bg-red-600;
-        }
-
-        &.no-animate {
-            @apply active:bg-red-500;
-        }
-    }
-
-    &.error-transparent {
-        @apply bg-red-500/10 text-red-500;
-        @apply hover:bg-red-500/30;
-
-        &:not(.no-animate) {
-            @apply active:bg-red-500/20;
-        }
-
-        &.no-animate {
-            @apply active:bg-red-500/10;
-        }
-    }
+    @apply relative md:h-12 h-14;
+    @apply w-full rounded-md p-2;
+    @apply cursor-pointer;
+    @apply active:scale-95 active:duration-300;
+    @apply transition-all duration-200;
 
     &.disabled {
         @apply opacity-50 cursor-not-allowed;
         @apply active:scale-100;
+    }
+
+    &.primary {
+        @apply bg-white text-black;
+    }
+
+    &.secondary {
+        @apply bg-card text-text;
+    }
+
+    &.secondary-card {
+        @apply bg-card-2 text-text;
+    }
+
+    &.danger {
+        @apply bg-red-500/10 text-red-500;
+    }
+
+    .hover {
+        @apply absolute inset-0 rounded-lg bg-transparent;
+        @apply transition-all duration-200;
+        @apply group-hover/button:duration-300 group-hover/button:bg-white/5;
+    }
+
+    .active {
+        @apply absolute inset-0 rounded-lg bg-transparent;
+        @apply transition-all duration-200;
+        @apply group-active/button:duration-300 group-active/button:bg-black/20;
+    }
+
+    .content {
+        @apply z-10 relative;
+        @apply flex flex-col items-center justify-center;
     }
 }
 </style>

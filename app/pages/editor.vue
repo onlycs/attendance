@@ -209,7 +209,7 @@ defineExpose({ Dropdown: EditorDropdown });
             <Button
                 kind="card"
                 class="button exit"
-                @click="$router.push('/admin?reverse=true')"
+                @click="$router.push('/dashboard?reverse=true')"
             >
                 <Icon name="hugeicons:logout-02" size="22" />
                 Exit

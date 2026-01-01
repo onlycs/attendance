@@ -6,9 +6,7 @@
         "dev": "nuxt dev",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
-        "postinstall": "nuxt prepare && bun api",
-        "api": "openapi-typescript src-api/openapi.yml -o app/utils/api/schema.d.ts --root-types --root-types-no-schema-prefix",
-        "lint": "biome check --fix"
+        "postinstall": "make postinstall"
     },
     "dependencies": {
         "@nuxt/icon": "2.0.0",
@@ -29,7 +27,6 @@
         "lucide-vue-next": "^0.541.0",
         "neverthrow": "^8.2.0",
         "nuxt": "^4.0.3",
-        "@onlycs/openapi-fetch": "^0.15.0",
         "reka-ui": "2.4.1",
         "tailwind-merge": "^3.3.1",
         "temporal-polyfill": "^0.3.0",
@@ -43,14 +40,17 @@
         "zod": "^4.0.17"
     },
     "devDependencies": {
+        "@hey-api/client-fetch": "^0.13.1",
+        "@hey-api/openapi-ts": "^0.89.2",
         "@iconify-json/hugeicons": "^1.2.11",
         "@iconify-json/svg-spinners": "^1.2.4",
         "@tailwindcss/vite": "^4.1.12",
+        "@types/bun": "^1.3.5",
         "@types/node": "^24.3.0",
         "@zodios/core": "^10.9.6",
         "dprint": "^0.50.2",
-        "@onlycs/openapi-typescript": "^7.10.2",
         "tailwindcss": "^4.1.12",
+        "ts-essentials": "^10.1.1",
         "typescript": "^5.9.2",
         "vue-tsc": "^3.0.7"
     },

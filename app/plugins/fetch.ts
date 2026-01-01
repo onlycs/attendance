@@ -1,4 +1,4 @@
-import * as api from "~/utils/api";
+import api from "~/utils/api";
 
 export default defineNuxtPlugin(() => {
     return { provide: { api } };

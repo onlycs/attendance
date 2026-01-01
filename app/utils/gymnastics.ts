@@ -4,24 +4,16 @@ export type { FilterArrayByValue as Filter, Narrow } from "@zodios/core/lib/util
 
 import type { Narrow, RequiredKeys } from "@zodios/core/lib/utils.types";
 
-type UnionToIntersection<U> = (
-    U extends never ? never
-        : (k: U) => void
-) extends (k: infer I) => void ? I
+export type UnionToIntersection<U> = (U extends never ? never : (k: U) => void) extends (k: infer I) => void ? I
     : never;
 
-type LastOf<U> = UnionToIntersection<
-    U extends never ? never : (x: U) => void
-> extends (x: infer L) => void ? L
+export type LastOf<U> = UnionToIntersection<U extends never ? never : (x: U) => void> extends (x: infer L) => void ? L
     : never;
 
-type TuplifyUnion<T, L = LastOf<T>> = [T] extends [never] ? []
-    : [...TuplifyUnion<Exclude<T, L>>, L];
+export type UnionToTuple<T, L = LastOf<T>> = [T] extends [never] ? [] : [...UnionToTuple<Exclude<T, L>>, L];
 
-type BuildTuple<
-    N extends number,
-    R extends unknown[] = []
-> = R["length"] extends N ? R : BuildTuple<N, [...R, unknown]>;
+export type BuildTuple<N extends number, R extends unknown[] = []> = R["length"] extends N ? R
+    : BuildTuple<N, [...R, unknown]>;
 
 export type Subtract<
     A extends number,
@@ -39,7 +31,7 @@ export type FixedArray<
     R extends T[] = []
 > = R["length"] extends N ? R : FixedArray<T, N, [...R, T]>;
 
-export type CountKeys<T> = TuplifyUnion<keyof T>["length"];
+export type CountKeys<T> = UnionToTuple<keyof T>["length"];
 
 export type Optionalize<T, K extends keyof T> =
     & Omit<T, K>
@@ -52,6 +44,12 @@ export type Merge<A, B> = Prettify<
     & Pick<A, keyof A>
     & Pick<B, Exclude<keyof B, keyof A>>
 >;
+
+export type ValueIntersection<T> = {
+    [K in keyof T]: (x: T[K]) => void;
+} extends Record<keyof T, (x: infer I) => void> ? I : never;
+
+export type KeyOf<T> = T extends never ? never : keyof T;
 
 /// Constrain T as much as possible using zodios voodoo magic
 export function narrow<T>(a: Narrow<T>): Narrow<T> {

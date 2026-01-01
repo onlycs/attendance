@@ -1,336 +1,1992 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
-  title: attendance-api
-  description: ''
-  license:
-    name: ''
-  version: 2.0.0
+  title: Attendance API
+  version: http://localhost:8080
+servers: []
+tags:
+  - name: Auth
+  - name: Roster
+  - name: Student
+  - name: Telemetry
 paths:
-  /auth:
+  /auth/login:
     get:
       tags:
-      - auth
-      description: Checks if the provided token is valid
-      operationId: auth::validate
-      responses:
-        '200':
-          description: Token is valid
-        '401':
-          description: Token is invalid
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-      security:
-      - Token: []
-    delete:
-      tags:
-      - auth
-      description: Deauthorizes the provided token
-      operationId: auth::deauthorize
-      responses:
-        '200':
-          description: Token deauthorized
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-      security:
-      - Token: []
-  /auth/login/finish:
-    post:
-      tags:
-      - auth
-      description: Finishes the srp6a login process
-      operationId: login::finish
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginFinishRequest'
-        required: true
-      responses:
-        '200':
-          description: Login finished
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginFinishResponse'
-        '401':
-          description: Incorrect credentials
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-  /auth/login/start:
-    post:
-      tags:
-      - auth
-      description: Starts the srp6a login process
-      operationId: login::start
-      responses:
-        '200':
-          description: Login started
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginStartResponse'
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-  /roster:
-    post:
-      tags:
-      - roster
-      description: Records a roster entry (login/logout)
-      operationId: roster::record
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RosterRequest'
-        required: true
-      responses:
-        '200':
-          description: Roster entry recorded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RosterResponse'
-        '400':
-          description: Invalid hour type
-          content:
-            text/plain:
-              schema:
-                type: string
-        '401':
-          description: Invalid token
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-      security:
-      - Token: []
-    delete:
-      tags:
-      - roster
-      operationId: roster::clear
-      responses:
-        '200':
-          description: Expired roster entries cleared
-        '401':
-          description: Invalid token
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-      security:
-      - Token: []
-  /student:
-    post:
-      tags:
-      - student
-      description: Adds a new student
-      operationId: student::add
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StudentData'
-        required: true
-      responses:
-        '200':
-          description: Student added
-        '401':
-          description: Invalid token
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-      security:
-      - Token: []
-  /student/{id}:
-    get:
-      tags:
-      - student
-      description: Querys student hours
-      operationId: student::query
+        - Auth
+      summary: LoginStart
       parameters:
-      - name: id
-        in: path
-        description: The student's hashed ID
-        required: true
-        schema:
-          type: string
+        - name: username
+          schema:
+            type: string
+          in: query
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: Student information fetched
+        "200":
+          description: ""
           content:
-            application/json:
+            application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Hours'
-        '404':
-          description: No such student
+                $ref: "#/components/schemas/LoginStartResponse"
+        "500":
+          description: ""
           content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
+            text/plain; charset=utf-8:
               schema:
                 type: string
+      operationId: auth_login_start
+    post:
+      tags:
+        - Auth
+      summary: LoginFinish
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/LoginFinishRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/LoginFinishResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_login_finish
+  /auth/invite:
+    post:
+      tags:
+        - Auth
+      summary: Invite
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/InviteRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: auth_invite
+  /auth/register:
+    get:
+      tags:
+        - Auth
+      summary: RegisterStart
+      parameters:
+        - name: key
+          schema:
+            type: string
+          in: query
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/RegisterStartResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_register_start
+    post:
+      tags:
+        - Auth
+      summary: RegisterFinish
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/RegisterFinishRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_register_finish
+  /auth/onboard/token:
+    post:
+      tags:
+        - Auth
+      summary: OnboardToken
+      responses:
+        "200":
+          description: ""
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_onboard_token
+  /auth/onboard:
+    get:
+      tags:
+        - Auth
+      summary: OnboardStart
+      parameters:
+        - name: x-token
+          schema:
+            type: string
+          in: header
+          description: The setup token obtained from /auth/onboard/token
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_onboard_start
+    post:
+      tags:
+        - Auth
+      summary: OnboardFinish
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/OnboardFinishRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: auth_onboard_finish
+  /roster/swipe:
+    post:
+      tags:
+        - Roster
+      summary: Swipe
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/SwipeRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/SwipeResponse"
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_swipe
+    get:
+      tags:
+        - Roster
+      summary: SwipesQuery
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/SwipeQueryResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_swipes_query
+  /roster/swipe/stream:
+    get:
+      tags:
+        - Roster
+      summary: SwipesStream
+      responses:
+        "200":
+          description: ""
+          content:
+            text/event-stream:
+              schema:
+                type: array
+                format: event-stream
+                items:
+                  $ref: "#/components/schemas/SwipeQueryResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_swipes_stream
+  /roster:
+    get:
+      tags:
+        - Roster
+      summary: RecordQuery
+      parameters:
+        - name: id
+          schema:
+            type: string
+          in: query
+          required: false
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/RosterGetResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_record_query
+    post:
+      tags:
+        - Roster
+      summary: RecordAdd
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/RosterCreateRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/RosterCreateResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_record_add
+    patch:
+      tags:
+        - Roster
+      summary: RecordUpdate
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/PartialRecord"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Record"
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_record_update
+    delete:
+      tags:
+        - Roster
+      summary: RecordDelete
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/RosterDeleteRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Record"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_record_delete
+  /roster/stream:
+    get:
+      tags:
+        - Roster
+      summary: RecordStream
+      responses:
+        "200":
+          description: ""
+          content:
+            text/event-stream:
+              schema:
+                type: array
+                format: event-stream
+                items:
+                  $ref: "#/components/schemas/Replication_Record"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: roster_record_stream
+  /student:
+    get:
+      tags:
+        - Student
+      summary: List
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/StudentListResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_list
+    post:
+      tags:
+        - Student
+      summary: Add
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/StudentAddRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_add
+  /student/stream:
+    get:
+      tags:
+        - Student
+      summary: Stream
+      responses:
+        "200":
+          description: ""
+          content:
+            text/event-stream:
+              schema:
+                type: array
+                format: event-stream
+                items:
+                  $ref: "#/components/schemas/Replication_Student"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_stream
+  /student/{id_hashed}:
+    get:
+      tags:
+        - Student
+      summary: Query
+      parameters:
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_query
+    patch:
+      tags:
+        - Student
+      summary: Update
+      parameters:
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/StudentUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_update
+    delete:
+      tags:
+        - Student
+      summary: Delete
+      parameters:
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "404":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: student_delete
+  /student/{id_hashed}/hours:
+    get:
+      tags:
+        - Student
+      summary: Hours
+      parameters:
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/StudentHoursResponse"
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      operationId: student_hours
+  /telemetry:
+    get:
+      tags:
+        - Telemetry
+      summary: Get
+      parameters:
+        - name: count
+          schema:
+            type: integer
+            format: uint64
+          in: query
+          required: true
+          deprecated: false
+          explode: true
+        - name: skip
+          schema:
+            type: integer
+            format: uint64
+          in: query
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/TelemetryResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: telemetry_get
+  /telemetry/stream:
+    get:
+      tags:
+        - Telemetry
+      summary: Stream
+      responses:
+        "200":
+          description: ""
+          content:
+            text/event-stream:
+              schema:
+                type: array
+                format: event-stream
+                items:
+                  $ref: "#/components/schemas/TelemetryEvent"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: telemetry_stream
+  /telemetry/{event_type}:
+    get:
+      tags:
+        - Telemetry
+      summary: Query
+      parameters:
+        - name: event_type
+          schema:
+            $ref: "#/components/schemas/EventType"
+          in: path
+          required: true
+          deprecated: false
+          explode: true
+        - name: count
+          schema:
+            type: integer
+            format: uint64
+          in: query
+          required: true
+          deprecated: false
+          explode: true
+        - name: skip
+          schema:
+            type: integer
+            format: uint64
+          in: query
+          required: true
+          deprecated: false
+          explode: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/TelemetryResponse"
+        "401":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "403":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "400":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        "500":
+          description: ""
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+        - JwtBearer: []
+        - JwtQuery: []
+      operationId: telemetry_query
 components:
   schemas:
+    AdminLogin:
+      type: object
+      title: AdminLogin
+      required:
+        - id
+      properties:
+        id:
+          type: string
+    AdminLogout:
+      type: object
+      title: AdminLogout
+      required:
+        - id
+      properties:
+        id:
+          type: string
+    Claims:
+      type: object
+      title: Claims
+      required:
+        - sub
+        - exp
+        - perms
+        - k1e
+        - username
+      properties:
+        sub:
+          type: string
+        exp:
+          type: integer
+          format: int64
+        perms:
+          $ref: "#/components/schemas/Permissions"
+        k1e:
+          type: string
+        username:
+          type: string
+    Deletion_Record:
+      type: object
+      title: Deletion_Record
+      required:
+        - pkey
+      properties:
+        pkey:
+          type: string
+    Deletion_Student:
+      type: object
+      title: Deletion_Student
+      required:
+        - pkey
+      properties:
+        pkey:
+          type: string
+    Event:
+      type: object
+      anyOf:
+        - $ref: "#/components/schemas/Event_AdminLogin"
+        - $ref: "#/components/schemas/Event_AdminLogout"
+        - $ref: "#/components/schemas/Event_StudentAdd"
+        - $ref: "#/components/schemas/Event_StudentDelete"
+        - $ref: "#/components/schemas/Event_StudentEdit"
+        - $ref: "#/components/schemas/Event_RecordAdd"
+        - $ref: "#/components/schemas/Event_RecordDelete"
+        - $ref: "#/components/schemas/Event_RecordEdit"
+        - $ref: "#/components/schemas/Event_StudentLogin"
+        - $ref: "#/components/schemas/Event_StudentLogout"
+      discriminator:
+        propertyName: event
+        mapping:
+          admin_login: "#/components/schemas/Event_AdminLogin"
+          admin_logout: "#/components/schemas/Event_AdminLogout"
+          student_add: "#/components/schemas/Event_StudentAdd"
+          student_delete: "#/components/schemas/Event_StudentDelete"
+          student_edit: "#/components/schemas/Event_StudentEdit"
+          record_add: "#/components/schemas/Event_RecordAdd"
+          record_delete: "#/components/schemas/Event_RecordDelete"
+          record_edit: "#/components/schemas/Event_RecordEdit"
+          student_login: "#/components/schemas/Event_StudentLogin"
+          student_logout: "#/components/schemas/Event_StudentLogout"
+    EventType:
+      type: string
+      enum:
+        - admin_login
+        - admin_logout
+        - student_add
+        - student_delete
+        - student_edit
+        - record_add
+        - record_delete
+        - record_edit
+        - student_login
+        - student_logout
+    Event_AdminLogin:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_login
+              example: admin_login
+        - $ref: "#/components/schemas/AdminLogin"
+    Event_AdminLogout:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_logout
+              example: admin_logout
+        - $ref: "#/components/schemas/AdminLogout"
+    Event_RecordAdd:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_add
+              example: record_add
+        - $ref: "#/components/schemas/RecordAdd"
+    Event_RecordDelete:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_delete
+              example: record_delete
+        - $ref: "#/components/schemas/RecordDelete"
+    Event_RecordEdit:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_edit
+              example: record_edit
+        - $ref: "#/components/schemas/RecordEdit"
+    Event_StudentAdd:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_add
+              example: student_add
+        - $ref: "#/components/schemas/StudentAdd"
+    Event_StudentDelete:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_delete
+              example: student_delete
+        - $ref: "#/components/schemas/StudentDelete"
+    Event_StudentEdit:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_edit
+              example: student_edit
+        - $ref: "#/components/schemas/StudentEdit"
+    Event_StudentLogin:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_login
+              example: student_login
+        - $ref: "#/components/schemas/StudentLogin"
+    Event_StudentLogout:
+      allOf:
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_logout
+              example: student_logout
+        - $ref: "#/components/schemas/StudentLogout"
     HourType:
       type: string
       enum:
-      - build
-      - learning
-      - demo
-      - offseason
-    Hours:
+        - build
+        - learning
+        - demo
+        - offseason
+    InviteRequest:
       type: object
+      title: InviteRequest
       required:
-      - build
-      - learning
-      - demo
-      - offseason
+        - permissions
       properties:
-        build:
-          type: number
-          format: double
-        demo:
-          type: number
-          format: double
-        learning:
-          type: number
-          format: double
-        offseason:
-          type: number
-          format: double
+        sid_hashed:
+          type: string
+          description: The hashed student ID to associate with this invite, if any.
+        permissions:
+          description: Initial permissions to grant the user
+          allOf:
+            - $ref: "#/components/schemas/Permissions"
+            - description: Initial permissions to grant the user
+    InviteResponse:
+      type: object
+      title: InviteResponse
+      required:
+        - k2
+        - token
+      properties:
+        k2:
+          type: string
+          description: Temporary key to encrypt k1. Do NOT share this
+        token:
+          type: string
+          description: Invite token. This goes in the link
     LoginFinishRequest:
       type: object
+      title: LoginFinishRequest
       required:
-      - a
-      - m1
+        - session
+        - a
+        - m1
       properties:
+        session:
+          type: string
         a:
           type: string
         m1:
           type: string
     LoginFinishResponse:
       type: object
+      title: LoginFinishResponse
       required:
-      - m2
-      - token
-      - expires
+        - jwt
+        - claims
       properties:
-        expires:
+        jwt:
           type: string
-        m2:
-          type: string
-        token:
-          type: string
+        claims:
+          $ref: "#/components/schemas/Claims"
     LoginStartResponse:
       type: object
+      title: LoginStartResponse
       required:
-      - salt
-      - b
+        - session
+        - salt
+        - b
       properties:
-        b:
+        session:
           type: string
         salt:
           type: string
-    RosterAction:
-      type: string
-      enum:
-      - login
-      - logout
-    RosterRequest:
+        b:
+          type: string
+    OnboardFinishRequest:
       type: object
+      title: OnboardFinishRequest
       required:
-      - id
-      - kind
+        - students
+        - token
+        - k1e
+        - username
+        - v
+        - s
       properties:
-        force:
-          type: boolean
+        students:
+          type: array
+          items:
+            $ref: "#/components/schemas/Student"
+        token:
+          type: string
+        k1e:
+          type: string
+        username:
+          type: string
+        v:
+          type: string
+        s:
+          type: string
+    PartialRecord:
+      type: object
+      title: PartialRecord
+      required:
+        - id
+      properties:
         id:
           type: string
-        kind:
-          $ref: '#/components/schemas/HourType'
-    RosterResponse:
+        sid_hashed:
+          type: string
+        hour_type:
+          $ref: "#/components/schemas/HourType"
+        sign_in:
+          type: string
+          format: date-time
+        sign_out:
+          type: string
+          format: date-time
+          nullable: true
+    PartialStudent:
       type: object
+      title: PartialStudent
       required:
-      - action
-      - denied
+        - id_hashed
       properties:
-        action:
-          $ref: '#/components/schemas/RosterAction'
-        denied:
-          type: boolean
-    StudentData:
-      type: object
-      required:
-      - id
-      - first
-      - last
-      - hashed
-      properties:
+        id_hashed:
+          type: string
+        id:
+          type: string
         first:
-          type: string
-        hashed:
-          type: string
-        id:
           type: string
         last:
           type: string
+    Permissions:
+      type: object
+      title: Permissions
+      required:
+        - student_add
+        - student_view
+        - student_edit
+        - student_delete
+        - admin_invite
+        - admin_delete
+        - telemetry
+        - hours_view
+        - hours_edit
+        - roster
+        - admin_edit
+      properties:
+        student_add:
+          type: boolean
+        student_view:
+          type: boolean
+        student_edit:
+          type: boolean
+        student_delete:
+          type: boolean
+        admin_invite:
+          type: boolean
+        admin_delete:
+          type: boolean
+        telemetry:
+          type: boolean
+        hours_view:
+          type: boolean
+        hours_edit:
+          type: boolean
+        roster:
+          type: boolean
+        admin_edit:
+          type: boolean
+    Record:
+      type: object
+      title: Record
+      required:
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+      properties:
+        id:
+          type: string
+        sid_hashed:
+          type: string
+        hour_type:
+          $ref: "#/components/schemas/HourType"
+        sign_in:
+          type: string
+          format: date-time
+        sign_out:
+          type: string
+          format: date-time
+    RecordAdd:
+      type: object
+      title: RecordAdd
+      required:
+        - admin_id
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+      properties:
+        admin_id:
+          type: string
+        id:
+          type: string
+        sid_hashed:
+          type: string
+        hour_type:
+          $ref: "#/components/schemas/HourType"
+        sign_in:
+          type: string
+          format: date-time
+        sign_out:
+          type: string
+          format: date-time
+    RecordDelete:
+      type: object
+      title: RecordDelete
+      required:
+        - admin_id
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+      properties:
+        admin_id:
+          type: string
+        id:
+          type: string
+        sid_hashed:
+          type: string
+        hour_type:
+          $ref: "#/components/schemas/HourType"
+        sign_in:
+          type: string
+          format: date-time
+        sign_out:
+          type: string
+          format: date-time
+    RecordEdit:
+      type: object
+      title: RecordEdit
+      required:
+        - admin_id
+        - old
+        - id
+      properties:
+        admin_id:
+          type: string
+        old:
+          $ref: "#/components/schemas/Record"
+        id:
+          type: string
+        sid_hashed:
+          type: string
+        hour_type:
+          $ref: "#/components/schemas/HourType"
+        sign_in:
+          type: string
+          format: date-time
+        sign_out:
+          type: string
+          format: date-time
+          nullable: true
+    RegisterFinishRequest:
+      type: object
+      title: RegisterFinishRequest
+      required:
+        - token
+        - k1e
+        - username
+        - v
+        - s
+      properties:
+        token:
+          type: string
+        k1e:
+          type: string
+        username:
+          type: string
+        v:
+          type: string
+        s:
+          type: string
+    RegisterStartResponse:
+      type: object
+      title: RegisterStartResponse
+      required:
+        - k2
+      properties:
+        k2:
+          type: string
+    Replication_Record:
+      type: object
+      anyOf:
+        - $ref: "#/components/schemas/Replication_Record_Insert"
+        - $ref: "#/components/schemas/Replication_Record_Update"
+        - $ref: "#/components/schemas/Replication_Record_Delete"
+      discriminator:
+        propertyName: operation
+        mapping:
+          INSERT: "#/components/schemas/Replication_Record_Insert"
+          UPDATE: "#/components/schemas/Replication_Record_Update"
+          DELETE: "#/components/schemas/Replication_Record_Delete"
+    Replication_Record_Delete:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - DELETE
+              example: DELETE
+        - $ref: "#/components/schemas/Deletion_Record"
+    Replication_Record_Insert:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - INSERT
+              example: INSERT
+        - $ref: "#/components/schemas/Record"
+    Replication_Record_Update:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - UPDATE
+              example: UPDATE
+        - $ref: "#/components/schemas/PartialRecord"
+    Replication_Student:
+      type: object
+      anyOf:
+        - $ref: "#/components/schemas/Replication_Student_Insert"
+        - $ref: "#/components/schemas/Replication_Student_Update"
+        - $ref: "#/components/schemas/Replication_Student_Delete"
+      discriminator:
+        propertyName: operation
+        mapping:
+          INSERT: "#/components/schemas/Replication_Student_Insert"
+          UPDATE: "#/components/schemas/Replication_Student_Update"
+          DELETE: "#/components/schemas/Replication_Student_Delete"
+    Replication_Student_Delete:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - DELETE
+              example: DELETE
+        - $ref: "#/components/schemas/Deletion_Student"
+    Replication_Student_Insert:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - INSERT
+              example: INSERT
+        - $ref: "#/components/schemas/Student"
+    Replication_Student_Update:
+      allOf:
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - UPDATE
+              example: UPDATE
+        - $ref: "#/components/schemas/PartialStudent"
+    RosterCreateRequest:
+      type: object
+      title: RosterCreateRequest
+      required:
+        - sid_hashed
+        - kind
+        - time_in
+      properties:
+        sid_hashed:
+          type: string
+        kind:
+          $ref: "#/components/schemas/HourType"
+        time_in:
+          type: string
+          format: date-time
+        time_out:
+          type: string
+          format: date-time
+          description: Must be after and on the same day as time_in (in server's local time)
+    RosterCreateResponse:
+      type: object
+      title: RosterCreateResponse
+      required:
+        - entry_id
+      properties:
+        entry_id:
+          type: string
+    RosterDeleteRequest:
+      type: object
+      title: RosterDeleteRequest
+      required:
+        - entry_id
+      properties:
+        entry_id:
+          type: string
+    RosterGetMany:
+      type: object
+      title: RosterGetMany
+      required:
+        - records
+      properties:
+        records:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Record"
+    RosterGetResponse:
+      type: object
+      anyOf:
+        - $ref: "#/components/schemas/RosterGetResponse_Many"
+        - $ref: "#/components/schemas/RosterGetResponse_One"
+      discriminator:
+        propertyName: quantity
+        mapping:
+          Many: "#/components/schemas/RosterGetResponse_Many"
+          One: "#/components/schemas/RosterGetResponse_One"
+    RosterGetResponse_Many:
+      allOf:
+        - type: object
+          required:
+            - quantity
+          properties:
+            quantity:
+              type: string
+              enum:
+                - Many
+              example: Many
+        - $ref: "#/components/schemas/RosterGetMany"
+    RosterGetResponse_One:
+      allOf:
+        - type: object
+          required:
+            - quantity
+          properties:
+            quantity:
+              type: string
+              enum:
+                - One
+              example: One
+        - $ref: "#/components/schemas/Record"
+    Student:
+      type: object
+      title: Student
+      required:
+        - id
+        - first
+        - last
+        - id_hashed
+      properties:
+        id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+        id_hashed:
+          type: string
+    StudentAdd:
+      type: object
+      title: StudentAdd
+      required:
+        - admin_id
+        - id
+        - first
+        - last
+        - id_hashed
+      properties:
+        admin_id:
+          type: string
+        id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+        id_hashed:
+          type: string
+    StudentAddRequest:
+      type: object
+      title: StudentAddRequest
+      required:
+        - sid_hashed
+        - student_id
+        - first
+        - last
+      properties:
+        sid_hashed:
+          type: string
+        student_id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+    StudentDelete:
+      type: object
+      title: StudentDelete
+      required:
+        - admin_id
+        - id
+        - first
+        - last
+        - id_hashed
+      properties:
+        admin_id:
+          type: string
+        id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+        id_hashed:
+          type: string
+    StudentEdit:
+      type: object
+      title: StudentEdit
+      required:
+        - admin_id
+        - old
+        - id_hashed
+      properties:
+        admin_id:
+          type: string
+        old:
+          $ref: "#/components/schemas/Student"
+        id_hashed:
+          type: string
+        id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+    StudentHoursResponse:
+      type: object
+      title: StudentHoursResponse
+      required:
+        - build
+        - learning
+        - demo
+        - offseason
+      properties:
+        build:
+          type: number
+          format: double
+        learning:
+          type: number
+          format: double
+        demo:
+          type: number
+          format: double
+        offseason:
+          type: number
+          format: double
+    StudentListResponse:
+      type: object
+      title: StudentListResponse
+      required:
+        - students
+      properties:
+        students:
+          type: array
+          items:
+            $ref: "#/components/schemas/Student"
+    StudentLogin:
+      type: object
+      title: StudentLogin
+      required:
+        - sid_hashed
+        - record_id
+        - admin_id
+      properties:
+        sid_hashed:
+          type: string
+        record_id:
+          type: string
+        admin_id:
+          type: string
+    StudentLogout:
+      type: object
+      title: StudentLogout
+      required:
+        - sid_hashed
+        - record_id
+        - admin_id
+      properties:
+        sid_hashed:
+          type: string
+        record_id:
+          type: string
+        admin_id:
+          type: string
+    StudentUpdateRequest:
+      type: object
+      title: StudentUpdateRequest
+      properties:
+        id:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+    SwipeAction:
+      type: string
+      enum:
+        - Login
+        - Logout
+        - Denied
+    SwipeQueryResponse:
+      type: object
+      title: SwipeQueryResponse
+      required:
+        - present
+        - absent
+      properties:
+        present:
+          type: array
+          items:
+            type: string
+        absent:
+          type: array
+          items:
+            type: string
+    SwipeRequest:
+      type: object
+      title: SwipeRequest
+      required:
+        - sid_hashed
+        - kind
+      properties:
+        sid_hashed:
+          type: string
+        kind:
+          $ref: "#/components/schemas/HourType"
+        force:
+          type: boolean
+          default: false
+    SwipeResponse:
+      type: object
+      title: SwipeResponse
+      required:
+        - action
+      properties:
+        action:
+          $ref: "#/components/schemas/SwipeAction"
+    TelemetryEvent:
+      type: object
+      title: TelemetryEvent
+      required:
+        - id
+        - event
+        - timestamp
+      properties:
+        id:
+          type: string
+        event:
+          $ref: "#/components/schemas/Event"
+        timestamp:
+          type: string
+          format: date-time
+    TelemetryResponse:
+      type: object
+      title: TelemetryResponse
+      required:
+        - events
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryEvent"
   securitySchemes:
-    Token:
+    JwtBearer:
       type: http
       scheme: bearer
-      bearerFormat: token
-      description: Token-based authentication. Provide the token in the Authorization header as 'Bearer <token>'.
-tags:
-- name: auth
-  description: Authentication related endpoints
-- name: student
-  description: Student related endpoints
-- name: roster
-  description: Roster related endpoints
+    JwtQuery:
+      type: apiKey
+      name: token
+      in: query

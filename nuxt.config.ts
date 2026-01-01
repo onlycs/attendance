@@ -18,16 +18,23 @@ export default defineNuxtConfig({
     },
     components: [
         { path: "~/components/ui/form/otp", prefix: "OTP" },
-        { path: "~/components/forms", prefix: "Form" },
         { path: "~/components/editor", prefix: "Editor" },
+        { path: "~/components/sidebar", prefix: "Sidebar" },
         { path: "~/components", pathPrefix: false },
     ],
+    nitro: {
+        routeRules: {
+            "/**": {
+                headers: {
+                    "Cross-Origin-Embedder-Policy": "require-corp",
+                    "Cross-Origin-Opener-Policy": "same-origin",
+                },
+            },
+        },
+    },
     devtools: {
         enabled: true,
-
-        timeline: {
-            enabled: true,
-        },
+        timeline: { enabled: true },
     },
     modules: [
         "@nuxt/icon",
@@ -45,7 +52,19 @@ export default defineNuxtConfig({
         },
     },
     vite: {
-        plugins: [tailwind()],
+        plugins: [
+            tailwind(),
+            {
+                name: "headers",
+                configureServer(server) {
+                    server.middlewares.use((req, res, next) => {
+                        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                        next();
+                    });
+                },
+            },
+        ],
         define: {
             __API_URL__: JSON.stringify(
                 process.env.API_URL || "http://localhost:3000",
@@ -57,5 +76,6 @@ export default defineNuxtConfig({
             collections: ["hugeicons"],
         },
     },
+    ssr: false,
     compatibilityDate: "2025-08-18",
 });

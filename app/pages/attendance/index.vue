@@ -55,7 +55,7 @@ function transitionTo(type: HourType) {
 function back() {
     transition.out
         .trigger({ reverse: true })
-        .then(() => router.push("/admin?reverse=true"));
+        .then(() => router.push("/dashboard?reverse=true"));
 }
 
 onMounted(() => {

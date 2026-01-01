@@ -103,19 +103,11 @@ defineExpose({ update });
             ref="drag"
             @mousedown.prevent="(ev) => dragClick(true)"
         >
-            <Icon
-                name="hugeicons:move"
-                class="drag"
-                size="20"
-            />
+            <Icon name="hugeicons:move" class="drag" size="20" />
         </div>
 
         <div class="close-container" @click="open = false">
-            <Icon
-                name="hugeicons:cancel-01"
-                class="close"
-                size="20"
-            />
+            <Icon name="hugeicons:cancel-01" class="close" size="20" />
         </div>
     </div>
 </template>

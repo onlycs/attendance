@@ -5,69 +5,46 @@
 #[macro_use]
 extern crate tracing;
 
-pub mod error;
-pub mod headers;
-pub mod http;
-pub mod prelude;
-pub mod serde;
-pub mod ws;
+mod auth;
+mod dbstream;
+mod error;
+mod prelude;
+mod roster;
+mod student;
+mod telemetry;
 
-use std::sync::Arc;
-
-use actix_cors::Cors;
-use actix_web::{
-    App, HttpServer,
-    web::{self, Data},
-};
+use poem::{EndpointExt, Route, Server, listener::TcpListener, middleware::Cors};
+use poem_openapi::OpenApiService;
+use prelude::*;
 use sqlx::PgPool;
-use tracing_actix_web::TracingLogger;
 
-use crate::{headers::SecurityHeaders, prelude::*};
-
-pub struct AppState {
-    pub pg: Arc<PgPool>,
+pub fn oai(pg: PgPool) -> OpenApiService<impl OpenApi, ()> {
+    OpenApiService::new(
+        (
+            auth::AuthService::new(pg.clone()),
+            roster::RosterService::new(pg.clone()),
+            student::StudentService::new(pg.clone()),
+            telemetry::TelemetryService::new(pg.clone()),
+        ),
+        "Attendance API",
+        &*env::PUBLIC_ADDRESS,
+    )
 }
 
-impl AppState {
-    pub fn new(pg: Arc<PgPool>) -> Self {
-        Self { pg }
-    }
-}
+pub async fn run_server(pool: PgPool) -> Result<(), InitError> {
+    let address = format!("{}:{}", *env::ADDRESS, *env::PORT);
+    let service = oai(pool);
 
-pub async fn run_server(pool: Arc<PgPool>) -> Result<(), InitError> {
-    ws::init();
+    let app = Route::new()
+        .nest("/docs", service.scalar())
+        .nest("/openapi.yml", service.spec_endpoint_yaml())
+        .nest("/", service)
+        .with(Cors::new());
 
-    HttpServer::new(move || {
-        let pg = Arc::clone(&pool);
-        let state = AppState::new(pg);
-
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
-
-        App::new()
-            .wrap(cors)
-            .wrap(TracingLogger::default())
-            .wrap(SecurityHeaders)
-            .app_data(Data::new(state))
-            .service(http::index)
-            .service(http::schema)
-            .service(http::register_start)
-            .service(http::login_start)
-            .service(http::login_finish)
-            .service(http::deauthorize)
-            .service(http::student_query)
-            .service(http::student_add)
-            .service(http::roster_record)
-            .service(http::roster_clear)
-            .service(http::auth_validate)
-            .route("/ws", web::get().to(ws::ws))
-    })
-    .bind(("0.0.0.0", 8080))?
-    .run()
-    .await?;
+    Server::new(TcpListener::bind(address)).run(app).await?;
 
     Ok(())
 }
+
+pub use error::InitError;
+pub use prelude::env::DATABASE_URL;
