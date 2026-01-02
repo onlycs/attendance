@@ -1,13 +1,11 @@
 #![feature(never_type, error_generic_member_access)]
 
-use std::sync::Arc;
-
-use attendance_api::{prelude::*, run_server};
+use attendance_api::{DATABASE_URL, InitError, run_server};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> Result<(), InitError> {
     #[cfg(debug_assertions)]
     const LOG_LEVEL: tracing::Level = tracing::Level::DEBUG;
@@ -21,17 +19,15 @@ async fn main() -> Result<(), InitError> {
 
     let filter = Targets::new()
         .with_default(LOG_LEVEL)
-        .with_target("sqlx", tracing::Level::DEBUG);
+        .with_target("sqlx", tracing::Level::INFO);
 
     tracing_subscriber::registry().with(filter).with(fmt).init();
     dotenv().ok();
 
-    let pool = Arc::new(
-        PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&env::var("DATABASE_URL").unwrap())
-            .await?,
-    );
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&*DATABASE_URL)
+        .await?;
 
     run_server(pool).await
 }

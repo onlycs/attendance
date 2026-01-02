@@ -1,8 +1,8 @@
 [package]
 name = "attendance-api"
 version = "2.0.0"
-edition = "2024"
 default-run = "attendance-api"
+edition = "2024"
 
 [[bin]]
 name = "attendance-api"
@@ -10,21 +10,24 @@ path = "src/main.rs"
 
 [[bin]]
 name = "openapi"
-path = "src/bin/openapi.rs"
+path = "scripts/openapi.rs"
 
 [dependencies]
-actix-cors = "0.7.1"
-actix-governor = { version = "0.8.0", features = ["log"] }
-actix-web = "4.11.0"
-actix-ws = "0.3.0"
+async-stream = "0.3.6"
+attendance-api-macro = { version = "0.1.0", path = "../src-macro" }
 base64 = "0.22.1"
 bcrypt = "0.17.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 cuid = "1.3.3"
 dotenvy = "0.15.7"
+dotenvy_macro = "0.15.7"
 futures-util = "0.3.31"
 hex = "0.4.3"
 itertools = "0.14.0"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+oade = { path = "../../oade" }
+poem = { git = "https://github.com/onlycs/poem", features = ["websocket"] }
+poem-openapi = { git = "https://github.com/onlycs/poem", features = ["chrono", "scalar"] }
 rand = "0.9.2"
 serde = { version = "1.0.226", features = ["derive"] }
 serde_json = "1.0.145"
@@ -34,8 +37,7 @@ sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "chro
 srp = "0.6.0"
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = { git = "https://github.com/onlycs/thiserror" }
-tokio = "1.47.1"
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1.17", features = ["sync"] }
 tracing = "0.1.41"
-tracing-actix-web = "0.7.19"
 tracing-subscriber = { version = "0.3.20", features = ["json", "serde"] }
-utoipa = { version = "5.4.0", features = ["actix_extras", "chrono", "yaml"] }

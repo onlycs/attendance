@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { mode } from "crypto-js";
+import {
+    REGEXP_ONLY_DIGITS as Numeric,
+    REGEXP_ONLY_DIGITS_AND_CHARS as Text,
+} from "vue-input-otp";
 import type { SlotSize } from "./Slot.vue";
 
 export interface OTPFieldProps {
     length: number;
-    regex: string;
-    mobile?: "text" | "numeric";
+    type: "text" | "numeric";
     password?: boolean;
     size?: SlotSize;
 }
@@ -17,15 +21,14 @@ defineModel<string>("otp", { required: true });
     <OTPInput
         #default="{ slots }"
         :maxlength="$props.length"
-        :inputmode="$props.mobile"
-        :pattern="$props.regex"
-        :type="$props.password ? 'password' : undefined"
+        :inputmode="$props.type ?? 'numeric'"
+        :pattern="$props.type === 'numeric' ? Numeric : Text"
+        :model-value="otp ?? ''"
+        @update:model-value="(val) => $emit('update:otp', val)"
         autocomplete="off"
         spellcheck="false"
-        :model-value="otp"
-        @update:model-value="(val) => $emit('update:otp', val)"
     >
-        <div class="flex">
+        <div class="slotcontainer">
             <OTPSlot
                 v-for="(slot, idx) of slots"
                 v-bind="slot"
@@ -38,3 +41,11 @@ defineModel<string>("otp", { required: true });
         <slot />
     </OTPInput>
 </template>
+
+<style scoped>
+@reference "~/style/tailwind.css";
+
+.slotcontainer {
+    @apply flex gap-2;
+}
+</style>

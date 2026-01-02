@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { api, apiToast, type Hours, type HourType } from "~/utils/api";
+import { api, error, type Hours, type HourType } from "~/utils/api";
 import { Math2 } from "~/utils/math";
 
 const hours = ref<Hours | null>(null);
@@ -46,12 +46,12 @@ onMounted(async () => {
         return redirect("/");
     }
 
-    const res = await api("/student/{id}", "get", {
+    const res = await api.fetch("/student/{id}", "get", {
         path: { id: Crypt.sha256(auth.student.value.id.value) },
     });
 
     if (res.isErr()) {
-        return apiToast(res.error, { redirect401: redirect });
+        return api.handle(res.error, { redirect401: redirect });
     }
 
     setTimeout(() => {

@@ -1,27 +1,33 @@
-.PHONY: all build api openapi client frontend clean help
+.PHONY: all wasm openapi front
 
-all: build
+all: front
 
-release: backend openapi frontend
-build: backend-dev openapi typecheck
-
-backend:
-	@echo "Building API in release mode..."
-	cd src-api && cargo build --release
-
-backend-dev:
-	@echo "Building API..."
-	cd src-api && cargo build
+wasm:
+	@echo "=== Building WASM package"
+	cd src-crypto && rm -rf pkg && wasm-pack build --target web --release
+	@echo "=== Copying package files"
+	rm -rf app/wasm
+	cp -r src-crypto/pkg app/wasm
+	@echo "=== Patching workerHelpers.js files"
+	sed -i 's|\.\./\.\./\.\.|../../../attendance_crypto.js|g' app/wasm/snippets/*/src/workerHelpers.js
 
 openapi:
-	@echo "Generating OpenAPI spec..."
+	@echo "=== Generating OpenAPI spec"
 	cd src-api && cargo run --bin openapi
-	bun api
+	@echo "=== Generating API client"
+	bunx openapi-ts
+	@echo "=== Re-exporting API client"
+	python scripts/openapi.py
 
-frontend:
-	@echo "Building frontend..."
-	bun run build
+fmt:
+	@echo "=== Formatting code"
+	dprint fmt
+	cd src-api && cargo fmt
+	cd src-crypto && cargo fmt
+	cd src-macro && cargo fmt
 
-typecheck:
-	@echo "Checking frontend..."
-	bunx nuxi typecheck
+typegen:
+	@echo "=== Generating TypeScript types"
+	bunx nuxi prepare
+
+postinstall: openapi wasm typegen

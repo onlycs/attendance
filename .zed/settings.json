@@ -38,6 +38,9 @@
                     "name": "dprint"
                 }
             }
+        },
+        "SQL": {
+            "tab_size": 4
         }
     }
 }
