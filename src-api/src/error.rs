@@ -98,10 +98,17 @@ pub enum RouteError {
         location: &'static Location<'static>,
     },
 
+    #[error("At {location}: Reqwest failure: {source}")]
+    Reqwest {
+        #[from]
+        source: reqwest::Error,
+        location: &'static Location<'static>,
+    },
+
     #[error("Invalid credentials")]
     BadAuth,
 
-    #[error("Invalid hour type: cannot log {hour_type} hours {}", hour_type.when_invalid())]
+    #[error("Invalid hour type: cannot log {hour_type} hours right now")]
     HourType { hour_type: HourType },
 
     #[error("No such student")]
