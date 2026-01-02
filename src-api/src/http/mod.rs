@@ -187,6 +187,28 @@ pub(crate) async fn roster_clear(
 
 #[utoipa::path(
     get,
+    path = "/roster/allowed",
+    operation_id = "roster::allowed",
+    tag = "roster",
+    description = "Fetches allowed hour types for roster entries",
+    responses(
+        (status = 200, description = "Allowed hour types fetched", body = roster::AllowedResponse),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    security(("Token" = []))
+)]
+#[get("/roster/allowed")]
+pub(crate) async fn roster_allowed(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<impl Responder, RouteError> {
+    auth::validate(&auth::parse_header(&req)?, &state.pg).await?;
+    let res = roster::allowed().await?;
+    Ok(HttpResponse::Ok().json(res))
+}
+
+#[utoipa::path(
+    get,
     path = "/student/{id}",
     operation_id = "student::query",
     tag = "student",
@@ -276,6 +298,7 @@ pub(crate) async fn index() -> impl Responder {
         roster_record,
         roster_clear,
         auth_validate,
+        roster_allowed,
     ),
     tags(
         (name = "auth", description = "Authentication related endpoints"),

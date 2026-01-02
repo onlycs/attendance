@@ -155,6 +155,27 @@ paths:
                 type: string
       security:
       - Token: []
+  /roster/allowed:
+    get:
+      tags:
+      - roster
+      description: Fetches allowed hour types for roster entries
+      operationId: roster::allowed
+      responses:
+        '200':
+          description: Allowed hour types fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowedResponse'
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+      - Token: []
   /student:
     post:
       tags:
@@ -218,6 +239,15 @@ paths:
                 type: string
 components:
   schemas:
+    AllowedResponse:
+      type: object
+      required:
+      - allowed
+      properties:
+        allowed:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourType'
     HourType:
       type: string
       enum:
@@ -326,7 +356,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: token
-      description: Token-based authentication. Provide the token in the Authorization header as 'Bearer <token>'.
+      description: Token-based authentication. Provide the token in the Authorization header as 'Bearer [token]'.
 tags:
 - name: auth
   description: Authentication related endpoints

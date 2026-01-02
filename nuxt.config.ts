@@ -48,7 +48,7 @@ export default defineNuxtConfig({
         plugins: [tailwind()],
         define: {
             __API_URL__: JSON.stringify(
-                process.env.API_URL || "http://localhost:3000",
+                process.env.API_URL || "http://localhost:8080",
             ),
         },
     },
@@ -57,5 +57,6 @@ export default defineNuxtConfig({
             collections: ["hugeicons"],
         },
     },
+    ssr: false,
     compatibilityDate: "2025-08-18",
 });

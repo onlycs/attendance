@@ -63,6 +63,7 @@ pub async fn run_server(pool: Arc<PgPool>) -> Result<(), InitError> {
             .service(http::roster_record)
             .service(http::roster_clear)
             .service(http::auth_validate)
+            .service(http::roster_allowed)
             .route("/ws", web::get().to(ws::ws))
     })
     .bind(("0.0.0.0", 8080))?

@@ -101,7 +101,7 @@ pub enum RouteError {
     #[error("Invalid credentials")]
     BadAuth,
 
-    #[error("Invalid hour type: cannot log {hour_type} hours {}", hour_type.when_invalid())]
+    #[error("Invalid hour type: cannot log {hour_type} hours right now")]
     HourType { hour_type: HourType },
 
     #[error("No such student")]
