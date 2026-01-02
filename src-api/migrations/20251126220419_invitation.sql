@@ -1,0 +1,6 @@
+CREATE TABLE invites (
+    id TEXT PRIMARY KEY NOT NULL
+);
+
+ALTER TABLE permissions
+ADD COLUMN admin_edit BOOLEAN DEFAULT FALSE;

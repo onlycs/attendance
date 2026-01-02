@@ -1,7 +1,4 @@
-import sha256 from "crypto-js/sha256";
-import cuid2 from "cuid";
-
-export const Crypt = {
+export const OldCrypto = {
     bufferize(str: string): Uint8Array<ArrayBuffer> {
         return new TextEncoder().encode(str);
     },
@@ -13,7 +10,7 @@ export const Crypt = {
     async derkey(password: string, salt: Uint8Array<ArrayBuffer>) {
         const material = await crypto.subtle.importKey(
             "raw",
-            Crypt.bufferize(password),
+            OldCrypto.bufferize(password),
             "PBKDF2",
             false,
             ["deriveKey"],
@@ -33,32 +30,13 @@ export const Crypt = {
         );
     },
 
-    async encrypt(text: string, password: string) {
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const key = await Crypt.derkey(password, salt);
-
-        const encrypted = await crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
-            key,
-            Crypt.bufferize(text),
-        );
-
-        const result = new Uint8Array([
-            ...salt,
-            ...iv,
-            ...new Uint8Array(encrypted),
-        ]);
-        return btoa(String.fromCharCode(...result));
-    },
-
     async decrypt(encrypted: string, password: string) {
         const data = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
         const salt = data.slice(0, 16);
         const iv = data.slice(16, 16 + 12);
         const cipher = data.slice(16 + 12);
 
-        const key = await Crypt.derkey(password, salt);
+        const key = await OldCrypto.derkey(password, salt);
         const decrypted = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv },
             key,
@@ -66,24 +44,5 @@ export const Crypt = {
         );
 
         return new TextDecoder().decode(decrypted);
-    },
-
-    sha256(text: string) {
-        return sha256(text).toString();
-    },
-
-    cuid() {
-        return cuid2();
-    },
-
-    hex(number: bigint) {
-        const s = number.toString(16);
-
-        if (s.length % 2 === 1) return `0${s}`;
-        return s;
-    },
-
-    fromHex(hex: string) {
-        return BigInt(`0x${hex}`);
     },
 };

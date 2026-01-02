@@ -1,36 +1,18 @@
 <script setup lang="ts">
 import { identity } from "@vueuse/core";
 import { Temporal } from "temporal-polyfill";
-import { api, type HourType } from "~/utils/api";
+import type { HourType } from "~/utils/api";
 import { Random } from "~/utils/math";
 
 const transition = injectTransition();
 const params = useUrlSearchParams();
 const router = useRouter();
-const auth = useAuth();
 
 const month = Temporal.Now.plainDateISO().month;
-const hoursOkRes = await api("/roster/allowed", "get", {
-    header: {
-        Authorization: `Bearer ${
-            auth.admin.value.status === "ok"
-                ? auth.admin.value.token.value.token
-                : ""
-        }`,
-    },
-});
 
-const buildOk = hoursOkRes.map(res => res.allowed.includes("build")).unwrapOr(
-    true,
-);
-const learningOk = hoursOkRes.map(res => res.allowed.includes("learning"))
-    .unwrapOr(
-        true,
-    );
-const offseasonOk = hoursOkRes.map(res => res.allowed.includes("offseason"))
-    .unwrapOr(
-        true,
-    );
+const buildOk = month < 5;
+const learningOk = month >= 11;
+const offseasonOk = month >= 5;
 const length = [buildOk, learningOk, offseasonOk].filter(identity).length;
 
 const show = transition.setup;
@@ -73,7 +55,7 @@ function transitionTo(type: HourType) {
 function back() {
     transition.out
         .trigger({ reverse: true })
-        .then(() => router.push("/admin?reverse=true"));
+        .then(() => router.push("/dashboard?reverse=true"));
 }
 
 onMounted(() => {

@@ -13,10 +13,7 @@ defineOptions({ inheritAttrs: false });
         should-scale-background
     >
         <DrawerPortal>
-            <DrawerOverlay
-                class="overlay"
-                @click="() => $emit('close')"
-            />
+            <DrawerOverlay class="overlay" @click="() => $emit('close')" />
 
             <DrawerContent class="dialog" v-bind="$attrs">
                 <DrawerHandle class="handle" />

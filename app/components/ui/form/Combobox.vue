@@ -102,12 +102,7 @@ function typewatch(ev: string) {
                 {{ item }}
             </div>
 
-            <div
-                v-if="!fzfout.length"
-                class="item sub"
-            >
-                No results found.
-            </div>
+            <div v-if="!fzfout.length" class="item sub">No results found.</div>
         </div>
     </div>
 </template>

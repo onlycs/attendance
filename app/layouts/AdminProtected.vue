@@ -1,73 +1,77 @@
 <script setup lang="ts">
-import { useAuth } from "~/utils/auth";
 import DefaultLayout from "./Default.vue";
 
-const auth = useAuth();
-const ok = ref(false);
-const forceClose = ref(false);
-const isMobile = useMobile();
+const { auth, user } = useAuth();
 const router = useRouter();
-const app = useNuxtApp();
-const layout = ref<InstanceType<typeof DefaultLayout>>();
+
+const prompt = computed(() => user.value.role === "admin" && !user.value.ok);
+const close = ref(false);
+const open = computed(() => prompt.value && !close.value);
+const uname = computed(() => {
+    return user.value.role === "admin" ? user.value.claims.username : null;
+});
 
 function redirect() {
-    if (ok.value) return;
-
-    forceClose.value = true;
-
-    layout.value?.transition.out.trigger().then(() => {
-        auth.clear();
-        router.push("/");
-    });
+    if (!open.value) return;
+    close.value = true;
+    auth.clear();
+    router.push("/?throw=session-expired");
 }
-
-function check() {
-    forceClose.value = false;
-
-    const path = router.currentRoute.value.path;
-    const skippable = /^\/attendance\/(.+)$/.test(path);
-    if (skippable && ok.value) return;
-
-    ok.value = auth.admin.value.status === "ok";
-}
-
-app.hook("page:finish", () => check());
-watch(
-    auth.admin,
-    (admin) => {
-        if (admin.status === "ok") check();
-    },
-    { immediate: true },
-);
-onMounted(check);
 
 onMounted(() => {
+    if (user.value.role !== "admin") return redirect();
+
+    const exp = user.value.claims.exp;
+    const now = Math.floor(Date.now() / 1000);
+    if (exp < now) return redirect();
+
     window.addEventListener("keydown", (event) => {
         if (event.key === "Escape") redirect();
     });
 });
+
+const form = {
+    password: f.password({
+        title: "Password",
+        "class:container": "password",
+    }),
+};
+
+const buttons = computed(() => {
+    return [
+        {
+            form: "submit",
+            label: "Continue",
+            kind: "primary",
+        },
+        {
+            form: "cancel",
+            label: `Not ${uname.value ?? "you"}?`,
+            kind: "secondary-card",
+        },
+    ] satisfies FormButton[];
+});
+
+const deps = {};
 </script>
 
 <template>
     <DefaultLayout ref="layout">
         <slot />
 
-        <Drawer
-            :open="!ok && !forceClose"
-            @close="redirect"
-        >
+        <Drawer :open @close="redirect">
             <div class="title">
                 Enter Password to Continue
             </div>
 
             <div class="form">
-                <SizeDependent>
-                    <FormPassword
-                        :size="isMobile
-                        ? 'md'
-                        : 'lg'"
-                    />
-                </SizeDependent>
+                <Form
+                    :form
+                    :buttons
+                    :deps
+                    @submit="$auth.admin(uname!, $event.password)"
+                    @cancel="redirect"
+                />
             </div>
         </Drawer>
     </DefaultLayout>
@@ -81,6 +85,17 @@ onMounted(() => {
 }
 
 .form {
-    @apply my-8;
+    @apply mt-8 gap-2 flex flex-col;
+    @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+}
+</style>
+
+<style>
+@reference "~/style/tailwind.css";
+
+.form {
+    > .item.password {
+        @apply mb-4;
+    }
 }
 </style>

@@ -2,7 +2,7 @@
 import type { FocusCard } from "#components";
 import { toast } from "vue-sonner";
 import { z } from "zod";
-import { api, apiToast } from "~/utils/api";
+import { api, error } from "~/utils/api";
 
 definePageMeta({ layout: "admin-protected" });
 
@@ -67,7 +67,7 @@ async function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
     const firstCrypt = await Crypt.encrypt(data.first, creds.value!.password);
     const lastCrypt = await Crypt.encrypt(data.last, creds.value!.password);
 
-    const res = await api(
+    const res = await api.fetch(
         "/student",
         "post",
         {
@@ -80,7 +80,7 @@ async function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
     );
 
     if (res.isErr()) {
-        return apiToast(res.error, { redirect401: redirect });
+        return api.handle(res.error, { redirect401: redirect });
     }
 
     roster(undefined, true);
@@ -115,13 +115,13 @@ async function roster(id?: string, force = false) {
         return;
     }
 
-    const info = await api("/student/{id}", "get", {
+    const info = await api.fetch("/student/{id}", "get", {
         path: { id: Crypt.sha256(id) },
     });
 
     if (info.isErr() && !force) {
         loading.value = false;
-        return apiToast(info.error, {
+        return api.handle(info.error, {
             handle: {
                 [404]: () => {
                     NewFormOpen.value = true;
@@ -131,7 +131,7 @@ async function roster(id?: string, force = false) {
         });
     }
 
-    const res = await api(
+    const res = await api.fetch(
         "/roster",
         "post",
         { id: Crypt.sha256(id), kind, force },
@@ -140,7 +140,7 @@ async function roster(id?: string, force = false) {
 
     if (res.isErr()) {
         loading.value = false;
-        return apiToast(res.error, { redirect401: redirect });
+        return api.handle(res.error, { redirect401: redirect });
     }
 
     if (res.value.denied) {

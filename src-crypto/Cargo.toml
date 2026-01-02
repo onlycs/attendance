@@ -1,0 +1,27 @@
+[package]
+name = "attendance-crypto"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aes-gcm = "0.10.3"
+argon2 = "0.5.3"
+base64 = "0.22.1"
+chacha20poly1305 = "0.10.1"
+console_error_panic_hook = "0.1.7"
+getrandom = { version = "0.2.16", features = ["js"] }
+hex = "0.4.3"
+js-sys = "0.3.83"
+pbkdf2 = { version = "0.12.2", features = ["rayon"] }
+rayon = "1.11.0"
+sha2 = "0.10.9"
+tokio = { version = "1.48.0", features = ["rt"] }
+wasm-bindgen = "0.2.106"
+wasm-bindgen-futures = "0.4.56"
+wasm-bindgen-rayon = { git = "https://github.com/RReverser/wasm-bindgen-rayon" }
+
+[profile.release]
+opt-level = "s"
