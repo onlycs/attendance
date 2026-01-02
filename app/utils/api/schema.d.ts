@@ -128,6 +128,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AllowedResponse: {
+            allowed: components["schemas"]["HourType"][];
+        };
         /** @enum {string} */
         HourType: "build" | "learning" | "demo" | "offseason";
         Hours: {
@@ -186,6 +189,7 @@ export interface components {
         };
     };
 }
+export type AllowedResponse = components['schemas']['AllowedResponse'];
 export type HourType = components['schemas']['HourType'];
 export type Hours = components['schemas']['Hours'];
 export type LoginFinishRequest = components['schemas']['LoginFinishRequest'];
@@ -466,7 +470,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HourType"][];
+                    "application/json": components["schemas"]["AllowedResponse"];
                 };
             };
             /** @description Internal server error */

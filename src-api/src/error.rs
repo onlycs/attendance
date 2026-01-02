@@ -98,13 +98,6 @@ pub enum RouteError {
         location: &'static Location<'static>,
     },
 
-    #[error("At {location}: Reqwest failure: {source}")]
-    Reqwest {
-        #[from]
-        source: reqwest::Error,
-        location: &'static Location<'static>,
-    },
-
     #[error("Invalid credentials")]
     BadAuth,
 

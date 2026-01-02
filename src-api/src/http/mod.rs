@@ -192,7 +192,7 @@ pub(crate) async fn roster_clear(
     tag = "roster",
     description = "Fetches allowed hour types for roster entries",
     responses(
-        (status = 200, description = "Allowed hour types fetched", body = [roster::HourType]),
+        (status = 200, description = "Allowed hour types fetched", body = roster::AllowedResponse),
         (status = 500, description = "Internal server error", body = String)
     ),
     security(("Token" = []))

@@ -52,84 +52,18 @@ impl HourType {
         let days2sat = 6 - nydotw.days_since(chrono::Weekday::Sun);
         let kickoff_day = nyd + chrono::Duration::days(days2sat as i64 + postpone);
 
-        #[derive(Deserialize)]
-        struct Champ {
-            start_date: chrono::NaiveDateTime,
-        }
-
-        #[derive(Deserialize)]
-        struct Season {
-            #[serde(rename = "frcChampionships")]
-            champs: Vec<Champ>,
-        }
-
-        let champ_date = async {
-            use std::{
-                sync::OnceLock,
-                time::{Duration, Instant},
-            };
-
-            static CACHE: OnceLock<std::sync::Mutex<Option<(chrono::NaiveDate, Instant)>>> =
-                OnceLock::new();
-            const CACHE_DURATION: Duration = Duration::from_secs(7 * 24 * 60 * 60); // 1 week
-
-            let cache = CACHE.get_or_init(|| std::sync::Mutex::new(None));
-            let mut cache_guard = cache.lock().unwrap();
-
-            if let Some((cached_date, cached_time)) = *cache_guard {
-                if cached_time.elapsed() < CACHE_DURATION {
-                    return Some(cached_date);
-                }
-            }
-
-            let result = reqwest::Client::new()
-                .get(format!("https://frc-api.firstinspires.org/v3.0/{year}"))
-                .header(
-                    "Authorization",
-                    format!(
-                        "Basic {}",
-                        base64::encode(format!(
-                            "{}:{}",
-                            env::var("FRC_API_USER").ok()?,
-                            env::var("FRC_API_KEY").ok()?
-                        ))
-                    ),
-                )
-                .send()
-                .await
-                .ok()?
-                .error_for_status()
-                .ok()?
-                .json::<Season>()
-                .await
-                .ok()?
-                .champs
-                .into_iter()
-                .max_by_key(|c| c.start_date)
-                .map(|c| c.start_date.date());
-
-            if let Some(date) = result {
-                *cache_guard = Some((date, Instant::now()));
-            }
-
-            result
-        }
-        .await;
-
         Ok(match self {
             HourType::Build => {
                 today >= kickoff_day // after kickoff
-                    && champ_date.is_none_or(|champ| today <= champ) // before champs, if known
                     && today.month() <= 4 // if there is FRC in May, god help the future generations
             }
             HourType::Learning => {
-                (today < kickoff_day || champ_date.is_none_or(|champ| today > champ)) // before kickoff or after champs
-                    && today.month() >= 9 // most schools start in September
+                today < kickoff_day  // before kickoff
+                    || today.month() >= 9 // most schools start in September
             }
             HourType::Demo => true,
             HourType::Offseason => {
-                champ_date.is_none_or(|champ| today >= champ) // after champs, if known
-                    && today.month() >= 5 // after April
+                today.month() >= 5 // may or afterwards
                     && today.month() <= 11 // god help that one FRC team that runs offseason in December
             }
         })
@@ -250,8 +184,13 @@ pub(super) async fn record(
     }
 }
 
+#[derive(Clone, Debug, Serialize, ToSchema)]
+pub(super) struct AllowedResponse {
+    allowed: Vec<HourType>,
+}
+
 #[tracing::instrument(name = "roster::allowed", err)]
-pub(super) async fn allowed() -> Result<Vec<HourType>, RouteError> {
+pub(super) async fn allowed() -> Result<AllowedResponse, RouteError> {
     let mut allowed = Vec::with_capacity(3);
 
     for hour_type in HourType::VARIANTS {
@@ -260,7 +199,7 @@ pub(super) async fn allowed() -> Result<Vec<HourType>, RouteError> {
         }
     }
 
-    Ok(allowed)
+    Ok(AllowedResponse { allowed })
 }
 
 #[tracing::instrument(name = "roster::delete", skip(pg), err)]

@@ -167,9 +167,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/HourType'
+                $ref: '#/components/schemas/AllowedResponse'
         '500':
           description: Internal server error
           content:
@@ -241,6 +239,15 @@ paths:
                 type: string
 components:
   schemas:
+    AllowedResponse:
+      type: object
+      required:
+      - allowed
+      properties:
+        allowed:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourType'
     HourType:
       type: string
       enum:
