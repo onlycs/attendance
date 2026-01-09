@@ -20,6 +20,8 @@ export default defineNuxtConfig({
         { path: "~/components/ui/form/otp", prefix: "OTP" },
         { path: "~/components/editor", prefix: "Editor" },
         { path: "~/components/sidebar", prefix: "Sidebar" },
+        { path: "~/components/attendance", prefix: "Attendance" },
+        { path: "~/components/attendance/dialog", prefix: "Attendance" },
         { path: "~/components", pathPrefix: false },
     ],
     nitro: {

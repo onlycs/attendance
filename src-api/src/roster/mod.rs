@@ -1,6 +1,8 @@
 mod crud;
 mod hour_type;
+mod present;
 mod swipe;
+mod totp;
 
 use futures_util::stream::BoxStream;
 pub(crate) use hour_type::HourType;
@@ -28,30 +30,39 @@ impl RosterService {
     async fn swipe(
         &self,
         request: Json<swipe::SwipeRequest>,
-        jwt: Jwt,
     ) -> Result<Json<swipe::SwipeResponse>, swipe::SwipeError> {
-        let claims = jwt.verify()?;
-        claims.perms.assert(Permission::Roster)?;
-
         Ok(Json(swipe::route(request.0, self.pg.clone()).await?))
     }
 
-    #[oai(path = "/swipe", method = "get")]
-    async fn swipes_query(
+    #[oai(path = "/totp", method = "post")]
+    async fn totp(
+        &self,
+        request: Json<totp::Request>,
+        jwt: Jwt,
+    ) -> Result<Json<totp::Response>, totp::Error> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::Roster)?;
+        Ok(Json(
+            totp::route(request.0, claims.sub, self.pg.clone()).await?,
+        ))
+    }
+
+    #[oai(path = "/present", method = "get")]
+    async fn present_query(
         &self,
         jwt: Jwt,
-    ) -> Result<Json<swipe::QueryResponse>, swipe::QueryError> {
+    ) -> Result<Json<present::QueryResponse>, present::QueryError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
-        Ok(Json(swipe::query(self.pg.clone()).await?))
+        Ok(Json(present::query(self.pg.clone()).await?))
     }
 
-    #[oai(path = "/swipe/stream", method = "get")]
-    async fn swipes_stream(
+    #[oai(path = "/present/stream", method = "get")]
+    async fn present_stream(
         &self,
         jwt: Jwt,
-    ) -> Result<EventStream<BoxStream<'static, swipe::QueryResponse>>, swipe::QueryError> {
+    ) -> Result<EventStream<BoxStream<'static, present::QueryResponse>>, present::QueryError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
@@ -65,7 +76,7 @@ impl RosterService {
                     return None;
                 };
 
-                match swipe::query(pg).await {
+                match present::query(pg).await {
                     Ok(res) => Some(res),
                     Err(err) => {
                         tracing::error!("Error in roster stream: {}", err);
@@ -133,5 +144,12 @@ impl RosterService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursEdit)?;
         Ok(Json(crud::delete(request.0, self.pg.clone()).await?))
+    }
+
+    #[oai(path = "/allowed", method = "get")]
+    async fn allowed(&self, jwt: Jwt) -> Result<Json<Vec<HourType>>, hour_type::AllowedError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::HoursView)?;
+        Ok(Json(hour_type::allowed()))
     }
 }

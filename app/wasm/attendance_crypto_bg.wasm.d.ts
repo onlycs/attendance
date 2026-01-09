@@ -1,11 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
-export const init: () => void;
 export const decrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const encrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const k1_decrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const k1_encrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const random_bytes: (a: number) => [number, number];
+export const init: () => void;
+export const totp_generate: (a: number, b: number) => [number, number];
 export const __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
 export const initThreadPool: (a: number) => any;
 export const wbg_rayon_poolbuilder_build: (a: number) => void;

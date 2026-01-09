@@ -3,6 +3,7 @@ import {
     useSessionStorage as useSessionStoragePrim,
     type UseStorageOptions,
 } from "@vueuse/core";
+import { toast } from "vue-sonner";
 import api, { type Claims } from "~/utils/api";
 
 export const Keys = narrow({
@@ -32,18 +33,17 @@ type AuthSessionStorage = { k1: string; };
 function useLocalAuth(): Ref<AuthLocalStorage | null> {
     const local = storage.local(Keys.Auth);
 
-    return computedWithControl(local, {
+    return computed({
         get() {
             if (!local.value) return null;
             return JSON.parse(atob(local.value)) as AuthLocalStorage;
         },
-        set(val: AuthLocalStorage | null) {
-            if (!val) {
+        set(v) {
+            if (!v) {
                 local.value = null;
                 return;
             }
-
-            local.value = btoa(JSON.stringify(val));
+            local.value = btoa(JSON.stringify(v));
         },
     });
 }
@@ -51,18 +51,17 @@ function useLocalAuth(): Ref<AuthLocalStorage | null> {
 function useSessionAuth(): Ref<AuthSessionStorage | null> {
     const session = storage.session(Keys.K1);
 
-    return computedWithControl(session, {
+    return computed({
         get() {
             if (!session.value) return null;
             return JSON.parse(atob(session.value)) as AuthSessionStorage;
         },
-        set(val: AuthSessionStorage | null) {
-            if (!val) {
+        set(v) {
+            if (!v) {
                 session.value = null;
                 return;
             }
-
-            session.value = btoa(JSON.stringify(val));
+            session.value = btoa(JSON.stringify(v));
         },
     });
 }
@@ -88,10 +87,18 @@ export type AuthData =
     | ({ role: "none"; });
 
 export type User = Ref<AuthData>;
+
 export interface Auth {
+    __local: Ref<AuthLocalStorage | null>;
+    __session: Ref<AuthSessionStorage | null>;
+    prompt: {
+        provide(cb: () => Promise<AuthData & { role: "admin"; "ok": true; }>): void;
+        inject(): () => Promise<AuthData & { role: "admin"; "ok": true; }>;
+    };
     admin(username: string, password: string): Promise<{ ok: boolean; }>;
     student(id: string): void;
     clear(): void;
+    clearsession(): void;
 }
 
 export default defineNuxtPlugin(() => {
@@ -131,6 +138,8 @@ export default defineNuxtPlugin(() => {
     });
 
     const auth: Auth = {
+        __local: local,
+        __session: session,
         async admin(username, password) {
             const start = await api.auth.login.start({
                 query: { username },
@@ -152,7 +161,7 @@ export default defineNuxtPlugin(() => {
             });
 
             if (!complete.data) {
-                api.error(complete.error, complete.response);
+                api.error(complete.error, complete.response, { handle401: "message" });
                 return { ok: false };
             }
 
@@ -168,15 +177,25 @@ export default defineNuxtPlugin(() => {
 
             return { ok: true };
         },
+        prompt: {
+            provide(cb) {
+                provide("auth:prompt", cb);
+            },
+            inject() {
+                return inject("auth:prompt", () => {
+                    throw new Error("auth:prompt used outside of AdminProtected");
+                });
+            },
+        },
         student(id) {
             const local = useLocalAuth();
             local.value = { studentid: id };
         },
         clear() {
-            const local = useLocalAuth();
-            const session = useSessionAuth();
-
             local.value = null;
+            session.value = null;
+        },
+        clearsession() {
             session.value = null;
         },
     };

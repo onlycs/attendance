@@ -1,3 +1,4 @@
+import _sha256 from "crypto-js/sha256";
 import { Option } from "./option";
 
 // fucking javascript
@@ -35,24 +36,49 @@ export namespace Math2 {
 }
 
 export namespace Random {
-    export function Range(
+    export function range(
         start: number,
         end: number,
         inclusive: boolean = false,
         rng = Math.random,
     ) {
-        if (inclusive) return Range(start, end + 1);
+        if (inclusive) return range(start, end + 1);
         const random = rng();
 
         return Math.floor(random * (end - start)) + start;
     }
 
-    export function RangeDecimal(start: number, end: number, rng = Math.random) {
-        const random = rng();
-        return random * (end - start) + start;
-    }
-
-    export function Choose<T>(array: T[], rng = Math.random): Option<T> {
-        return Option.ofNullable(array[Range(0, array.length, false, rng)]);
+    export function choose<T>(array: T[], rng = Math.random): Option<T> {
+        return Option.ofNullable(array[range(0, array.length, false, rng)]);
     }
 }
+
+export class hex {
+    static from(number: bigint): string;
+    static from(bytes: Uint8Array): string;
+    static from(input: bigint | Uint8Array): string {
+        if (typeof input === "bigint") {
+            const s = input.toString(16);
+            return s.length % 2 === 1 ? `0${s}` : s;
+        } else {
+            return Array.from(input)
+                .map((b) => b.toString(16).padStart(2, "0"))
+                .join("");
+        }
+    }
+
+    static asint(hex: string): bigint {
+        return BigInt(`0x${hex}`);
+    }
+
+    static asbytes(hex: string): Uint8Array {
+        // note: we are already padded to even length
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+            bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+        }
+        return bytes;
+    }
+}
+
+export const sha256 = (a: string) => _sha256(s).toString();

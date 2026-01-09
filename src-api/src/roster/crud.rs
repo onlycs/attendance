@@ -56,6 +56,7 @@ pub enum GetError {
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
+    /// Record with the given ID does not exist
     #[oai(status = 404)]
     #[construct("Record not found")]
     NotFound(PlainText<String>),
@@ -68,15 +69,16 @@ pub enum GetError {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
 pub enum CreateError {
+    /// time_out is before or on a different day than time_in
+    #[oai(status = 400)]
+    #[construct(time_out, "time_out must be after and on the same day as time_in")]
+    BadRequest(PlainText<String>),
+
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
-
-    #[oai(status = 400)]
-    #[construct(time_out, "time_out must be after and on the same day as time_in")]
-    BadRequest(PlainText<String>),
 
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
@@ -86,6 +88,7 @@ pub enum CreateError {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError, GetError)]
 pub enum UpdateError {
+    /// time_out is before or on a different day than time_in
     #[oai(status = 400)]
     #[construct(time_out, "time_out must be after and on the same day as time_in")]
     BadRequest(PlainText<String>),
@@ -96,6 +99,7 @@ pub enum UpdateError {
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
+    /// Record with the given ID does not exist
     #[oai(status = 404)]
     #[construct("Record not found")]
     NotFound(PlainText<String>),
@@ -114,6 +118,7 @@ pub enum DeleteError {
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
+    /// Record with the given ID does not exist
     #[oai(status = 404)]
     #[construct("Record not found")]
     NotFound(PlainText<String>),

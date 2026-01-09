@@ -1,28 +1,11 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 
-const messages = {
-    "session-expired": "Your session has expired. Please log in again.",
-    onboard: "Onboard success! Please sign in.",
-} as const;
-
-const status = {
-    "session-expired": "error",
-    onboard: "success",
-} as const;
-
-const route = useRoute();
-const message = route.query.throw as keyof typeof messages | undefined;
-if (message && messages[message]) {
-    toast[status[message]](messages[message]);
-    route.query.throw = null;
-}
-
 const { auth } = useAuth();
 const router = useRouter();
 const loading = ref(false);
 
-const { form, buttons, deps } = f.form(
+const { form, buttons, deps, submit } = f.form(
     {
         who: f.select({
             schema: {
@@ -35,7 +18,7 @@ const { form, buttons, deps } = f.form(
         username: f.username({
             "class:container": "username",
         }),
-        password: f.password({
+        password: f.password.current({
             "class:container": "password",
         }),
         studentid: f.studentId({
@@ -52,36 +35,40 @@ const { form, buttons, deps } = f.form(
         },
     ],
     {
-        username: {
-            who: "admin",
+        deps: {
+            username: {
+                who: "admin",
+            },
+            password: {
+                who: "admin",
+            },
+            studentid: {
+                who: "student",
+            },
         },
-        password: {
-            who: "admin",
-        },
-        studentid: {
-            who: "student",
+        async submit(output) {
+            const end = () => {
+                setTimeout(() => {
+                    loading.value = false;
+                }, 500); // prevent flashing the spinner
+            };
+
+            loading.value = true;
+
+            if (output.who === "admin") {
+                const { ok } = await auth.admin(
+                    output.username,
+                    output.password,
+                );
+
+                if (!ok) return end();
+                router.push("/dashboard");
+            } else {
+                toast.warning("Student login is not implemented yet.");
+            }
         },
     },
 );
-
-function end() {
-    setTimeout(() => {
-        loading.value = false;
-    }, 500); // prevent flashing the spinner
-}
-
-async function submit(output: FormOutput<typeof form, typeof deps>) {
-    loading.value = true;
-
-    if (output.who === "admin") {
-        const { ok } = await auth.admin(output.username, output.password);
-
-        if (!ok) return end();
-        router.push("/dashboard");
-    } else {
-        toast.warning("Student login is not implemented yet.");
-    }
-}
 </script>
 <template>
     <Require
@@ -92,14 +79,13 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
     />
     <div :class="cn('content', loading && 'justify-center')">
         <Form
-            v-if="!loading"
             :form
             :buttons
             :deps
-            class="item"
+            v-model:loading="loading"
             @submit="submit"
+            class="item"
         />
-        <Spinner v-else class="spinner" />
     </div>
 </template>
 <style scoped>
@@ -118,10 +104,6 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
     /* mobile styles (below md) */
     @apply max-md:w-full max-md:h-full;
     @apply max-h-md:w-full max-h-md:h-full;
-}
-
-.spinner {
-    @apply size-32;
 }
 </style>
 <style>

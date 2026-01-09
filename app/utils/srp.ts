@@ -20,7 +20,7 @@ export const srp = {
     async login({ salt, b }: LoginStartResponse, username: string, password: string) {
         const sessionA = this.session();
         const sessionB = await sessionA.step1(username, password);
-        const sessionC = await sessionB.step2(hex.into(salt), hex.into(b));
+        const sessionC = await sessionB.step2(hex.asint(salt), hex.asint(b));
         return sessionC;
     },
 };

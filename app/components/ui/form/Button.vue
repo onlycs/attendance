@@ -1,8 +1,16 @@
 <script setup lang="ts">
+export type ButtonVariant =
+    | "primary"
+    | "secondary"
+    | "secondary-card"
+    | "danger"
+    | "danger-card"
+    | "none";
+
 export interface ButtonProps {
     disabled?: boolean;
     form?: "submit" | "cancel" | "reset";
-    kind?: "primary" | "secondary" | "secondary-card" | "danger" | "none";
+    kind?: ButtonVariant;
 
     class?: string | string[];
     "class:hover"?: string | string[];
@@ -61,6 +69,10 @@ defineProps<ButtonProps>();
 
     &.danger {
         @apply bg-red-500/10 text-red-500;
+    }
+
+    &.danger-card {
+        @apply bg-red-500/20 text-red-500;
     }
 
     .hover {

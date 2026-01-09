@@ -18,6 +18,7 @@ export interface Props<F extends Record<string, Item>, D extends Deps<F>> {
 
 const props = defineProps<Props<F, D>>();
 const emit = defineEmits<{ submit: [FormOutput<F, D>]; cancel: []; }>();
+const loading = defineModel<boolean>("loading");
 const keys = Object.keys(props.form) as string[];
 
 const outputs = Object.fromEntries(
@@ -116,58 +117,65 @@ onMounted(() => {
 </script>
 
 <template>
-    <div
-        v-for="key of renderkeys"
-        :class="cn('item', $props.form[key]?.['class:container'], $props.class)"
-        :key
-    >
-        <label
-            :for="key as string"
-            class="label"
-            v-if="$props.form[key]!.title"
+    <template v-if="!loading">
+        <div
+            v-for="key of renderkeys"
+            :class="cn(
+                'item',
+                $props.form[key]?.['class:container'],
+                $props.class,
+            )"
+            :key
         >
-            {{ $props.form[key]!.title }}
-        </label>
+            <label
+                :for="key as string"
+                class="label"
+                v-if="$props.form[key]!.title"
+            >
+                {{ $props.form[key]!.title }}
+            </label>
 
-        <Select
-            v-if="$props.form[key]!.item === 'select'"
-            v-bind="$props.form[key]!"
-            v-model:selected="(outputs as any)[key].value"
-        />
+            <Select
+                v-if="$props.form[key]!.item === 'select'"
+                v-bind="$props.form[key]!"
+                v-model:selected="(outputs as any)[key].value"
+            />
 
-        <Input
-            v-else-if="$props.form[key]!.item === 'input'"
-            v-bind="$props.form[key]!"
-            v-model="(outputs as any)[key].value"
-        />
+            <Input
+                v-else-if="$props.form[key]!.item === 'input'"
+                v-bind="$props.form[key]!"
+                v-model="(outputs as any)[key].value"
+            />
 
-        <OTPField
-            v-else-if="$props.form[key]!.item === 'otp'"
-            v-bind="$props.form[key]!"
-            v-model:otp="(outputs as any)[key].value"
-        />
+            <OTPField
+                v-else-if="$props.form[key]!.item === 'otp'"
+                v-bind="$props.form[key]!"
+                v-model:otp="(outputs as any)[key].value"
+            />
 
-        <div class="w-2" v-if="showErrors">
-            <div class="errors" v-if="errors[key]!.value.length > 0">
-                <div class="error" v-for="error of errors[key]?.value">
-                    <Icon name="hugeicons:alert-circle" class="icon" />
-                    <span>{{ error }}</span>
+            <div class="w-2" v-if="showErrors">
+                <div class="errors" v-if="errors[key]!.value.length > 0">
+                    <div class="error" v-for="error of errors[key]?.value">
+                        <Icon name="hugeicons:alert-circle" class="icon" />
+                        <span>{{ error }}</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <Button
-        v-for="button of $props.buttons"
-        :key="button.form"
-        v-bind="button"
-        @click.prevent="() => {
-            if ('action' in button) button.action();
-            else actions[button.form]();
-        }"
-    >
-        {{ button.label }}
-    </Button>
+        <Button
+            v-for="button of $props.buttons"
+            :key="button.form"
+            v-bind="button"
+            @click.prevent="() => {
+                if ('action' in button) button.action();
+                else actions[button.form]();
+            }"
+        >
+            {{ button.label }}
+        </Button>
+    </template>
+    <Spinner v-else class="spinner" />
 </template>
 
 <style scoped>
@@ -194,5 +202,9 @@ onMounted(() => {
         @apply flex items-center gap-2;
         @apply w-fit text-red-400 text-sm whitespace-nowrap;
     }
+}
+
+.spinner {
+    @apply size-32;
 }
 </style>

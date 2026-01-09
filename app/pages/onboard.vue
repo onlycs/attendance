@@ -27,7 +27,7 @@ const form = {
         placeholder: "admin",
         "class:container": "input",
     }),
-    password: f.password({
+    password: f.password.new({
         title: "Initial Password",
         "class:container": "input",
     }),
@@ -53,7 +53,7 @@ const buttons = [
             const res = await api.auth.onboard.token();
 
             if (res.error) {
-                api.error(res.error, res.response);
+                api.error(res.error, res.response, { handle401: "message" });
                 return;
             }
 
@@ -85,7 +85,9 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
     });
 
     if (!oldstudents.data) {
-        api.error(oldstudents.error, oldstudents.response);
+        api.error(oldstudents.error, oldstudents.response, {
+            handle401: "message",
+        });
         return end();
     }
 
@@ -162,11 +164,11 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
     });
 
     if (obfinish.error) {
-        api.error(obfinish.error, obfinish.response);
+        api.error(obfinish.error, obfinish.response, { handle401: "message" });
         return end();
     }
 
-    useRouter().push("/?throw=onboard");
+    redirect("/", useRouter(), { throw: "onboard" });
 }
 </script>
 <template>

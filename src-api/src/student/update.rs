@@ -19,6 +19,7 @@ pub(super) enum Error {
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
+    /// No student with the given ID exists
     #[oai(status = 404)]
     #[construct("Student not found")]
     NotFound(PlainText<String>),

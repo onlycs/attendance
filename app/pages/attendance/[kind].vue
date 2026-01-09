@@ -1,223 +1,99 @@
 <script setup lang="ts">
-import type { FocusCard } from "#components";
 import { toast } from "vue-sonner";
-import { z } from "zod";
-import { api, error } from "~/utils/api";
+import api, { type HourType } from "~/utils/api";
 
 definePageMeta({ layout: "admin-protected" });
 
-const { $gsap } = useNuxtApp();
-
 const route = useRoute();
 const router = useRouter();
-const transition = injectTransition();
+const { user, auth } = useAuth();
 
-const screenSize = useScreenSize();
-const mobile = useMobile(screenSize);
-const auth = useAuth();
+const kind = route.params.kind as HourType; // note: validated below
 
-const creds = ref<{ token: string; password: string; } | null>(null);
-const kind = route.params.kind as "build" | "learning" | "demo";
+// dprint-ignore
+const error: RedirectToast | undefined = await (async () => {
+    if (user.value.role !== "admin") return "session-expired";
+    if (user.value.claims.perms.roster !== true) return "unauthorized";
+    if (typeof kind !== "string") return "404";
+    if (!["build", "learning", "demo", "offseason"].includes(kind)) return "404";
+    if (!await api.roster.allowed().then(res => !res.data || res.data.includes(kind))) return "404";
+    return undefined;
+})();
 
-const size = computed(() => [64, 32, 48, 52, 64][screenSize.value]);
-const backIcon = computed(
-    () => ["arrow-up-01", "arrow-left-01"][+!mobile.value],
-);
-const title = {
-    build: "Build Hours",
-    learning: "Learning Days",
-    demo: "Outreach Hours",
-    offseason: "Offseason Hours",
-}[kind];
+if (error) {
+    redirect("/dashboard", router, {
+        throw: error,
+        using: "replace",
+    });
+    throw new Error("Redirecting...");
+}
 
-const loading = ref(false);
-const currentId = ref("");
-const back = ref<InstanceType<typeof FocusCard>>();
-const main = ref<HTMLDivElement>();
+const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
 
-/// New Student Form
-const NewFormSchema = z.object({
-    first: z
-        .string()
-        .min(2, "First name is required")
-        .regex(/^[A-Z]/, "Must start with a capital letter")
-        .regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
-    last: z
-        .string()
-        .min(2, "Last name is required")
-        .regex(/^[A-Z]/, "Must start with a capital letter")
-        .regex(/^([A-Za-z]|-)+$/, "Must only contain letters or dashes"),
+watch(user, user => {
+    if (user.role !== "admin") return;
+    if (!user.ok) return;
+    creds.value = user;
 });
 
-const NewFormOpen = ref(false);
+const title = {
+    build: "Build Season",
+    learning: "Learning Days",
+    demo: "Outreach Hours",
+    offseason: "Offseason",
+}[kind];
 
-function NewFormClose() {
-    if (!NewFormOpen.value) return;
-
-    NewFormOpen.value = false;
-    loading.value = false;
-
-    toast.warning("Cancelled! You were not signed in!");
-}
-
-async function NewFormSubmit(data: z.infer<typeof NewFormSchema>) {
-    NewFormOpen.value = false;
-
-    const idCrypt = await Crypt.encrypt(currentId.value, creds.value!.password);
-    const firstCrypt = await Crypt.encrypt(data.first, creds.value!.password);
-    const lastCrypt = await Crypt.encrypt(data.last, creds.value!.password);
-
-    const res = await api.fetch(
-        "/student",
-        "post",
-        {
-            id: idCrypt,
-            hashed: Crypt.sha256(currentId.value),
-            first: firstCrypt,
-            last: lastCrypt,
-        },
-        { header: { Authorization: creds.value!.token } },
-    );
-
-    if (res.isErr()) {
-        return api.handle(res.error, { redirect401: redirect });
-    }
-
-    roster(undefined, true);
-}
-
-/// Force Sign Out Form
-const ForceFormOpen = ref(false);
-
-function ForceFormClose() {
-    if (!ForceFormOpen.value) return;
-
-    ForceFormOpen.value = false;
-    loading.value = false;
-
-    toast.warning("Cancelled! You were not signed out!");
-}
-
-function ForceFormSubmit() {
-    ForceFormOpen.value = false;
-    roster(undefined, true);
-}
+const otp = ref("");
+const currentId = ref("");
+const forceOpen = ref(false);
+const newOpen = ref(false);
 
 async function roster(id?: string, force = false) {
-    loading.value = true;
-
     if (id) currentId.value = id;
     else id = currentId.value;
 
     if (!id) {
         toast.error("Something went wrong. Please try again.");
-        loading.value = false;
         return;
     }
 
-    const info = await api.fetch("/student/{id}", "get", {
-        path: { id: Crypt.sha256(id) },
+    const res = await api.roster.swipe({
+        body: {
+            sid_hashed: sha256(id),
+            kind,
+            force,
+            account_name: creds.value.claims.sub,
+            totp: otp.value,
+        },
     });
 
-    if (info.isErr() && !force) {
-        loading.value = false;
-        return api.handle(info.error, {
-            handle: {
-                [404]: () => {
-                    NewFormOpen.value = true;
-                    loading.value = true;
-                },
-            },
-        });
+    if (!res.data) {
+        if (res.response?.status === 404) {
+            return newOpen.value = true;
+        }
+
+        return api.error(res.error, res.response);
     }
 
-    const res = await api.fetch(
-        "/roster",
-        "post",
-        { id: Crypt.sha256(id), kind, force },
-        { header: { Authorization: creds.value!.token } },
-    );
-
-    if (res.isErr()) {
-        loading.value = false;
-        return api.handle(res.error, { redirect401: redirect });
+    if (res.data.action === "Denied") {
+        return forceOpen.value = true;
     }
 
-    if (res.value.denied) {
-        ForceFormOpen.value = true;
-        return;
+    const io = res.data.action.replace("Log", "");
+    toast.success(`Successfully signed ${io}!`);
+}
+
+watch(currentId, (currentId, last) => {
+    if (
+        currentId.length == studentId.length && last.length < studentId.length
+    ) {
+        roster();
     }
-
-    toast.success(
-        `Successfully signed ${res.value.action.replace("log", "")}!`,
-    );
-    loading.value = false;
-}
-
-function backHover() {
-    if (mobile.value) return;
-    if (!transition.ready) return;
-
-    const target = back.value!.prim!;
-    const bbox = target.getBoundingClientRect();
-
-    $gsap.to(target, {
-        width: `calc(${bbox.width}px + 2rem)`,
-        x: "-1rem",
-        ...Timing.in,
-    });
-
-    $gsap.to(main.value!, {
-        x: "-1rem",
-        ...Timing.in,
-    });
-}
-
-function backUnhover() {
-    if (mobile.value) return;
-    if (!transition.ready) return;
-
-    const target = back.value!.prim!;
-    const bbox = target.getBoundingClientRect();
-
-    $gsap.to(target, {
-        width: `calc(${bbox.width}px - 2rem)`,
-        x: "0rem",
-        ...Timing.out,
-    });
-
-    $gsap.to(main.value!, {
-        x: "0rem",
-        ...Timing.out,
-    });
-}
-
-function redirect(url: string) {
-    transition.out.trigger({ reverse: true }).then(() => router.push(url));
-}
-
-function exit() {
-    redirect("/attendance?reverse=true");
-}
-
-watch(
-    auth.admin,
-    (admin) => {
-        if (admin.status !== "ok") return;
-
-        creds.value = {
-            token: admin.token.value.token,
-            password: admin.password.value,
-        };
-
-        auth.clear();
-    },
-    { immediate: true },
-);
-
-onMounted(() => {
-    transition.in.trigger();
 });
+
+const studentId = f.studentId({ size: "lg" });
+
+onBeforeUnmount(() => auth.clearsession());
 </script>
 
 <template>
@@ -225,110 +101,56 @@ onMounted(() => {
         {{ title ?? "Attendance" }}
     </div>
 
-    <div class="container">
-        <FocusCards :animate="false" :length="1" show-text>
-            <FocusCard
-                ref="back"
-                class="card"
-                title="Back"
-                :icon="`hugeicons:${backIcon}`"
-                @mouseenter="backHover"
-                @mouseleave="backUnhover"
-                @click="exit"
-            />
-        </FocusCards>
-
-        <div class="box" ref="main">
-            <div class="textbox">
-                <Icon
-                    name="hugeicons:mortarboard-01"
-                    :size
-                    :customize="Customize.StrokeWidth(0.5)"
-                    mode="svg"
+    <div class="content">
+        <div class="form">
+            <div>
+                <label class="label">
+                    Student ID
+                </label>
+                <OTPField
+                    v-bind="studentId"
+                    v-model:otp="currentId"
                 />
-                Student ID
             </div>
-
-            <div class="form-container">
-                <SizeDependent>
-                    <FormStudentId
-                        :size="screenSize === 1 ? 'md' : 'lg'"
-                        :loading
-                        @submit="(ev) => roster(ev.id)"
-                        autofocus
-                    />
-                </SizeDependent>
-            </div>
-
-            <div />
         </div>
+
+        <AttendanceTotp :kind v-model:code="otp" />
     </div>
 
-    <Drawer
-        :open="ForceFormOpen"
-        @close="ForceFormClose"
-        class="dialog"
-    >
-        <div class="title">Are you sure?</div>
+    <AttendanceNewStudent
+        :currentId
+        @retry="() => roster()"
+        v-model:open="newOpen"
+    />
 
-        You signed in less than three minutes ago
-
-        <div class="buttons">
-            <Button kind="error" @click="ForceFormSubmit">
-                Sign me out!
-            </Button>
-
-            <Button kind="card-2" @click="ForceFormClose">
-                Keep me in
-            </Button>
-        </div>
-    </Drawer>
-
-    <Drawer
-        :open="NewFormOpen"
-        @close="NewFormClose"
-        class="dialog"
-    >
-        <div class="title">New Student</div>
-
-        <Form
-            @cancel="NewFormClose"
-            @submit="NewFormSubmit"
-            :schema="NewFormSchema"
-            :meta="{
-                first: {
-                    title: 'First Name',
-                    type: 'input',
-                    placeholder: 'John',
-                },
-                last: {
-                    title: 'Last Name',
-                    type: 'input',
-                    placeholder: 'Doe',
-                },
-            }"
-        />
-    </Drawer>
+    <AttendanceForceOut
+        @retry="() => roster(undefined, true)"
+        v-model:open="forceOpen"
+    />
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
-.container {
-    @apply flex flex-col md:flex-row justify-center items-center;
-    @apply gap-8;
+.form {
+    grid-row: span 2;
+
+    @apply relative flex flex-col items-center justify-center;
+    @apply bg-drop rounded-md;
+    @apply max-md:w-full md:w-[24rem] lg:w-[32rem] xl:w-[36rem];
+    @apply max-md:h-[32rem] md:h-[20rem] lg:h-[24rem] xl:h-[28rem];
+
+    .label {
+        @apply text-sub text-sm ml-2 mb-0.5;
+    }
 }
 
-.box {
-    @apply relative bg-drop rounded-lg flex flex-col items-center;
-    @apply max-md:w-[calc(100%-1.5rem)] md:w-[28rem] lg:w-[36rem] xl:w-[42rem]
-        2xl:w-[48rem];
-    @apply md:h-full h-[24rem];
-}
+.content {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: 1fr auto;
 
-.textbox {
-    @apply flex justify-center items-center gap-6;
-    @apply mt-8 text-xl md:text-lg lg:text-xl select-none;
+    @apply gap-2;
 }
 
 .header {

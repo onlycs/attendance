@@ -39,5 +39,6 @@ strum = { version = "0.27.2", features = ["derive"] }
 thiserror = { git = "https://github.com/onlycs/thiserror" }
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = { version = "0.1.17", features = ["sync"] }
+totp-rs = { version = "5.7.0", features = ["gen_secret"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["json", "serde"] }

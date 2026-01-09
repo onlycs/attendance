@@ -1,5 +1,5 @@
 use chrono::Datelike;
-use strum::{Display, EnumString};
+use strum::{Display, EnumString, VariantArray};
 
 use crate::prelude::*;
 
@@ -14,6 +14,7 @@ use crate::prelude::*;
     Deserialize,
     Enum,
     EnumString,
+    VariantArray,
     Display,
     sqlx::Type,
 )]
@@ -67,14 +68,26 @@ impl HourType {
             }
         }
     }
+}
 
-    /// Get a human-readable string describing when this hour type is invalid.
-    pub(crate) fn invalid_when(self) -> &'static str {
-        match self {
-            HourType::Build => "after April",
-            HourType::Learning => "before November",
-            HourType::Demo => unreachable!(),
-            HourType::Offseason => "before May",
-        }
-    }
+#[derive(ApiResponse, ApiError)]
+#[from(JwtVerifyError, PermissionDeniedError)]
+pub enum AllowedError {
+    #[oai(status = 401)]
+    Unauthorized(PlainText<String>),
+
+    #[oai(status = 403)]
+    Forbidden(PlainText<String>),
+
+    #[oai(status = 500)]
+    InternalServerError(PlainText<String>),
+}
+
+#[tracing::instrument]
+pub(crate) fn allowed() -> Vec<HourType> {
+    HourType::VARIANTS
+        .iter()
+        .copied()
+        .filter(|ht| ht.allowed())
+        .collect()
 }

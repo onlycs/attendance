@@ -1,13 +1,6 @@
-use crate::prelude::*;
+use crate::{dbstream::Student, prelude::*};
 
-#[derive(Object)]
-#[oai(rename = "StudentAddRequest")]
-pub(super) struct Request {
-    sid_hashed: String,
-    student_id: String,
-    first: String,
-    last: String,
-}
+pub type Request = Student;
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
@@ -26,8 +19,8 @@ pub(super) enum Error {
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(
     Request {
-        sid_hashed,
-        student_id,
+        id_hashed,
+        id,
         first,
         last,
     }: Request,
@@ -38,8 +31,8 @@ pub(super) async fn route(
         INSERT INTO students (id_hashed, id, first, last)
         VALUES ($1, $2, $3, $4)
         "#,
-        sid_hashed,
-        student_id,
+        id_hashed,
+        id,
         first,
         last
     )

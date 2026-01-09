@@ -4,33 +4,22 @@ const props = defineProps<{
     max: number;
 }>();
 
-const { $gsap } = useNuxtApp();
 const current = toRef(props, "current");
 const max = toRef(props, "max");
 
 const percentage = computed(() => {
     if (max.value === 0) return 0;
-    return current.value / max.value;
+    return (current.value / max.value) * 100;
 });
 
-const factor = 31.25; // 32rem - 0.75rem (total padding)
-
-function update(progress: number) {
-    $gsap.to(".inner", {
-        width: `${progress * factor}rem`,
-        ...Timing.smooth.in,
-    });
-}
-
-watch(percentage, update);
-onMounted(() => {
-    update(percentage.value);
-});
+const width = computed(() => ({
+    width: `${percentage.value}%`,
+}));
 </script>
 
 <template>
     <div class="outer">
-        <div class="inner" />
+        <div class="inner" :style="width" />
     </div>
 </template>
 
@@ -42,6 +31,10 @@ onMounted(() => {
 }
 
 .inner {
-    @apply bg-text rounded-[3px] h-5 w-0;
+    @apply bg-text rounded-[3px] w-0 h-5;
+    @apply transition-all duration-300;
+    @apply will-change-[width];
+
+    transition-timing-function: linear;
 }
 </style>

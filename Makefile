@@ -30,4 +30,4 @@ typegen:
 	@echo "=== Generating TypeScript types"
 	bunx nuxi prepare
 
-postinstall: openapi wasm typegen
+postinstall: openapi wasm fmt typegen

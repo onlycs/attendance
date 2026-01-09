@@ -23,6 +23,8 @@ export function k1_encrypt(k1: Uint8Array, password: string): string | undefined
 
 export function random_bytes(len: number): Uint8Array;
 
+export function totp_generate(secret: string): string | undefined;
+
 export class wbg_rayon_PoolBuilder {
   private constructor();
   free(): void;
@@ -37,12 +39,13 @@ export function wbg_rayon_start_worker(receiver: number): void;
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
-  readonly init: () => void;
   readonly decrypt: (a: number, b: number, c: number, d: number) => [number, number];
   readonly encrypt: (a: number, b: number, c: number, d: number) => [number, number];
   readonly k1_decrypt: (a: number, b: number, c: number, d: number) => [number, number];
   readonly k1_encrypt: (a: number, b: number, c: number, d: number) => [number, number];
   readonly random_bytes: (a: number) => [number, number];
+  readonly init: () => void;
+  readonly totp_generate: (a: number, b: number) => [number, number];
   readonly __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
   readonly initThreadPool: (a: number) => any;
   readonly wbg_rayon_poolbuilder_build: (a: number) => void;

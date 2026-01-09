@@ -2,6 +2,8 @@
 import { Analytics } from "@vercel/analytics/vue";
 import { SpeedInsights } from "@vercel/speed-insights/vue";
 import { Toaster } from "vue-sonner";
+
+onLoad(handleRedirectQuery);
 </script>
 
 <template>

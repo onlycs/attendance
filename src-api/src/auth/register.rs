@@ -29,6 +29,7 @@ pub(super) struct FinishRequest {
 
 #[derive(ApiResponse, ApiError)]
 pub(super) enum FinishError {
+    /// Invalid hex encoding for `v` or `s`
     #[oai(status = 400)]
     #[from(hex::FromHexError, "Invalid hex encoding")]
     BadRequest(PlainText<String>),

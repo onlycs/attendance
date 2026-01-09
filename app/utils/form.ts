@@ -57,12 +57,12 @@ export type FormOutput<F extends Form, D extends Deps<F>> =
     & ValueIntersection<{ [K in keyof F & keyof D]: DependentOutputs<F, K, D>; }>;
 
 export type FormButton =
-    & ButtonProps
+    & Partial<ButtonProps>
     & { label: string; }
     & ({ form: string; } | { action: () => unknown; });
 
-export const f = {
-    select<T extends Record<string, string>>(
+export class f {
+    static select<T extends Record<string, string>>(
         options:
             & Omit<ItemBase<z.ZodEnum<{ [K in keyof T & string]: K; }>>, "schema">
             & { schema: T; }
@@ -75,16 +75,16 @@ export const f = {
             kv: options.schema,
             default: options.default,
         } as any;
-    },
+    }
 
-    input(item: Omit<ItemInput, "item">): ItemInput {
+    static input(item: Omit<ItemInput, "item">): ItemInput {
         return {
             ...item,
             item: "input",
         };
-    },
+    }
 
-    otp(item: ItemBase<z.ZodType<string>> & Omit<OTPFieldProps, "length">): ItemOTP {
+    static otp(item: ItemBase<z.ZodType<string>> & Omit<OTPFieldProps, "length">): ItemOTP {
         const checks = item.schema.def.checks?.map(c => c._zod.def) ?? [];
         const check: $ZodCheckLengthEqualsDef | undefined = checks.filter(c => c.check === "length_equals")[0] as any;
 
@@ -93,9 +93,9 @@ export const f = {
             item: "otp",
             length: check?.length ?? 6,
         };
-    },
+    }
 
-    username(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+    static username(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
         return f.input({
             title: "Username",
             placeholder: "_johndoe01",
@@ -106,24 +106,37 @@ export const f = {
                 .regex(/^[a-zA-Z0-9_]+$/, "Only numbers, letters, and underscores are allowed"),
             ...item,
         });
-    },
+    }
 
-    password(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
-        return f.input({
-            title: "Password",
-            placeholder: "••••••••",
-            type: "password",
-            schema: z.string()
-                .min(8, "Must contain at least 8 characters")
-                .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-                .regex(/[a-z]/, "Must contain at least one lowercase letter")
-                .regex(/[0-9]/, "Must contain at least one number")
-                .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
-            ...item,
-        });
-    },
+    static password = {
+        new(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+            return f.input({
+                title: "Password",
+                placeholder: "••••••••",
+                type: "password",
+                autocomplete: "new-password",
+                schema: z.string()
+                    .min(8, "Must contain at least 8 characters")
+                    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+                    .regex(/[a-z]/, "Must contain at least one lowercase letter")
+                    .regex(/[0-9]/, "Must contain at least one number")
+                    .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
+                ...item,
+            });
+        },
+        current(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+            return f.input({
+                title: "Password",
+                placeholder: "••••••••",
+                type: "password",
+                autocomplete: "current-password",
+                schema: z.string(),
+                ...item,
+            });
+        },
+    };
 
-    studentId(item: Partial<Omit<ItemOTP, "type" | "schema">>): ItemOTP {
+    static studentId(item: Partial<Omit<ItemOTP, "type" | "schema">>): ItemOTP {
         return f.otp({
             title: "Student ID",
             type: "numeric",
@@ -132,13 +145,29 @@ export const f = {
                 .regex(/^\d*$/, "Student ID must contain only digits"),
             ...item,
         });
-    },
+    }
 
-    form<F extends Form, D extends Deps<F> = {}>(
+    static form<F extends Form, D extends Deps<F> = {}>(
         form: F,
         buttons: FormButton[],
-        deps?: D,
-    ): { form: F; buttons: FormButton[]; deps: D; } {
-        return { form, buttons, deps: deps ?? {} as D };
-    },
-};
+        etc: {
+            deps?: D;
+            submit?: (data: FormOutput<F, D>) => unknown;
+            cancel?: () => unknown;
+        },
+    ): {
+        form: F;
+        buttons: FormButton[];
+        deps: D;
+        submit: (data: FormOutput<F, D>) => unknown;
+        cancel: () => unknown;
+    } {
+        return {
+            form,
+            buttons,
+            submit: etc.submit ?? ((_) => {}),
+            cancel: etc.cancel ?? (() => {}),
+            deps: etc.deps ?? {} as D,
+        };
+    }
+}

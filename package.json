@@ -11,8 +11,10 @@
     "dependencies": {
         "@nuxt/icon": "2.0.0",
         "@nuxt/image": "1.11.0",
+        "@otplib/preset-browser": "^12.0.1",
         "@types/argon2-browser": "^1.18.4",
         "@types/crypto-js": "^4.2.2",
+        "@types/otplib": "^10.0.0",
         "@vercel/analytics": "^1.5.0",
         "@vercel/speed-insights": "^1.2.0",
         "@vueuse/core": "^13.7.0",
@@ -27,6 +29,7 @@
         "lucide-vue-next": "^0.541.0",
         "neverthrow": "^8.2.0",
         "nuxt": "^4.0.3",
+        "qr-code-styling": "^1.9.2",
         "reka-ui": "2.4.1",
         "tailwind-merge": "^3.3.1",
         "temporal-polyfill": "^0.3.0",

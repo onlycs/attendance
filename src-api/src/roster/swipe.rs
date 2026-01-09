@@ -1,11 +1,12 @@
-use std::collections::HashSet;
+use totp_rs::{Algorithm, TOTP};
 
-use chrono::Datelike;
-
-use crate::prelude::*;
+use crate::{auth::Claims, prelude::*};
 
 #[derive(Object)]
 pub(super) struct SwipeRequest {
+    /// AKA: admin's ID, TOTP `account_name`
+    issuer: String,
+    totp: String,
     sid_hashed: String,
     kind: HourType,
     #[oai(default)]
@@ -24,39 +25,27 @@ pub(super) struct SwipeResponse {
     action: SwipeAction,
 }
 
-#[derive(Object, Serialize)]
-#[oai(rename = "SwipeQueryResponse")]
-pub(super) struct QueryResponse {
-    present: HashSet<String>,
-    absent: HashSet<String>,
-}
-
 #[derive(ApiResponse, ApiError)]
-#[from(JwtVerifyError, PermissionDeniedError)]
+#[from(PermissionDeniedError)]
 pub(super) enum SwipeError {
+    /// The given hour type is not allowed at this time. See `/roster/allowed`.
     #[oai(status = 400)]
-    #[construct(hour_type(HourType), "{source} hours are not allowed {}", source.invalid_when())]
+    #[construct(hour_type(HourType), "{source} hours are not allowed right now")]
     BadRequest(PlainText<String>),
 
+    /// The provided TOTP is invalid
     #[oai(status = 401)]
+    #[from(totp_rs::TotpUrlError, "Invalid TOTP")]
+    #[construct("Invalid TOTP")]
     Unauthorized(PlainText<String>),
 
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
-    #[oai(status = 500)]
-    #[from(sqlx::Error, "Database error")]
-    InternalServerError(PlainText<String>),
-}
-
-#[derive(ApiResponse, ApiError)]
-#[from(JwtVerifyError, PermissionDeniedError)]
-pub(super) enum QueryError {
-    #[oai(status = 401)]
-    Unauthorized(PlainText<String>),
-
-    #[oai(status = 403)]
-    Forbidden(PlainText<String>),
+    /// No student with the given ID exists
+    #[oai(status = 404)]
+    #[construct("Student not found")]
+    NotFound(PlainText<String>),
 
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
@@ -66,20 +55,41 @@ pub(super) enum QueryError {
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(
     SwipeRequest {
+        issuer,
+        totp,
         sid_hashed,
         kind,
         force,
     }: SwipeRequest,
     pg: PgPool,
 ) -> Result<SwipeResponse, SwipeError> {
-    let now = Local::now();
-    let month = now.month();
+    let Some(secret) = sqlx::query!(
+        r#"
+        UPDATE otps
+        SET expiry = NOW() + INTERVAL '15 minutes'
+        WHERE expiry > NOW() AND admin_id = $1 AND hour_type = $2
+        RETURNING secret
+        "#,
+        issuer,
+        kind as HourType
+    )
+    .fetch_optional(&pg)
+    .await?
+    .map(|r| r.secret) else {
+        return Err(SwipeError::unauthorized());
+    };
 
-    if !kind.allowed(month) {
-        return Err(SwipeError::hour_type(kind));
+    let verifier = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret)?;
+    if !verifier.check_current(&totp).unwrap_or(false) {
+        return Err(SwipeError::unauthorized());
     }
 
-    // TODO: check if student exists when that route is done
+    let claims = Claims::new(issuer, Claims::EXPIRY, &pg).await?;
+    claims.perms.assert(Permission::Roster)?;
+
+    if !kind.allowed() {
+        return Err(SwipeError::hour_type(kind));
+    }
 
     let records = sqlx::query!(
         r#"
@@ -93,6 +103,8 @@ pub(super) async fn route(
     )
     .fetch_all(&pg)
     .await?;
+
+    let now = Local::now();
 
     let record = records
         .into_iter()
@@ -123,10 +135,15 @@ pub(super) async fn route(
         });
     }
 
-    sqlx::query!(
+    let q = sqlx::query!(
         r#"
         INSERT INTO records (id, sid_hashed, hour_type, sign_in)
-        VALUES ($1, $2, $3, NOW())
+        SELECT $1, $2, $3, NOW()
+        WHERE EXISTS (
+            SELECT 1
+            FROM students s
+            WHERE s.id_hashed = $2
+        )
         "#,
         cuid2(),
         sid_hashed,
@@ -135,42 +152,11 @@ pub(super) async fn route(
     .execute(&pg)
     .await?;
 
+    if q.rows_affected() == 0 {
+        return Err(SwipeError::not_found());
+    }
+
     Ok(SwipeResponse {
         action: SwipeAction::Login,
     })
-}
-
-#[tracing::instrument(skip(pg), err)]
-pub(super) async fn query(pg: PgPool) -> Result<QueryResponse, QueryError> {
-    let records = sqlx::query!(
-        r#"
-        SELECT sid_hashed, sign_in FROM records
-        WHERE sign_out IS NULL
-        "#
-    )
-    .fetch_all(&pg)
-    .await?;
-
-    let students = sqlx::query!(r#"SELECT id_hashed FROM students"#)
-        .fetch_all(&pg)
-        .await?;
-
-    let open_today = records.into_iter().filter(|r| {
-        let sign_in_local = r.sign_in;
-        sign_in_local.date_naive() == Local::now().date_naive()
-    });
-
-    let mut present = HashSet::new();
-
-    for record in open_today {
-        present.insert(record.sid_hashed);
-    }
-
-    let absent = students
-        .into_iter()
-        .map(|s| s.id_hashed)
-        .filter(|sid_hashed| !present.contains(sid_hashed))
-        .collect::<HashSet<_>>();
-
-    Ok(QueryResponse { present, absent })
 }

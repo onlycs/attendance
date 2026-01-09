@@ -536,9 +536,12 @@ pub fn auto_operation_ids(
 
         // just add a doc comment with the operation id for clarity
         let oid_camel = heck::AsPascalCase(operation_id.as_str()).to_string();
-        func.attrs.push(syn::parse_quote! {
-            #[doc = #oid_camel]
-        });
+        func.attrs.insert(
+            0,
+            syn::parse_quote! {
+                #[doc = #oid_camel]
+            },
+        );
     }
 
     quote! { #input }.into()

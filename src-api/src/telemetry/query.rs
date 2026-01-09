@@ -3,6 +3,8 @@ use crate::{
     telemetry::{EventType, TelemetryEvent},
 };
 
+const MAX: usize = 50;
+
 #[derive(Object)]
 #[oai(rename = "TelemetryResponse")]
 pub(super) struct Response {
@@ -12,15 +14,16 @@ pub(super) struct Response {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
 pub(super) enum Error {
+    #[doc = concat!("Too much telemetry queried (>", stringify!(MAX), ")")]
+    #[oai(status = 400)]
+    #[construct(high_count, "Too much telemetry queried (>{MAX})")]
+    BadRequest(PlainText<String>),
+
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
-
-    #[oai(status = 400)]
-    #[construct(high_count, "Too much telemetry queried (>100)")]
-    BadRequest(PlainText<String>),
 
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
@@ -29,7 +32,7 @@ pub(super) enum Error {
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(count: usize, skip: usize, pg: PgPool) -> Result<Response, Error> {
-    if count > 100 {
+    if count > MAX {
         return Err(Error::high_count());
     }
 

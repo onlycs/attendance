@@ -26,6 +26,7 @@ pub(super) struct FinishRequest {
 #[derive(ApiResponse, ApiError)]
 #[from(super::register::FinishError)]
 pub(super) enum FinishError {
+    /// The provided list of students does not match the existing list
     #[oai(status = 400)]
     #[construct(student, "Mismatched student list")]
     BadRequest(PlainText<String>),

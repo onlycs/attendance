@@ -15,6 +15,10 @@ export type * from "./hey/types.gen";
 hclient.setConfig({
     baseUrl: API_URL,
     throwOnError: false,
+    auth: () => {
+        const { user } = useAuth();
+        return user.value.role === "admin" ? user.value.jwt : undefined;
+    },
 });
 
 function date(datetime: Date): Temporal.ZonedDateTime {
@@ -38,7 +42,7 @@ function date(datetime: Date): Temporal.ZonedDateTime {
 }
 
 export interface ApiToastOptions {
-    handle401?: "redirect" | "none";
+    handle401?: "redirect" | "message" | "default";
     handle: Record<number, (err: string) => void>;
 }
 
@@ -56,8 +60,14 @@ function error(
 
     switch (code) {
         case 401: {
-            if (handle401 === "redirect") useRouter().push("/?throw=session-expired");
-            else toast.error(err);
+            if (handle401 === "message") toast.error("Incorrect username or password");
+            else if (handle401 === "default") toast.error(err);
+            else {
+                const { auth } = useAuth();
+                auth.clear();
+                redirect("/", useRouter(), { throw: "session-expired" });
+            }
+
             return;
         }
         case 404: {

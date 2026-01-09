@@ -26,6 +26,10 @@ impl Response {
 
 #[derive(ApiResponse, ApiError)]
 pub(super) enum Error {
+    #[oai(status = 404)]
+    #[construct("No completed records found")]
+    NotFound(PlainText<String>),
+
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
     InternalServerError(PlainText<String>),
@@ -45,6 +49,10 @@ pub(super) async fn route(sid_hashed: String, pg: PgPool) -> Result<Response, Er
     )
     .fetch_all(&pg)
     .await?;
+
+    if records.is_empty() {
+        return Err(Error::not_found());
+    }
 
     for record in records {
         let dt = record.sign_out.expect("unreachable") - record.sign_in;

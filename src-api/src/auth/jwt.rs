@@ -152,14 +152,6 @@ impl Claims {
         })
     }
 
-    pub(crate) async fn refresh(
-        self,
-        duration: chrono::Duration,
-        pg: &PgPool,
-    ) -> Result<Self, sqlx::Error> {
-        Ok(Self::new(self.sub, duration, pg).await?)
-    }
-
     pub(crate) fn sign(&self) -> Result<String, jsonwebtoken::errors::Error> {
         sign(self)
     }
@@ -167,26 +159,10 @@ impl Claims {
 
 #[derive(SecurityScheme)]
 #[oai(ty = "bearer")]
-struct JwtBearer(Bearer);
-
-#[derive(SecurityScheme)]
-#[oai(ty = "api_key", key_in = "query", key_name = "token")]
-struct JwtQuery(ApiKey);
-
-#[derive(SecurityScheme)]
-#[allow(private_interfaces)]
-pub(crate) enum Jwt {
-    Bearer(JwtBearer),
-    Query(JwtQuery),
-}
+pub(crate) struct Jwt(Bearer);
 
 impl Jwt {
     pub(crate) fn verify(&self) -> Result<Claims, JwtVerifyError> {
-        let token = match self {
-            Jwt::Bearer(bearer) => &bearer.0.token,
-            Jwt::Query(api_key) => &api_key.0.key,
-        };
-
-        verify(token)
+        verify(&self.0.token)
     }
 }

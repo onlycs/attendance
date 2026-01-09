@@ -18,7 +18,11 @@ export interface RoutesProps {
 }
 
 const props = defineProps<RoutesProps>();
-const url = useRoute().path;
+const url = ref("/");
+
+onLoad(() => {
+    url.value = useRoute().path;
+});
 
 function expand(h: number) {
     return {
@@ -33,6 +37,7 @@ function expand(h: number) {
             <Button
                 v-if="!route.children"
                 :kind="path === url ? 'secondary' : 'none'"
+                @click="$router.push(path)"
                 class="routebtn"
                 class:content="route"
                 v-bind="route.button"

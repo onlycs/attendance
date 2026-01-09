@@ -1,5 +1,6 @@
 pub mod argon2;
 pub mod random;
+pub mod totp;
 
 use std::fmt;
 

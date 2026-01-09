@@ -252,6 +252,22 @@ export function random_bytes(len) {
     return v1;
 }
 
+/**
+ * @param {string} secret
+ * @returns {string | undefined}
+ */
+export function totp_generate(secret) {
+    const ptr0 = passStringToWasm0(secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.totp_generate(ptr0, len0);
+    let v2;
+    if (ret[0] !== 0) {
+        v2 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v2;
+}
+
 export class wbg_rayon_PoolBuilder {
     static __wrap(ptr) {
         ptr = ptr >>> 0;
@@ -429,6 +445,10 @@ function __wbg_get_imports(memory) {
     };
     imports.wbg.__wbg_node_905d3e251edff8a2 = function(arg0) {
         const ret = arg0.node;
+        return ret;
+    };
+    imports.wbg.__wbg_now_69d776cd24f5215b = function() {
+        const ret = Date.now();
         return ret;
     };
     imports.wbg.__wbg_process_dc0fbacc7c1c06f7 = function(arg0) {

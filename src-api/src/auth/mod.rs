@@ -94,4 +94,4 @@ impl AuthService {
     }
 }
 
-pub(crate) use jwt::{Jwt, JwtVerifyError, Permission, PermissionDeniedError};
+pub(crate) use jwt::{Claims, Jwt, JwtVerifyError, Permission, PermissionDeniedError};

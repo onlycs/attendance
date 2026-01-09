@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
 import type { HourType } from "~/utils/api";
+import api from "~/utils/api";
 import { Random } from "~/utils/math";
 
 const month = Temporal.Now.plainDateISO().month;
 const rarity = month > 4 ? 50 : 8 - month;
 
-const modes: Record<HourType, boolean> = {
-    build: month < 5,
-    learning: month >= 11,
-    offseason: month >= 5,
-    demo: true,
-};
+const allowedRes = await api.roster.allowed();
+const allowed = allowedRes.data ?? [];
+
+const modes: Readonly<Record<HourType, boolean>> = new Proxy({} as any, {
+    get: (_, prop: HourType) => allowed.includes(prop),
+});
 
 const random = {
     common: [
@@ -41,8 +42,8 @@ const icons = {
     ],
 };
 
-const build = useState(() => Random.Choose(icons.build).unwrap());
-const learning = useState(() => Random.Choose(icons.learning).unwrap());
+const build = useState(() => Random.choose(icons.build).unwrap());
+const learning = useState(() => Random.choose(icons.learning).unwrap());
 const maybe = <T>(mode: HourType, k: T) => (modes[mode] ? k : {});
 
 const entries = computed(() => ({
@@ -94,7 +95,7 @@ const entries = computed(() => ({
             <span class="text">Attendance</span>
         </div>
 
-        <SidebarRoutes :routes="entries" />
+        <SidebarRoutes :routes="entries" :key="$route.fullPath" />
 
         <div class="footer">
             <SidebarRoutes

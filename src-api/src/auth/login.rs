@@ -10,6 +10,10 @@ pub(super) struct StartResponse {
 
 #[derive(ApiResponse, ApiError)]
 pub(super) enum StartError {
+    #[oai(status = 404)]
+    #[construct("No such user")]
+    NotFound(PlainText<String>),
+
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
     InternalServerError(PlainText<String>),
@@ -37,6 +41,7 @@ pub(super) enum FinishError {
     #[construct("Invalid username or password")]
     BadAuth(PlainText<String>),
 
+    /// Invalid hex encoding for `a` or `m1`
     #[oai(status = 400)]
     #[from(hex::FromHexError, "Invalid hex encoding")]
     InvalidHex(PlainText<String>),
@@ -51,15 +56,18 @@ pub(super) enum FinishError {
 pub(super) async fn start(username: String, pg: PgPool) -> Result<StartResponse, StartError> {
     info!("Starting login flow for user: {}", username);
 
-    let srp = sqlx::query!(
+    let Some(srp) = sqlx::query!(
         r#"
         SELECT id, salt, verifier FROM admins
         WHERE username = $1
         "#,
         username
     )
-    .fetch_one(&pg)
-    .await?;
+    .fetch_optional(&pg)
+    .await?
+    else {
+        return Err(StartError::not_found());
+    };
 
     debug!(
         salt_len = srp.salt.len(),
