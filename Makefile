@@ -18,6 +18,8 @@ openapi:
 	bunx openapi-ts
 	@echo "=== Re-exporting API client"
 	python scripts/openapi.py
+	@echo "=== Formatting generated files"
+	dprint fmt app/utils/api/**/*
 
 fmt:
 	@echo "=== Formatting code"

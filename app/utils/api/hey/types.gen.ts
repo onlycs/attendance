@@ -43,71 +43,91 @@ export type DeletionStudent = {
     pkey: string;
 };
 
-export type Event = ({
-    event?: 'admin_login';
-} & EventAdminLogin) | ({
-    event?: 'admin_logout';
-} & EventAdminLogout) | ({
-    event?: 'student_add';
-} & EventStudentAdd) | ({
-    event?: 'student_delete';
-} & EventStudentDelete) | ({
-    event?: 'student_edit';
-} & EventStudentEdit) | ({
-    event?: 'record_add';
-} & EventRecordAdd) | ({
-    event?: 'record_delete';
-} & EventRecordDelete) | ({
-    event?: 'record_edit';
-} & EventRecordEdit) | ({
-    event?: 'student_login';
-} & EventStudentLogin) | ({
-    event?: 'student_logout';
-} & EventStudentLogout);
+export type Event =
+    | ({
+        event?: "admin_login";
+    } & EventAdminLogin)
+    | ({
+        event?: "admin_logout";
+    } & EventAdminLogout)
+    | ({
+        event?: "student_add";
+    } & EventStudentAdd)
+    | ({
+        event?: "student_delete";
+    } & EventStudentDelete)
+    | ({
+        event?: "student_edit";
+    } & EventStudentEdit)
+    | ({
+        event?: "record_add";
+    } & EventRecordAdd)
+    | ({
+        event?: "record_delete";
+    } & EventRecordDelete)
+    | ({
+        event?: "record_edit";
+    } & EventRecordEdit)
+    | ({
+        event?: "student_login";
+    } & EventStudentLogin)
+    | ({
+        event?: "student_logout";
+    } & EventStudentLogout);
 
-export type EventType = 'admin_login' | 'admin_logout' | 'student_add' | 'student_delete' | 'student_edit' | 'record_add' | 'record_delete' | 'record_edit' | 'student_login' | 'student_logout';
+export type EventType =
+    | "admin_login"
+    | "admin_logout"
+    | "student_add"
+    | "student_delete"
+    | "student_edit"
+    | "record_add"
+    | "record_delete"
+    | "record_edit"
+    | "student_login"
+    | "student_logout";
 
 export type EventAdminLogin = {
-    event: 'admin_login';
+    event: "admin_login";
 } & AdminLogin;
 
 export type EventAdminLogout = {
-    event: 'admin_logout';
+    event: "admin_logout";
 } & AdminLogout;
 
 export type EventRecordAdd = {
-    event: 'record_add';
+    event: "record_add";
 } & RecordAdd;
 
 export type EventRecordDelete = {
-    event: 'record_delete';
+    event: "record_delete";
 } & RecordDelete;
 
 export type EventRecordEdit = {
-    event: 'record_edit';
+    event: "record_edit";
 } & RecordEdit;
 
 export type EventStudentAdd = {
-    event: 'student_add';
+    event: "student_add";
 } & StudentAdd;
 
 export type EventStudentDelete = {
-    event: 'student_delete';
+    event: "student_delete";
 } & StudentDelete;
 
 export type EventStudentEdit = {
-    event: 'student_edit';
+    event: "student_edit";
 } & StudentEdit;
 
 export type EventStudentLogin = {
-    event: 'student_login';
+    event: "student_login";
 } & StudentLogin;
 
 export type EventStudentLogout = {
-    event: 'student_logout';
+    event: "student_logout";
 } & StudentLogout;
 
-export type HourType = 'build' | 'learning' | 'demo' | 'offseason';
+export type HourType = "build" | "learning" | "demo" | "offseason";
 
 /**
  * InviteRequest
@@ -287,44 +307,50 @@ export type RegisterStartResponse = {
     k2: string;
 };
 
-export type ReplicationRecord = ({
-    operation?: 'INSERT';
-} & ReplicationRecordInsert) | ({
-    operation?: 'UPDATE';
-} & ReplicationRecordUpdate) | ({
-    operation?: 'DELETE';
-} & ReplicationRecordDelete);
+export type ReplicationRecord =
+    | ({
+        operation?: "INSERT";
+    } & ReplicationRecordInsert)
+    | ({
+        operation?: "UPDATE";
+    } & ReplicationRecordUpdate)
+    | ({
+        operation?: "DELETE";
+    } & ReplicationRecordDelete);
 
 export type ReplicationRecordDelete = {
-    operation: 'DELETE';
+    operation: "DELETE";
 } & DeletionRecord;
 
 export type ReplicationRecordInsert = {
-    operation: 'INSERT';
+    operation: "INSERT";
 } & Record;
 
 export type ReplicationRecordUpdate = {
-    operation: 'UPDATE';
+    operation: "UPDATE";
 } & PartialRecord;
 
-export type ReplicationStudent = ({
-    operation?: 'INSERT';
-} & ReplicationStudentInsert) | ({
-    operation?: 'UPDATE';
-} & ReplicationStudentUpdate) | ({
-    operation?: 'DELETE';
-} & ReplicationStudentDelete);
+export type ReplicationStudent =
+    | ({
+        operation?: "INSERT";
+    } & ReplicationStudentInsert)
+    | ({
+        operation?: "UPDATE";
+    } & ReplicationStudentUpdate)
+    | ({
+        operation?: "DELETE";
+    } & ReplicationStudentDelete);
 
 export type ReplicationStudentDelete = {
-    operation: 'DELETE';
+    operation: "DELETE";
 } & DeletionStudent;
 
 export type ReplicationStudentInsert = {
-    operation: 'INSERT';
+    operation: "INSERT";
 } & Student;
 
 export type ReplicationStudentUpdate = {
-    operation: 'UPDATE';
+    operation: "UPDATE";
 } & PartialStudent;
 
 /**
@@ -363,18 +389,20 @@ export type RosterGetMany = {
     };
 };
 
-export type RosterGetResponse = ({
-    quantity?: 'Many';
-} & RosterGetResponseMany) | ({
-    quantity?: 'One';
-} & RosterGetResponseOne);
+export type RosterGetResponse =
+    | ({
+        quantity?: "Many";
+    } & RosterGetResponseMany)
+    | ({
+        quantity?: "One";
+    } & RosterGetResponseOne);
 
 export type RosterGetResponseMany = {
-    quantity: 'Many';
+    quantity: "Many";
 } & RosterGetMany;
 
 export type RosterGetResponseOne = {
-    quantity: 'One';
+    quantity: "One";
 } & Record;
 
 /**
@@ -465,9 +493,9 @@ export type StudentUpdateRequest = {
     last?: string | null;
 };
 
-export type SwipeAction = 'login' | 'logout';
+export type SwipeAction = "login" | "logout";
 
-export type SwipeFallthrough = 'denied' | 'ignored';
+export type SwipeFallthrough = "denied" | "ignored";
 
 /**
  * SwipeRequest
@@ -533,7 +561,7 @@ export type AuthLoginStartData = {
     query: {
         username: string;
     };
-    url: '/auth/login';
+    url: "/auth/login";
 };
 
 export type AuthLoginStartErrors = {
@@ -553,7 +581,7 @@ export type AuthLoginFinishData = {
     body: LoginFinishRequest;
     path?: never;
     query?: never;
-    url: '/auth/login';
+    url: "/auth/login";
 };
 
 export type AuthLoginFinishErrors = {
@@ -577,7 +605,7 @@ export type AuthInviteData = {
     body: InviteRequest;
     path?: never;
     query?: never;
-    url: '/auth/invite';
+    url: "/auth/invite";
 };
 
 export type AuthInviteErrors = {
@@ -600,7 +628,7 @@ export type AuthRegisterStartData = {
     query: {
         key: string;
     };
-    url: '/auth/register';
+    url: "/auth/register";
 };
 
 export type AuthRegisterStartErrors = {
@@ -620,7 +648,7 @@ export type AuthRegisterFinishData = {
     body: RegisterFinishRequest;
     path?: never;
     query?: never;
-    url: '/auth/register';
+    url: "/auth/register";
 };
 
 export type AuthRegisterFinishErrors = {
@@ -642,7 +670,7 @@ export type AuthOnboardTokenData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/auth/onboard/token';
+    url: "/auth/onboard/token";
 };
 
 export type AuthOnboardTokenErrors = {
@@ -662,11 +690,11 @@ export type AuthOnboardStartData = {
         /**
          * The setup token obtained from /auth/onboard/token
          */
-        'x-token': string;
+        "x-token": string;
     };
     path?: never;
     query?: never;
-    url: '/auth/onboard';
+    url: "/auth/onboard";
 };
 
 export type AuthOnboardStartErrors = {
@@ -686,7 +714,7 @@ export type AuthOnboardFinishData = {
     body: OnboardFinishRequest;
     path?: never;
     query?: never;
-    url: '/auth/onboard';
+    url: "/auth/onboard";
 };
 
 export type AuthOnboardFinishErrors = {
@@ -708,7 +736,7 @@ export type RosterSwipeData = {
     body: SwipeRequest;
     path?: never;
     query?: never;
-    url: '/roster/swipe';
+    url: "/roster/swipe";
 };
 
 export type RosterSwipeErrors = {
@@ -740,7 +768,7 @@ export type RosterTotpData = {
     body: TotpRequest;
     path?: never;
     query?: never;
-    url: '/roster/totp';
+    url: "/roster/totp";
 };
 
 export type RosterTotpErrors = {
@@ -761,7 +789,7 @@ export type RosterPresentQueryData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/roster/present';
+    url: "/roster/present";
 };
 
 export type RosterPresentQueryErrors = {
@@ -782,7 +810,7 @@ export type RosterPresentStreamData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/roster/present/stream';
+    url: "/roster/present/stream";
 };
 
 export type RosterPresentStreamErrors = {
@@ -803,7 +831,7 @@ export type RosterRecordDeleteData = {
     body: RosterDeleteRequest;
     path?: never;
     query?: never;
-    url: '/roster';
+    url: "/roster";
 };
 
 export type RosterRecordDeleteErrors = {
@@ -830,7 +858,7 @@ export type RosterRecordQueryData = {
     query?: {
         id?: string;
     };
-    url: '/roster';
+    url: "/roster";
 };
 
 export type RosterRecordQueryErrors = {
@@ -855,7 +883,7 @@ export type RosterRecordUpdateData = {
     body: PartialRecord;
     path?: never;
     query?: never;
-    url: '/roster';
+    url: "/roster";
 };
 
 export type RosterRecordUpdateErrors = {
@@ -884,7 +912,7 @@ export type RosterRecordAddData = {
     body: RosterCreateRequest;
     path?: never;
     query?: never;
-    url: '/roster';
+    url: "/roster";
 };
 
 export type RosterRecordAddErrors = {
@@ -909,7 +937,7 @@ export type RosterRecordStreamData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/roster/stream';
+    url: "/roster/stream";
 };
 
 export type RosterRecordStreamErrors = {
@@ -934,7 +962,7 @@ export type RosterAllowedData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/roster/allowed';
+    url: "/roster/allowed";
 };
 
 export type RosterAllowedErrors = {
@@ -955,7 +983,7 @@ export type StudentListData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/student';
+    url: "/student";
 };
 
 export type StudentListErrors = {
@@ -980,7 +1008,7 @@ export type StudentAddData = {
     body: Student;
     path?: never;
     query?: never;
-    url: '/student';
+    url: "/student";
 };
 
 export type StudentAddErrors = {
@@ -999,7 +1027,7 @@ export type StudentStreamData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/student/stream';
+    url: "/student/stream";
 };
 
 export type StudentStreamErrors = {
@@ -1026,7 +1054,7 @@ export type StudentDeleteData = {
         id_hashed: string;
     };
     query?: never;
-    url: '/student/{id_hashed}';
+    url: "/student/{id_hashed}";
 };
 
 export type StudentDeleteErrors = {
@@ -1053,7 +1081,7 @@ export type StudentQueryData = {
         id_hashed: string;
     };
     query?: never;
-    url: '/student/{id_hashed}';
+    url: "/student/{id_hashed}";
 };
 
 export type StudentQueryErrors = {
@@ -1080,7 +1108,7 @@ export type StudentUpdateData = {
         id_hashed: string;
     };
     query?: never;
-    url: '/student/{id_hashed}';
+    url: "/student/{id_hashed}";
 };
 
 export type StudentUpdateErrors = {
@@ -1107,7 +1135,7 @@ export type StudentHoursData = {
         id_hashed: string;
     };
     query?: never;
-    url: '/student/{id_hashed}/hours';
+    url: "/student/{id_hashed}/hours";
 };
 
 export type StudentHoursErrors = {
@@ -1130,7 +1158,7 @@ export type TelemetryGetData = {
         count: number;
         skip: number;
     };
-    url: '/telemetry';
+    url: "/telemetry";
 };
 
 export type TelemetryGetErrors = {
@@ -1152,7 +1180,7 @@ export type TelemetryStreamData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/telemetry/stream';
+    url: "/telemetry/stream";
 };
 
 export type TelemetryStreamErrors = {
@@ -1179,7 +1207,7 @@ export type TelemetryQueryData = {
         count: number;
         skip: number;
     };
-    url: '/telemetry/{event_type}';
+    url: "/telemetry/{event_type}";
 };
 
 export type TelemetryQueryErrors = {
