@@ -370,7 +370,7 @@ paths:
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/PresentQueryResponse'
+                $ref: '#/components/schemas/PresentResponse'
         '401':
           description: ''
           content:
@@ -406,7 +406,7 @@ paths:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/PresentQueryResponse'
+                  $ref: '#/components/schemas/PresentResponse'
         '401':
           description: ''
           content:
@@ -1374,6 +1374,7 @@ components:
         sid_hashed:
           type: string
           description: The hashed student ID to associate with this invite, if any.
+          nullable: true
         permissions:
           description: Initial permissions to grant the user
           allOf:
@@ -1527,9 +1528,9 @@ components:
           type: boolean
         admin_edit:
           type: boolean
-    PresentQueryResponse:
+    PresentResponse:
       type: object
-      title: PresentQueryResponse
+      title: PresentResponse
       required:
       - present
       - absent
@@ -1550,6 +1551,7 @@ components:
       - sid_hashed
       - hour_type
       - sign_in
+      - sign_out
       properties:
         id:
           type: string
@@ -1563,6 +1565,7 @@ components:
         sign_out:
           type: string
           format: date-time
+          nullable: true
     RecordAdd:
       type: object
       title: RecordAdd
@@ -1572,6 +1575,7 @@ components:
       - sid_hashed
       - hour_type
       - sign_in
+      - sign_out
       properties:
         admin_id:
           type: string
@@ -1587,6 +1591,7 @@ components:
         sign_out:
           type: string
           format: date-time
+          nullable: true
     RecordDelete:
       type: object
       title: RecordDelete
@@ -1596,6 +1601,7 @@ components:
       - sid_hashed
       - hour_type
       - sign_in
+      - sign_out
       properties:
         admin_id:
           type: string
@@ -1611,6 +1617,7 @@ components:
         sign_out:
           type: string
           format: date-time
+          nullable: true
     RecordEdit:
       type: object
       title: RecordEdit
@@ -1779,6 +1786,7 @@ components:
           type: string
           format: date-time
           description: Must be after and on the same day as time_in (in server's local time)
+          nullable: true
     RosterCreateResponse:
       type: object
       title: RosterCreateResponse
@@ -1981,28 +1989,35 @@ components:
       properties:
         id:
           type: string
+          nullable: true
         first:
           type: string
+          nullable: true
         last:
           type: string
+          nullable: true
     SwipeAction:
       type: string
       enum:
-      - Login
-      - Logout
-      - Denied
+      - login
+      - logout
+    SwipeFallthrough:
+      type: string
+      enum:
+      - denied
+      - ignored
     SwipeRequest:
       type: object
       title: SwipeRequest
       required:
-      - account_name
+      - issuer
       - totp
       - sid_hashed
       - kind
       properties:
-        account_name:
+        issuer:
           type: string
-          description: TOTP account name
+          description: 'AKA: admin''s ID, TOTP `account_name`'
         totp:
           type: string
         sid_hashed:
@@ -2012,14 +2027,18 @@ components:
         force:
           type: boolean
           default: false
-    SwipeResponse:
-      type: object
-      title: SwipeResponse
-      required:
-      - action
-      properties:
         action:
-          $ref: '#/components/schemas/SwipeAction'
+          default: null
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/SwipeAction'
+          - default: null
+            nullable: true
+    SwipeResponse:
+      type: string
+      anyOf:
+      - $ref: '#/components/schemas/SwipeAction'
+      - $ref: '#/components/schemas/SwipeFallthrough'
     TOTPRequest:
       type: object
       title: TOTPRequest
@@ -2041,16 +2060,10 @@ components:
         * Skew: 1 interval
       required:
       - secret
-      - issuer
-      - account_name
       properties:
         secret:
           type: string
           description: Base32-encoded TOTP secret
-        issuer:
-          type: string
-        account_name:
-          type: string
     TelemetryEvent:
       type: object
       title: TelemetryEvent

@@ -10,7 +10,7 @@ const totp = ref<TotpResponse | null>(null);
 const issuer = ref<string | null>(null);
 const { kind } = defineProps<{ kind: HourType; }>();
 
-watch(user, creds => {
+watch(user, (creds) => {
     if (creds.role !== "admin" || !creds.ok) {
         totp.value = null;
         return;
@@ -34,7 +34,7 @@ watch(user, creds => {
 }, { immediate: true });
 
 if (!totp) {
-    redirect("/dashboard", useRouter(), { using: "replace" });
+    useRouter().push(redirect.build("/dashboard"));
     throw new Error("Redirecting...");
 }
 
@@ -65,11 +65,14 @@ watch([code, issuer, totp], async ([code, issuer, totp]) => {
     }
 
     const { host, protocol: proto } = window.location;
+    const now_sec = Math.floor(Date.now() / 1000);
+    const exp = now_sec + timer.value + 25; // could+should be +30, but I want a server buffer
 
     const blob = await new Qr({
         width: 512,
         height: 512,
-        data: `${proto}//${host}/qr?code=${code}&issuer=${issuer}&kind=${kind}`,
+        data:
+            `${proto}//${host}/qr?code=${code}&issuer=${issuer}&kind=${kind}&exp=${exp}`,
         dotsOptions: {
             color: "#fff",
             type: "rounded",

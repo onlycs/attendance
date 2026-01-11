@@ -1,8 +1,9 @@
 import { type ColDef, type ColGroupDef, themeQuartz, type ValueFormatterParams } from "ag-grid-community";
 import { Temporal } from "temporal-polyfill";
+import type { DeepReadonly } from "vue";
 import type { HourType } from "~/utils/api";
 import { Math2 } from "~/utils/math";
-import type { Student } from "./useTable";
+import type { Row } from "./useTable";
 
 export type AgRow = {
     studentId: string;
@@ -46,7 +47,7 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useAgData(data: Ref<Student[]>) {
+export function useAgData(data: DeepReadonly<Ref<Row[]>>) {
     const ag = computedWithControl(data, () => {
         const students = data.value;
         if (students.length === 0) {
@@ -139,10 +140,10 @@ export function useAgData(data: Ref<Student[]>) {
             last: student.last,
             ...student.cells.reduce(
                 (acc, cell) => {
-                    const hours = cell.entries
-                        .filter((entry) => !!entry.end)
+                    const hours = cell.records
+                        .filter((entry) => !!entry.sign_out)
                         .reduce((total, entry) => {
-                            const diff = entry.end!.since(entry.start);
+                            const diff = entry.sign_out!.since(entry.sign_in);
                             return total + diff.total("hours");
                         }, 0);
 
@@ -153,11 +154,11 @@ export function useAgData(data: Ref<Student[]>) {
             ),
             ...student.cells.reduce(
                 (acc, cell) => {
-                    for (const entry of cell.entries) {
-                        if (!entry.end) continue;
-                        const diff = entry.end.since(entry.start);
+                    for (const entry of cell.records) {
+                        if (!entry.sign_out) continue;
+                        const diff = entry.sign_out.since(entry.sign_in);
                         const hours = diff.total("hours");
-                        acc[entry.kind] += hours;
+                        acc[entry.hour_type] += hours;
                         acc.total += hours;
                     }
                     return acc;

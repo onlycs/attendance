@@ -5,6 +5,7 @@ export type ButtonVariant =
     | "secondary-card"
     | "danger"
     | "danger-card"
+    | "warning"
     | "none";
 
 export interface ButtonProps {
@@ -73,6 +74,10 @@ defineProps<ButtonProps>();
 
     &.danger-card {
         @apply bg-red-500/20 text-red-500;
+    }
+
+    &.warning {
+        @apply bg-yellow-500/10 text-yellow-500;
     }
 
     .hover {

@@ -21,10 +21,7 @@ const error: RedirectToast | undefined = await (async () => {
 })();
 
 if (error) {
-    redirect("/dashboard", router, {
-        throw: error,
-        using: "replace",
-    });
+    router.push(redirect.build("/", error));
     throw new Error("Redirecting...");
 }
 
@@ -33,8 +30,8 @@ const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
 watch(user, user => {
     if (user.role !== "admin") return;
     if (!user.ok) return;
-    creds.value = user;
-});
+    creds.value = { ...user };
+}, { immediate: true });
 
 const title = {
     build: "Build Season",
@@ -62,7 +59,7 @@ async function roster(id?: string, force = false) {
             sid_hashed: sha256(id),
             kind,
             force,
-            account_name: creds.value.claims.sub,
+            issuer: creds.value.claims.sub,
             totp: otp.value,
         },
     });
@@ -75,15 +72,19 @@ async function roster(id?: string, force = false) {
         return api.error(res.error, res.response);
     }
 
-    if (res.data.action === "Denied") {
+    if (res.data === "denied") {
         return forceOpen.value = true;
     }
 
-    const io = res.data.action.replace("Log", "");
+    const io = res.data.replace("log", "");
     toast.success(`Successfully signed ${io}!`);
+
+    currentId.value = "";
 }
 
 watch(currentId, (currentId, last) => {
+    console.log(currentId.length, last.length);
+
     if (
         currentId.length == studentId.length && last.length < studentId.length
     ) {
@@ -125,6 +126,7 @@ onBeforeUnmount(() => auth.clearsession());
 
     <AttendanceForceOut
         @retry="() => roster(undefined, true)"
+        @cancel="() => currentId = ''"
         v-model:open="forceOpen"
     />
 </template>

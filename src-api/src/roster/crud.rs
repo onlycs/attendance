@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use poem_openapi::Union;
+use poem_openapi::{Union, types::MaybeUndefined};
 
 use crate::{
     dbstream::{PartialRecord, Record, Row},
@@ -198,18 +198,20 @@ pub(super) async fn update(
 ) -> Result<UpdateResponse, UpdateError> {
     'ok: {
         // if we set sign_out to null, skip all checks
-        if sign_out.is_some_and(|set_to| set_to.is_none()) {
+        if let MaybeUndefined::Null = sign_out {
             break 'ok;
         }
 
         // if we don't touch them, no need to validate
-        if sign_in.is_none() && sign_out.is_none() {
+        if sign_in.is_none()
+            && let MaybeUndefined::Undefined = sign_out
+        {
             break 'ok;
         }
 
-        // here, sign_out is either None or SomeSome
-        let sign_out = match sign_out.flatten() {
-            Some(out) => out,
+        // here, sign_out is either Undefined or present
+        let sign_out = match sign_out.value() {
+            Some(out) => *out,
             None => {
                 let Some(out) = sqlx::query!(
                     r#"
@@ -272,7 +274,7 @@ pub(super) async fn update(
     .bind(sid_hashed)
     .bind(hour_type)
     .bind(sign_in)
-    .bind(sign_out)
+    .bind(sign_out.value())
     .fetch_optional(&pg)
     .await?
     .ok_or(UpdateError::not_found())

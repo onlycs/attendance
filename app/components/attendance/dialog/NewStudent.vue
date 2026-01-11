@@ -60,9 +60,9 @@ const { form, buttons, deps, submit, cancel } = f.form(
             open.value = false;
 
             if (!k1.value) {
-                redirect("/dashboard", useRouter(), {
-                    throw: "session-expired",
-                });
+                useRouter().push(
+                    redirect.build("/dashboard", "session-expired"),
+                );
 
                 return;
             }

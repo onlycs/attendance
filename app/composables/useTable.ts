@@ -1,325 +1,341 @@
+import { Temporal } from "temporal-polyfill";
+import type { DeepReadonly } from "vue";
 import { toast } from "vue-sonner";
-import z from "zod";
-import { makeWebsocket } from "~/utils/zodws/api";
-import type {
-    EntryFieldUpdateSchema,
-    ReplicationIncoming,
-    ReplicationOutgoing,
-    StudentFieldUpdateSchema,
-} from "~/utils/zodws/schema/replicate";
-import type { Cell } from "~/utils/zodws/schema/table";
+import type { AuthData } from "~/plugins/auth";
+import type { Record as AttendanceRecordRaw, ReplicationRecord, ReplicationStudent, Student } from "~/utils/api";
+import api from "~/utils/api";
 
-export interface Student {
-    id: string;
-    hashed: string;
-    first: string;
-    last: string;
-    cells: Cell[];
+export type AttendanceRecord = Omit<AttendanceRecordRaw, "sign_in" | "sign_out"> & {
+    sign_in: Temporal.ZonedDateTime;
+    sign_out: Temporal.ZonedDateTime | null;
+};
+
+export interface Cell {
+    date: Temporal.PlainDate;
+    records: AttendanceRecord[];
 }
+
+export type Row = Student & {
+    cells: Cell[];
+};
 
 interface TableProps {
-    auth: AuthState;
-    router: ReturnType<typeof useRouter>;
+    user: AuthData & { role: "admin"; ok: true; };
+    connected: Ref<boolean>;
+    onError: () => void;
 }
 
-export function useTable({ auth, router }: TableProps) {
-    const creds = computed(() => {
-        const admin = auth.admin.value;
-        return admin.status === "ok" ? admin : undefined;
-    });
+export async function useTable({ user, onError, connected }: TableProps) {
+    const creds = { ...user };
+    const k1 = hex.asbytes(creds.k1);
+    const crypto = useCrypto();
 
-    const data: Student[] = [];
+    const data: Row[] = [];
+    const uncategorized: Map<string, AttendanceRecord[]> = new Map();
     const update = ref(0);
-    const ready = {
-        ok: ref(false),
-        task: ref("Connecting"),
-        progress: ref(0),
-        progressmax: ref(2),
-    };
 
-    async function apply(repl: ReplicationIncoming) {
-        async function inner(repl: ReplicationIncoming) {
-            const cryptkey = creds.value?.password.value;
-            if (!cryptkey) return;
+    function fromraw(record: AttendanceRecordRaw): AttendanceRecord {
+        return {
+            ...record,
+            sign_in: api.datetime.parse(record.sign_in),
+            sign_out: api.datetime.parse(record.sign_out),
+        };
+    }
 
-            if (repl.type === "Full") {
-                ready.task.value = "Decrypting student data";
-                ready.progressmax.value += repl.data.length * 3;
+    function uncategorize(record: AttendanceRecordRaw | AttendanceRecord) {
+        const records = uncategorized.get(record.sid_hashed) ?? [];
+        if (typeof record.sign_in === "string") records.push(fromraw(record as AttendanceRecordRaw));
+        else records.push(record as AttendanceRecord);
+        uncategorized.set(record.sid_hashed, records);
+    }
 
-                const incoming = repl.data.map(async (row) => {
-                    const id = await Crypt.decrypt(row.student.id, cryptkey);
-                    ready.progress.value += 1;
+    async function record(repl: ReplicationRecord) {
+        let err = false;
 
-                    const first = await Crypt.decrypt(
-                        row.student.first,
-                        cryptkey,
-                    );
-                    ready.progress.value += 1;
+        switch (repl.operation) {
+            case "INSERT": {
+                const r1 = fromraw(repl);
 
-                    const last = await Crypt.decrypt(
-                        row.student.last,
-                        cryptkey,
-                    );
-                    ready.progress.value += 1;
-
-                    return {
-                        id,
-                        hashed: row.student.hashed,
-                        first,
-                        last,
-                        cells: row.cells,
-                    };
-                });
-
-                const students = await Promise.all(incoming);
-                data.splice(0, data.length, ...students);
-
-                ready.ok.value = true;
-                return;
-            }
-
-            if (repl.type === "AddStudent") {
-                const id = await Crypt.decrypt(repl.student.id, cryptkey);
-                const first = await Crypt.decrypt(repl.student.first, cryptkey);
-                const last = await Crypt.decrypt(repl.student.last, cryptkey);
-
-                data.push({
-                    id,
-                    hashed: repl.student.hashed,
-                    first,
-                    last,
-                    cells: data[0]?.cells.map((c) => ({ date: c.date, entries: [] })) || [],
-                });
-
-                return;
-            }
-
-            if (repl.type === "UpdateStudent") {
-                const student = data.find((s) => s.hashed === repl.hashed);
-                if (!student) return;
-
-                const incoming = repl.updates;
-
-                for (const update of incoming) {
-                    if (update.key === "first") {
-                        student.first = await Crypt.decrypt(
-                            update.value,
-                            cryptkey,
-                        );
-                    } else if (update.key === "last") {
-                        student.last = await Crypt.decrypt(
-                            update.value,
-                            cryptkey,
-                        );
-                    }
+                const student = data.find((s) => s.id_hashed === r1.sid_hashed);
+                if (!student) {
+                    uncategorize(repl);
+                    break;
                 }
 
-                return;
-            }
-
-            if (repl.type === "DeleteStudent") {
-                const index = data.findIndex((s) => s.hashed === repl.hashed);
-                if (index === -1) return;
-
-                const removed = data.splice(index, 1)[0]!;
-
-                return;
-            }
-
-            if (repl.type === "AddEntry") {
-                const student = data.find((s) => s.hashed === repl.hashed);
-                if (!student) return;
-
-                let cell = student.cells.find((c) => c.date.equals(repl.date));
+                const date = r1.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
+                let cell = student.cells.find((c) => c.date.equals(date));
                 if (!cell) {
                     // insert into every student, sorted.
                     for (const s of data) {
-                        const newCell = { date: repl.date, entries: [] };
-                        const index = s.cells.findIndex((c) => {
-                            return (
-                                c.date.until(repl.date).total("milliseconds")
-                                    > 0
-                            );
+                        const c = {
+                            date,
+                            records: [],
+                        };
+
+                        const i = s.cells.findIndex((cc) => {
+                            return cc.date.until(date).total("milliseconds") > 0;
                         });
 
-                        if (index === -1) s.cells.push(newCell);
-                        else s.cells.splice(index, 0, newCell);
+                        if (i === -1) s.cells.push(c);
+                        else s.cells.splice(i, 0, c);
 
-                        if (s.hashed === repl.hashed) cell = newCell;
-                    }
-
-                    if (!cell) return;
-                }
-
-                cell.entries.push(repl.entry);
-
-                return;
-            }
-
-            if (repl.type === "UpdateEntry") {
-                const student = data.find((s) => s.hashed === repl.hashed);
-                if (!student) return;
-
-                const cell = student.cells.find((c) => c.date.equals(repl.date));
-                if (!cell) return;
-
-                const entry = cell.entries.find((e) => e.id === repl.id);
-                if (!entry) return;
-
-                const undos = [] as z.output<typeof EntryFieldUpdateSchema>[];
-                const incoming = repl.updates;
-
-                for (const update of incoming) {
-                    if (update.key === "kind") {
-                        undos.push({
-                            key: "kind",
-                            value: entry.kind,
-                        });
-                        entry.kind = update.value;
-                    } else if (update.key === "start") {
-                        undos.push({
-                            key: "start",
-                            value: entry.start,
-                        });
-                        entry.start = update.value;
-                    } else if (update.key === "end") {
-                        undos.push({
-                            key: "end",
-                            value: entry.end,
-                        });
-                        entry.end = update.value;
+                        if (s.id_hashed === r1.sid_hashed) cell = c;
                     }
                 }
 
-                return;
-            }
+                if (!cell) {
+                    err = true;
+                    break;
+                }
 
-            if (repl.type === "DeleteEntry") {
-                const student = data.find((s) => s.hashed === repl.hashed);
-                if (!student) return;
-
-                const cell = student.cells.find((c) => c.date.equals(repl.date));
-                if (!cell) return;
-
-                const index = cell.entries.findIndex((e) => e.id === repl.id);
-                if (index === -1) return;
-
-                cell.entries.splice(index, 1);
-
-                return;
-            }
-        }
-
-        await inner(repl);
-        update.value++;
-    }
-
-    const reconnect = ref(false);
-    let attempts = 0;
-    const timer = ref(0);
-
-    function countdown(callback: () => void) {
-        if (timer.value === 0) return callback();
-        timer.value = timer.value - 1;
-
-        setTimeout(() => countdown(callback), 1000);
-    }
-
-    const websocket = makeWebsocket({
-        connect(sock) {
-            ready.progress.value++;
-
-            if (!creds.value) return;
-            reconnect.value = false;
-            attempts = 0;
-
-            sock.send("Authenticate", {
-                token: creds.value?.token.value.token,
-            });
-        },
-
-        disconnect(sock) {
-            if (attempts > 5) {
-                reconnect.value = true;
-                return toast.error("Timed out. Please reconnect manually.");
-            }
-
-            attempts += 1;
-            timer.value = attempts * 5;
-
-            const id = toast.warning("Reconnecting\u2026", {
-                description: defineComponent({
-                    setup() {
-                        const remaining = ref(timer.value);
-
-                        watch(timer, (time) => {
-                            remaining.value = time;
-                        });
-
-                        return { remaining };
-                    },
-                    render() {
-                        return h("div", `\u2026in ${this.remaining} seconds`);
-                    },
-                }),
-            });
-
-            countdown(() => {
-                toast.dismiss(id);
-                sock.reconnect();
-            });
-        },
-
-        messages: {
-            Replicate(_, repl) {
-                if (!ready.ok.value) ready.progress.value++;
-
-                apply(repl).catch((err) => {
-                    toast.error(`Failed to apply replication: ${err}`);
-                    err.stack && console.error(err.stack);
+                const i = cell.records.findIndex((r) => {
+                    return r.sign_in.until(r.sign_in).total("milliseconds") > 0;
                 });
-            },
 
-            Error(_, payload) {
-                if (payload.meta.type === "Auth") {
-                    auth.clear();
-                    router.push("/?error=session-expired");
+                if (i === -1) cell.records.push(r1);
+                else cell.records.splice(i, 0, r1);
+
+                break;
+            }
+            case "UPDATE": {
+                const r0 = [
+                    ...data.flatMap(s => s.cells).flatMap(c => c.records),
+                    ...uncategorized.values().flatMap(r => r),
+                ]
+                    .find(r => r.id === repl.id);
+
+                if (!r0) {
+                    err = true;
+                    break;
                 }
 
-                toast.error(payload.message);
-            },
-        },
-    });
+                const r1 = safeassign(r0, {
+                    ...repl,
+                    sign_in: api.datetime.parse(repl.sign_in),
+                    sign_out: api.datetime.parse(repl.sign_out),
+                });
 
-    watch(auth.admin, admin => {
-        if (admin.status === "ok") {
-            websocket.send("Authenticate", {
-                token: admin.token.value.token,
-            });
+                const s0 = data.find(s => s.id_hashed === r0.sid_hashed);
+
+                // remove from old student, if applicable
+                if (!!repl.sid_hashed && r0.sid_hashed !== repl.sid_hashed && s0) {
+                    const d0 = r0.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
+                    const c0 = s0.cells.find(c => c.date.equals(d0))!;
+                    const i0 = c0.records.findIndex(r => r.id === r0.id);
+                    c0.records.splice(i0, 1);
+
+                    // add to new student
+                    const s1 = data.find(s => s.id_hashed === repl.sid_hashed);
+                    const c1 = s1?.cells.find(c => c.date.equals(d0));
+                    const i1 = c1?.records.findIndex(rr => {
+                        return rr.sign_in.until(r1.sign_in).total("milliseconds") > 0;
+                    });
+
+                    if (!s1 || !c1 || !i1) {
+                        uncategorize(r1);
+                        break;
+                    }
+
+                    if (i1 === -1) c1.records.push(r1);
+                    else c1.records.splice(i1, 0, r1);
+                    break;
+                }
+
+                Object.assign(r0, r1);
+                break;
+            }
+            case "DELETE": {
+                const r0 = [
+                    ...data.flatMap(s => s.cells).flatMap(c => c.records),
+                    ...uncategorized.values().flatMap(r => r),
+                ]
+                    .find(r => r.id === repl.pkey);
+
+                if (!r0) {
+                    err = true;
+                    break;
+                }
+
+                const s0 = data.find(s => s.id_hashed === r0.sid_hashed);
+
+                if (s0) {
+                    const d0 = r0.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
+                    const c0 = s0.cells.find(c => c.date.equals(d0))!;
+                    const i0 = c0.records.findIndex(r => r.id === r0.id);
+                    c0.records.splice(i0, 1);
+                } else {
+                    const records = uncategorized.get(r0.sid_hashed);
+                    if (!records) {
+                        err = true;
+                        break;
+                    }
+                    const i0 = records.findIndex(r => r.id === r0.id);
+                    records.splice(i0, 1);
+                }
+
+                break;
+            }
         }
-    });
 
-    function send(repl: ReplicationOutgoing) {
-        if (!websocket.assert("connected")) {
-            toast.error("Edits made while disconnected will NOT apply.");
-            return;
-        }
-
-        websocket.send("Replicate", repl);
+        update.value++;
+        return !err;
     }
 
-    onBeforeUnmount(() => {
-        websocket.close();
-    });
+    async function student(repl: ReplicationStudent) {
+        let err = false;
+
+        switch (repl.operation) {
+            case "INSERT": {
+                const cells: Cell[] = data.length > 0
+                    ? data[0]!.cells.map(c => ({
+                        date: c.date,
+                        records: [],
+                    }))
+                    : [];
+
+                const { id, first, last } = repl;
+                const [id2, first2, last2] = await crypto.decrypt([id, first, last], k1) ?? ["", "", ""];
+
+                if (!id2 || !first2 || !last2) {
+                    err = true;
+                    break;
+                }
+
+                data.push({
+                    ...repl,
+                    id: id2,
+                    first: first2,
+                    last: last2,
+                    cells,
+                });
+
+                if (uncategorized.has(repl.id_hashed)) {
+                    const records = uncategorized.get(repl.id_hashed) ?? [];
+                    for (const r of records) {
+                        record({
+                            operation: "INSERT",
+                            ...r,
+                            sign_in: api.datetime.ser(r.sign_in),
+                            sign_out: r.sign_out ? api.datetime.ser(r.sign_out) : null,
+                        });
+                    }
+                }
+
+                break;
+            }
+            case "UPDATE": {
+                const student = data.find(s => s.id_hashed === repl.id_hashed);
+                if (!student) {
+                    err = true;
+                    break;
+                }
+
+                const { id, first, last } = repl;
+                const [id2] = id ? await crypto.decrypt([id], k1) ?? [null] : [undefined];
+                const [first2] = first ? await crypto.decrypt([first], k1) ?? [null] : [undefined];
+                const [last2] = last ? await crypto.decrypt([last], k1) ?? [null] : [undefined];
+
+                if (id2 === null || first2 === null || last2 === null) {
+                    err = true;
+                    break;
+                }
+
+                safeassign(student, {
+                    id: id2,
+                    first: first2,
+                    last: last2,
+                });
+                break;
+            }
+            case "DELETE": {
+                const i = data.findIndex(s => s.id_hashed === repl.pkey);
+                if (i === -1) {
+                    err = true;
+                    break;
+                }
+
+                data.splice(i, 1);
+                break;
+            }
+        }
+
+        update.value++;
+        return !err;
+    }
+
+    interface Handler<T = any> {
+        ctor: () => Promise<{ stream: AsyncGenerator<T[]>; }>;
+        f: (a: T) => Promise<boolean>;
+    }
+
+    const sse = async <H extends Handler[]>(
+        hs: H,
+        tries = 0,
+    ) => {
+        const perf = new Performance();
+        const readystart = perf.now();
+
+        const { signal, abort } = new AbortController();
+        await Promise.any(hs.map(async h => {
+            try {
+                const { ctor, f } = h;
+                const { stream } = await ctor();
+                connected.value = true;
+                for await (const batch of stream) {
+                    if (signal.aborted) break;
+                    const res = await Promise.all(batch.map(f));
+                    if (res.includes(false)) onError();
+                }
+            } catch (e) {}
+        }));
+        abort();
+
+        const readyend = perf.now();
+        const dt = readyend - readystart;
+
+        if (tries > 5) return;
+        const timer = defineComponent({
+            setup() {
+                const t = ref((tries + 1) * 5);
+                const ctr = setInterval(() => t.value -= 1, 1000);
+                onUnmounted(() => clearInterval(ctr));
+                return () => h("span", `Lost connection with the server. Trying again in ${t.value} seconds`);
+            },
+        });
+        toast.warning(timer, { duration: (tries + 1) * 5000 });
+
+        await sleep((tries + 1) * 5000);
+        await sse(hs, dt < 5000 ? tries + 1 : 0);
+    };
+
+    const students = await api.student.list();
+    if (!students.data) {
+        api.error(students.error, students.response);
+        return;
+    }
+
+    for (const s of students.data.students) student({ operation: "INSERT", ...s });
+
+    const records = await api.roster.record.query();
+    if (!records.data) {
+        api.error(records.error, records.response);
+        return;
+    }
+
+    if (records.data.quantity !== "Many") throw new Error("unreachable");
+    for (const r of Object.values(records.data.records)) record({ operation: "INSERT", ...r });
+
+    function connect() {
+        return sse([
+            { ctor: api.roster.record.stream, f: record },
+            { ctor: api.student.stream, f: student },
+        ]).then(() => connected.value = false);
+    }
+
+    connect();
 
     return {
-        data: computed(() => {
-            update.value; // depend on update ref.
-            return [...data];
-        }),
-        ready,
-        reconnect,
-        send,
-        update,
+        reconnect: connect,
+        data: watched(() => data, update),
     };
 }

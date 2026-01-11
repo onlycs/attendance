@@ -29,8 +29,8 @@ impl RosterService {
     #[oai(path = "/swipe", method = "post")]
     async fn swipe(
         &self,
-        request: Json<swipe::SwipeRequest>,
-    ) -> Result<Json<swipe::SwipeResponse>, swipe::SwipeError> {
+        request: Json<swipe::Request>,
+    ) -> Result<Json<swipe::Response>, swipe::SwipeError> {
         Ok(Json(swipe::route(request.0, self.pg.clone()).await?))
     }
 
@@ -51,7 +51,7 @@ impl RosterService {
     async fn present_query(
         &self,
         jwt: Jwt,
-    ) -> Result<Json<present::QueryResponse>, present::QueryError> {
+    ) -> Result<Json<present::Response>, present::QueryError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
@@ -62,7 +62,7 @@ impl RosterService {
     async fn present_stream(
         &self,
         jwt: Jwt,
-    ) -> Result<EventStream<BoxStream<'static, present::QueryResponse>>, present::QueryError> {
+    ) -> Result<EventStream<BoxStream<'static, present::Response>>, present::QueryError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 

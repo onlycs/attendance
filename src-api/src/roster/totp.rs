@@ -45,10 +45,8 @@ pub(super) async fn route(
 ) -> Result<Response, Error> {
     let secret = match sqlx::query!(
         r#"
-        UPDATE otps
-        SET expiry = NOW() + INTERVAL '15 minutes'
-        WHERE expiry > NOW() AND admin_id = $1 AND hour_type = $2
-        RETURNING secret
+        SELECT secret FROM otps
+        WHERE admin_id = $1 AND hour_type = $2
         "#,
         admin_id,
         hour_type as HourType
@@ -67,7 +65,6 @@ pub(super) async fn route(
                 VALUES ($1, $2, $3)
                 ON CONFLICT (admin_id) DO UPDATE
                 SET secret = EXCLUDED.secret,
-                    expiry = NOW() + INTERVAL '15 minutes',
                     hour_type = EXCLUDED.hour_type
                 "#,
                 admin_id,

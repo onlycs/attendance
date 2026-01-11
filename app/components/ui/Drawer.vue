@@ -33,8 +33,8 @@ defineOptions({ inheritAttrs: false });
 .dialog {
     @apply fixed bottom-0 right-0 left-0;
     @apply flex flex-col items-center z-50;
-    @apply rounded-t-lg pb-8;
-    @apply bg-card;
+    @apply rounded-t-lg;
+    @apply bg-card px-4 pb-4;
 
     .handle {
         @apply mb-6 mt-4;

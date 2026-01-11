@@ -74,7 +74,7 @@ const { form, buttons, deps, submit } = f.form(
     <Require
         :redirects="{
             '/dashboard': () => $user.value.role === 'admin',
-            '/attendance': () => $user.value.role === 'student',
+            '/student': () => $user.value.role === 'student',
         }"
     />
     <div :class="cn('content', loading && 'justify-center')">

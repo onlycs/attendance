@@ -17,11 +17,12 @@ const promise = ref((_a: AuthData & { role: "admin"; ok: true; }) => {});
 function exit(force?: boolean) {
     if (!open.value && !force) return;
     open.value = false;
+    usrhook.stop();
     auth.clear();
-    redirect("/", router, { throw: "session-expired" });
+    router.push(redirect.build("/", "session-expired"));
 }
 
-watch(user, () => {
+const usrhook = watch(user, () => {
     if (user.value.role !== "admin") return exit(true);
     if (user.value.ok) return open.value = false;
 
@@ -90,7 +91,7 @@ const buttons = computed(() => {
         },
         {
             form: "cancel",
-            label: `Not ${creds.value.claims.username ?? "you"}?`,
+            label: `Not ${creds.value?.claims?.username ?? "you"}?`,
             kind: "secondary-card",
         },
     ] satisfies FormButton[];

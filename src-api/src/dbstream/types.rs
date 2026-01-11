@@ -12,10 +12,6 @@ pub(crate) trait Identifiable<K: Hash + Eq + Clone>: Sized {
     fn pkey(&self) -> &K;
 }
 
-pub(crate) trait ApplyTo<R: Row>: Identifiable<R::Key> {
-    fn apply(self, row: &mut R);
-}
-
 pub(crate) trait Row:
     Identifiable<Self::Key>
     + for<'r> sqlx::FromRow<'r, PgRow>
@@ -44,7 +40,7 @@ pub(crate) trait Row:
         + Sync
         + 'static;
 
-    type Partial: ApplyTo<Self>
+    type Partial: Identifiable<Self::Key>
         + for<'de> Deserialize<'de>
         + Type
         + IsObjectType
@@ -85,23 +81,4 @@ pub(crate) enum Replication<R: Row> {
     Insert(R),
     Update(R::Partial),
     Delete(Deletion<R>),
-}
-
-impl<R: Row> Replication<R> {
-    pub(super) fn replicate(self, map: &mut HashMap<R::Key, R>) -> Option<R> {
-        match self {
-            Replication::Insert(row) => {
-                map.insert(row.pkey().clone(), row.clone());
-                Some(row)
-            }
-            Replication::Update(partial) => {
-                if let Some(row) = map.get_mut(partial.pkey()) {
-                    partial.apply(row);
-                    return Some(row.clone());
-                }
-                None
-            }
-            Replication::Delete(Deletion { pkey }) => map.remove(&pkey),
-        }
-    }
 }

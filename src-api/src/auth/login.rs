@@ -37,7 +37,7 @@ pub(super) struct FinishResponse {
 #[derive(ApiResponse, ApiError)]
 pub(super) enum FinishError {
     #[oai(status = 401)]
-    #[from(srp::types::SrpAuthError, "Authentication failed")]
+    #[from(srp::types::SrpAuthError, "Invalid username or password")]
     #[construct("Invalid username or password")]
     BadAuth(PlainText<String>),
 

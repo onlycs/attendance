@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use crate::prelude::*;
 
 #[derive(Object, Serialize)]
-#[oai(rename = "PresentQueryResponse")]
-pub(super) struct QueryResponse {
+#[oai(rename = "PresentResponse")]
+pub(super) struct Response {
     present: HashSet<String>,
     absent: HashSet<String>,
 }
@@ -24,7 +24,7 @@ pub(super) enum QueryError {
 }
 
 #[tracing::instrument(skip(pg), err)]
-pub(super) async fn query(pg: PgPool) -> Result<QueryResponse, QueryError> {
+pub(super) async fn query(pg: PgPool) -> Result<Response, QueryError> {
     let records = sqlx::query!(
         r#"
         SELECT sid_hashed, sign_in FROM records
@@ -55,5 +55,5 @@ pub(super) async fn query(pg: PgPool) -> Result<QueryResponse, QueryError> {
         .filter(|sid_hashed| !present.contains(sid_hashed))
         .collect::<HashSet<_>>();
 
-    Ok(QueryResponse { present, absent })
+    Ok(Response { present, absent })
 }

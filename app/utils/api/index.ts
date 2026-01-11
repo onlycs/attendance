@@ -21,28 +21,42 @@ hclient.setConfig({
     },
 });
 
-function date(datetime: Date): Temporal.ZonedDateTime {
+function parsedatetime<T extends string | null | undefined>(dt: T): NullPassthrough<T, Temporal.ZonedDateTime> {
+    if (dt === null || dt === undefined) return dt as NullPassthrough<T, Temporal.ZonedDateTime>;
     const tz = Temporal.Now.timeZoneId();
-    const dt = datetime.toISOString();
 
     try {
         // Try parsing as ZonedDateTime first (has timezone info)
-        return Temporal.ZonedDateTime.from(dt);
+        return Temporal.ZonedDateTime.from(dt) as NullPassthrough<T, Temporal.ZonedDateTime>;
     } catch {
         try {
             // Try parsing as Instant (ends with Z or has offset)
             const instant = Temporal.Instant.from(dt);
-            return instant.toZonedDateTimeISO(tz);
+            return instant.toZonedDateTimeISO(tz) as NullPassthrough<T, Temporal.ZonedDateTime>;
         } catch {
             // Fall back to PlainDateTime (no timezone info)
             const plain = Temporal.PlainDateTime.from(dt);
-            return plain.toZonedDateTime(tz);
+            return plain.toZonedDateTime(tz) as NullPassthrough<T, Temporal.ZonedDateTime>;
         }
     }
 }
 
+function serdatetime<T extends MaybeNone<Temporal.ZonedDateTime>>(dt: T): NullPassthrough<T, string> {
+    if (dt === null || dt === undefined) return dt as NullPassthrough<T, string>;
+    return dt.toInstant().toString() as NullPassthrough<T, string>;
+}
+
+function parseplaindate<T extends string | null>(d: T): NullPassthrough<T, Temporal.PlainDate> {
+    if (d === null) return null as NullPassthrough<T, Temporal.PlainDate>;
+    return Temporal.PlainDate.from(d) as NullPassthrough<T, Temporal.PlainDate>;
+}
+
+function serplaindate(d: Temporal.PlainDate): string {
+    return d.toString();
+}
+
 export interface ApiToastOptions {
-    handle401?: "redirect" | "message" | "default";
+    handle401?: "redirect" | { message: string; } | "api-message";
     handle: Record<number, (err: string) => void>;
 }
 
@@ -50,9 +64,10 @@ function error(
     err: string,
     res: Response,
     { handle401, handle }: Partial<ApiToastOptions> = {},
-) {
+): void {
     if (!res || !("status" in res)) {
-        return toast.error("Couldn't reach the server. Are you offline?");
+        toast.error("Couldn't reach the server. Are you offline?");
+        return;
     }
 
     const code = res.status;
@@ -60,12 +75,12 @@ function error(
 
     switch (code) {
         case 401: {
-            if (handle401 === "message") toast.error("Incorrect username or password");
-            else if (handle401 === "default") toast.error(err);
+            if (typeof handle401 === "object") toast.error(handle401.message);
+            else if (handle401 === "api-message") toast.error(err);
             else {
                 const { auth } = useAuth();
                 auth.clear();
-                redirect("/", useRouter(), { throw: "session-expired" });
+                useRouter().push(redirect.build("/", "session-expired"));
             }
 
             return;
@@ -84,4 +99,15 @@ function error(
     else toast.error("An unknown error occurred.");
 }
 
-export default { ...client, date, error };
+export default {
+    ...client,
+    datetime: {
+        parse: parsedatetime,
+        ser: serdatetime,
+    },
+    plaindate: {
+        parse: parseplaindate,
+        ser: serplaindate,
+    },
+    error,
+};

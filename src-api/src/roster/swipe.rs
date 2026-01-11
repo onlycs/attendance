@@ -1,9 +1,13 @@
+use std::borrow::Cow;
+
+use poem_openapi::types::ToJSON;
 use totp_rs::{Algorithm, TOTP};
 
 use crate::{auth::Claims, prelude::*};
 
 #[derive(Object)]
-pub(super) struct SwipeRequest {
+#[oai(rename = "SwipeRequest")]
+pub(super) struct Request {
     /// AKA: admin's ID, TOTP `account_name`
     issuer: String,
     totp: String,
@@ -11,18 +15,73 @@ pub(super) struct SwipeRequest {
     kind: HourType,
     #[oai(default)]
     force: bool,
+    #[oai(default)]
+    action: Option<SwipeAction>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Enum)]
+#[oai(rename_all = "snake_case")]
 pub(super) enum SwipeAction {
     Login,
     Logout,
-    Denied,
 }
 
-#[derive(Object)]
-pub(super) struct SwipeResponse {
-    action: SwipeAction,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Enum)]
+#[oai(rename_all = "snake_case")]
+pub(super) enum SwipeFallthrough {
+    Denied,
+    Ignored,
+}
+
+pub(super) enum Response {
+    Acted(SwipeAction),
+    Fallthrough(SwipeFallthrough),
+}
+
+impl poem_openapi::types::Type for Response {
+    type RawElementValueType = Self;
+    type RawValueType = Self;
+
+    const IS_REQUIRED: bool = true;
+
+    fn name() -> std::borrow::Cow<'static, str> {
+        Cow::Borrowed("SwipeResponse")
+    }
+
+    fn schema_ref() -> poem_openapi::registry::MetaSchemaRef {
+        poem_openapi::registry::MetaSchemaRef::Reference(Self::name().into_owned())
+    }
+
+    fn register(registry: &mut poem_openapi::registry::Registry) {
+        registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| {
+            SwipeAction::register(registry);
+            SwipeFallthrough::register(registry);
+            poem_openapi::registry::MetaSchema {
+                ty: "string",
+                any_of: vec![SwipeAction::schema_ref(), SwipeFallthrough::schema_ref()],
+                ..poem_openapi::registry::MetaSchema::ANY
+            }
+        });
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.as_raw_value().into_iter())
+    }
+}
+
+impl ToJSON for Response {
+    fn to_json(&self) -> Option<serde_json::Value> {
+        match self {
+            Response::Acted(action) => action.to_json(),
+            Response::Fallthrough(fallthrough) => fallthrough.to_json(),
+        }
+    }
 }
 
 #[derive(ApiResponse, ApiError)]
@@ -54,21 +113,20 @@ pub(super) enum SwipeError {
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(
-    SwipeRequest {
+    Request {
         issuer,
         totp,
         sid_hashed,
         kind,
         force,
-    }: SwipeRequest,
+        action,
+    }: Request,
     pg: PgPool,
-) -> Result<SwipeResponse, SwipeError> {
+) -> Result<Response, SwipeError> {
     let Some(secret) = sqlx::query!(
         r#"
-        UPDATE otps
-        SET expiry = NOW() + INTERVAL '15 minutes'
-        WHERE expiry > NOW() AND admin_id = $1 AND hour_type = $2
-        RETURNING secret
+        SELECT secret FROM otps
+        WHERE admin_id = $1 AND hour_type = $2
         "#,
         issuer,
         kind as HourType
@@ -111,12 +169,14 @@ pub(super) async fn route(
         .find(|r| r.sign_in.and_local().date_naive() == now.date_naive());
 
     if let Some(record) = record {
+        if let Some(SwipeAction::Login) = action {
+            return Ok(Response::Fallthrough(SwipeFallthrough::Ignored));
+        }
+
         let dt = now - record.sign_in.and_local();
 
         if (dt.num_minutes() < 3) && !force {
-            return Ok(SwipeResponse {
-                action: SwipeAction::Denied,
-            });
+            return Ok(Response::Fallthrough(SwipeFallthrough::Denied));
         }
 
         sqlx::query!(
@@ -130,9 +190,11 @@ pub(super) async fn route(
         .execute(&pg)
         .await?;
 
-        return Ok(SwipeResponse {
-            action: SwipeAction::Logout,
-        });
+        return Ok(Response::Acted(SwipeAction::Logout));
+    }
+
+    if let Some(SwipeAction::Logout) = action {
+        return Ok(Response::Fallthrough(SwipeFallthrough::Ignored));
     }
 
     let q = sqlx::query!(
@@ -156,7 +218,5 @@ pub(super) async fn route(
         return Err(SwipeError::not_found());
     }
 
-    Ok(SwipeResponse {
-        action: SwipeAction::Login,
-    })
+    Ok(Response::Acted(SwipeAction::Login))
 }

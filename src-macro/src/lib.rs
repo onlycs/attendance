@@ -241,6 +241,8 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
     let mut pkey = None;
     let mut idents = vec![];
     let mut tys = vec![];
+    let mut option_inners = vec![];
+    let mut field_attrs = vec![];
 
     for col in &schema {
         let name = match &col.column_name {
@@ -258,7 +260,12 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
         .to_string();
 
         if let Some("YES") = col.is_nullable.as_deref() {
+            option_inners.push(Some(rust_ty.clone()));
+            field_attrs.push(Some(quote! { #[oai(require)] }));
             rust_ty = format!("Option<{}>", rust_ty);
+        } else {
+            option_inners.push(None);
+            field_attrs.push(None);
         }
 
         let ident = syn::Ident::new(name, Span::call_site());
@@ -288,11 +295,39 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
         Span::call_site(),
     );
 
-    let (partial_idents, partial_tys) = idents
+    let (partial_idents, (partial_tys, partial_attrs)) = idents
         .iter()
         .zip(&tys)
-        .filter(|(id, _)| id.to_string() != pkey.to_string())
-        .unzip::<_, _, Vec<_>, Vec<_>>();
+        .zip(&option_inners)
+        .filter(|((id, _), _)| id.to_string() != pkey.to_string())
+        .map(|((id, ty), optional)| {
+            if let Some(inner) = optional {
+                let inner = syn::parse_str::<syn::Type>(&inner).unwrap();
+
+                (
+                    id,
+                    (
+                        quote! {
+                            ::poem_openapi::types::MaybeUndefined<#inner>
+                        },
+                        None,
+                    ),
+                )
+            } else {
+                (
+                    id,
+                    (
+                        quote! {
+                            Option<#ty>
+                        },
+                        Some(quote! {
+                            #[oai(notnull)]
+                        }),
+                    ),
+                )
+            }
+        })
+        .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();
 
     quote! {
         #[derive(
@@ -305,10 +340,22 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
             ::poem_openapi::Object
         )]
         pub(crate) struct #struct_ident {
-            #( pub #idents: #tys ),*
+            #( #field_attrs pub #idents: #tys ),*
+        }
+
+        #[derive(Clone, Debug, PartialEq, ::serde::Serialize, ::serde::Deserialize, ::poem_openapi::Object)]
+        pub(crate) struct #partial_ident {
+            pub #pkey: #pkey_ty,
+            #( #partial_attrs pub #partial_idents: #partial_tys ),*
         }
 
         impl Identifiable<#pkey_ty> for #struct_ident {
+            fn pkey(&self) -> &#pkey_ty {
+                &self.#pkey
+            }
+        }
+
+        impl Identifiable<#pkey_ty> for #partial_ident {
             fn pkey(&self) -> &#pkey_ty {
                 &self.#pkey
             }
@@ -318,30 +365,6 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
             const NAME: &'static str = #table;
             type Key = #pkey_ty;
             type Partial = #partial_ident;
-        }
-
-        #[derive(Clone, Debug, PartialEq, ::serde::Serialize, ::serde::Deserialize, ::poem_openapi::Object)]
-        pub(crate) struct #partial_ident {
-            pub #pkey: #pkey_ty,
-            #( pub #partial_idents: Option<#partial_tys> ),*
-        }
-
-        impl Identifiable<#pkey_ty> for #partial_ident {
-            fn pkey(&self) -> &#pkey_ty {
-                &self.#pkey
-            }
-        }
-
-        impl ApplyTo<#struct_ident> for #partial_ident {
-            fn apply(self, target: &mut #struct_ident) {
-                if target.#pkey != self.#pkey {
-                    return;
-                }
-
-                #( if let Some(value) = self.#partial_idents {
-                    target.#partial_idents = value;
-                } )*
-            }
         }
 
         pub(crate) type #replication_ident = Replication<#struct_ident>;

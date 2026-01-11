@@ -81,4 +81,4 @@ export class hex {
     }
 }
 
-export const sha256 = (a: string) => _sha256(s).toString();
+export const sha256 = (a: string) => _sha256(a).toString();

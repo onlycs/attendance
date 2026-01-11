@@ -116,7 +116,7 @@ export type InviteRequest = {
     /**
      * The hashed student ID to associate with this invite, if any.
      */
-    sid_hashed?: string;
+    sid_hashed?: string | null;
     /**
      * Initial permissions to grant the user
      */
@@ -214,9 +214,9 @@ export type Permissions = {
 };
 
 /**
- * PresentQueryResponse
+ * PresentResponse
  */
-export type PresentQueryResponse = {
+export type PresentResponse = {
     present: Array<string>;
     absent: Array<string>;
 };
@@ -229,7 +229,7 @@ export type Record = {
     sid_hashed: string;
     hour_type: HourType;
     sign_in: string;
-    sign_out?: string;
+    sign_out: string | null;
 };
 
 /**
@@ -241,7 +241,7 @@ export type RecordAdd = {
     sid_hashed: string;
     hour_type: HourType;
     sign_in: string;
-    sign_out?: string;
+    sign_out: string | null;
 };
 
 /**
@@ -253,7 +253,7 @@ export type RecordDelete = {
     sid_hashed: string;
     hour_type: HourType;
     sign_in: string;
-    sign_out?: string;
+    sign_out: string | null;
 };
 
 /**
@@ -337,7 +337,7 @@ export type RosterCreateRequest = {
     /**
      * Must be after and on the same day as time_in (in server's local time)
      */
-    time_out?: string;
+    time_out?: string | null;
 };
 
 /**
@@ -460,33 +460,31 @@ export type StudentLogout = {
  * StudentUpdateRequest
  */
 export type StudentUpdateRequest = {
-    id?: string;
-    first?: string;
-    last?: string;
+    id?: string | null;
+    first?: string | null;
+    last?: string | null;
 };
 
-export type SwipeAction = 'Login' | 'Logout' | 'Denied';
+export type SwipeAction = 'login' | 'logout';
+
+export type SwipeFallthrough = 'denied' | 'ignored';
 
 /**
  * SwipeRequest
  */
 export type SwipeRequest = {
     /**
-     * TOTP account name
+     * AKA: admin's ID, TOTP `account_name`
      */
-    account_name: string;
+    issuer: string;
     totp: string;
     sid_hashed: string;
     kind: HourType;
     force?: boolean;
+    action?: (SwipeAction & unknown) | null;
 };
 
-/**
- * SwipeResponse
- */
-export type SwipeResponse = {
-    action: SwipeAction;
-};
+export type SwipeResponse = SwipeAction | SwipeFallthrough;
 
 /**
  * TOTPRequest
@@ -511,8 +509,6 @@ export type TotpResponse = {
      * Base32-encoded TOTP secret
      */
     secret: string;
-    issuer: string;
-    account_name: string;
 };
 
 /**
@@ -777,7 +773,7 @@ export type RosterPresentQueryErrors = {
 export type RosterPresentQueryError = RosterPresentQueryErrors[keyof RosterPresentQueryErrors];
 
 export type RosterPresentQueryResponses = {
-    200: PresentQueryResponse;
+    200: PresentResponse;
 };
 
 export type RosterPresentQueryResponse = RosterPresentQueryResponses[keyof RosterPresentQueryResponses];
@@ -798,7 +794,7 @@ export type RosterPresentStreamErrors = {
 export type RosterPresentStreamError = RosterPresentStreamErrors[keyof RosterPresentStreamErrors];
 
 export type RosterPresentStreamResponses = {
-    200: Array<PresentQueryResponse>;
+    200: Array<PresentResponse>;
 };
 
 export type RosterPresentStreamResponse = RosterPresentStreamResponses[keyof RosterPresentStreamResponses];

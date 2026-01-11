@@ -1,6 +1,6 @@
 import { toast } from "vue-sonner";
 
-export type RedirectToast = "session-expired" | "unauthorized" | "404" | "onboard";
+export type RedirectToast = "session-expired" | "unauthorized" | "404" | "bad-qr" | "onboard";
 
 const meta = {
     messages: {
@@ -8,33 +8,24 @@ const meta = {
         "onboard": "Onboard success! Please sign in.",
         "404": "That page does not exist",
         "unauthorized": "You do not have permission to access that page.",
+        "bad-qr": "The QR code you scanned is invalid.",
     } satisfies Record<RedirectToast, string>,
     status: {
         "session-expired": "error",
         "unauthorized": "error",
         "404": "error",
         "onboard": "success",
+        "bad-qr": "error",
     } satisfies Record<RedirectToast, "error" | "success" | "info" | "warning">,
 } as const;
 
 type Router = ReturnType<typeof useRouter>;
-type RouterFunction = {
-    [K in keyof Router]: Router[K] extends (url: string) => unknown ? K : never;
-}[keyof Router];
 
-export function redirect(
-    to: string,
-    router: ReturnType<typeof useRouter>,
-    options: {
-        throw?: RedirectToast;
-        using?: RouterFunction;
-    } = {},
-) {
-    const method = options.using || "push";
-    const url = options.throw ? `${to}${to.includes("?") ? "&" : "?"}throw=${options.throw}` : to;
-
-    (router[method] as (url: string) => Promise<unknown>)(url);
-}
+export const redirect = {
+    build(to: string, message?: RedirectToast) {
+        return message ? `${to}${to.includes("?") ? "&" : "?"}throw=${message}` : to;
+    },
+};
 
 export function handleRedirectQuery() {
     const route = useRoute();

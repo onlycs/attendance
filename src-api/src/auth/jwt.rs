@@ -1,9 +1,6 @@
 use attendance_api_macro::declare_permissions;
 use jsonwebtoken::{Algorithm, EncodingKey, Header, TokenData};
-use poem_openapi::{
-    SecurityScheme,
-    auth::{ApiKey, Bearer},
-};
+use poem_openapi::{SecurityScheme, auth::Bearer};
 
 use super::prelude::*;
 

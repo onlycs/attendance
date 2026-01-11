@@ -2,7 +2,7 @@
 import { toast } from "vue-sonner";
 
 const open = defineModel<boolean>("open", { required: true });
-const emit = defineEmits<{ retry: []; }>();
+const emit = defineEmits<{ retry: []; cancel: []; }>();
 
 function submit() {
     if (!open.value) return;
@@ -15,16 +15,17 @@ function cancel() {
     if (!open.value) return;
     open.value = false;
 
-    toast.warning("Cancelled! You were not signed in!");
+    toast.warning("Cancelled! You were not signed out!");
+    emit("cancel");
 }
 </script>
 <template>
-    <Drawer
-        :open
-        @close="cancel"
-    >
-        <span class="title">New Student</span>
-
+    <Drawer :open @close="cancel">
+        <span class="title"><em>Woah</em> there.</span>
+        <span class="desc">
+            You signed in less than three minutes ago.
+            <br />Are you sure about this?
+        </span>
         <div class="form">
             <Button @click="submit" kind="danger-card">
                 Yes, sign me out!
@@ -43,12 +44,16 @@ function cancel() {
     @apply mb-2 text-xl md:text-2xl;
 }
 
+.desc {
+    @apply text-center mt-2;
+}
+
 .form {
     @apply mt-8 gap-2 flex flex-col;
-    @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+    @apply max-md:w-full md:w-[32rem] lg:w-[38rem] max-w-full;
 }
 
 .form :deep(.submit) {
-    @apply mt-6;
+    @apply mt-4;
 }
 </style>

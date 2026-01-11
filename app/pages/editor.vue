@@ -2,87 +2,89 @@
 import { EditorDropdown } from "#components";
 import type {
     CellValueChangedEvent,
-    ColDef,
     SelectionChangedEvent,
 } from "ag-grid-community";
 import { AgGridVue } from "ag-grid-vue3";
 import { Temporal } from "temporal-polyfill";
-import type { AddDateSubmission } from "~/components/editor/AddDate.vue";
+import type { DeepReadonly } from "vue";
+import { toast } from "vue-sonner";
 import { type AgRow, Theme } from "~/composables/useAgData";
-import type { Entry } from "~/utils/zodws/schema/table";
+import api from "~/utils/api";
 
+const { user } = useAuth();
 const router = useRouter();
-const auth = useAuth();
+const crypto = useCrypto();
 
-const { send, data, ready, reconnect, update } = useTable({
-    auth,
-    router,
-});
-const { columns, rows } = useAgData(data);
-
-const hashed = ref("");
-const date = ref<Temporal.PlainDate>(Temporal.Now.plainDateISO());
-const open = ref(false);
-const entries = ref<Entry[]>([]);
+const connected = ref(false);
 const selected = ref<string[]>([]);
 
-watch([data, hashed, date], ([data, hashed, date]) => {
-    const student = data.find((s) => s.hashed === hashed);
-    if (!student) return [];
+const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
+const reconnect = ref<() => void>(() => {});
+const rows = late<DeepReadonly<Ref<Row[]>> | null>();
+const ag = ref<ReturnType<typeof useAgData> | null>(null);
 
-    const cell = student.cells.find((c) => c.date.equals(date));
-    if (!cell) return [];
+watch(user, (user) => {
+    if (user.role !== "admin") return;
+    if (!user.ok) return;
+    creds.value = { ...user };
+}, { immediate: true });
 
-    entries.value = cell.entries;
+watch(creds, async (user) => {
+    const tbl = await useTable({
+        connected,
+        onError: () => toast.error("Failed to replicate"),
+        user,
+    });
+
+    if (!tbl) return;
+    reconnect.value = tbl.reconnect;
+    rows.value = tbl.data;
+    ag.value = useAgData(tbl.data);
 });
 
-function card(row: AgRow, col: ColDef<AgRow>) {
-    hashed.value = Crypt.sha256(row.studentId);
-    date.value = Temporal.PlainDate.from(col.field!);
-    open.value = true;
-}
-
 async function edit(edit: CellValueChangedEvent<AgRow, string>) {
-    const admin = auth.admin.value;
-
-    if (admin.status !== "ok") return;
+    const k1 = hex.asbytes(creds.value.k1);
     if (!edit.newValue) return;
 
     switch (edit.colDef.field) {
-        case "first":
-            send({
-                type: "UpdateStudent",
-                hashed: Crypt.sha256(edit.data.studentId),
-                updates: [
-                    {
-                        key: "first",
-                        value: await Crypt.encrypt(
-                            edit.newValue,
-                            admin.password.value,
-                        ),
-                    },
-                ],
+        case "first": {
+            const [first] = await crypto.encrypt([edit.newValue], k1) ?? [null];
+            if (!first) {
+                toast.error("Failed to encrypt data");
+                return;
+            }
+
+            const res = await api.student.update({
+                body: { first },
+                path: { id_hashed: sha256(edit.data.studentId) },
             });
+
+            if (!res.data) {
+                api.error(res.error, res.response);
+            }
+
             break;
-        case "last":
-            send({
-                type: "UpdateStudent",
-                hashed: Crypt.sha256(edit.data.studentId),
-                updates: [
-                    {
-                        key: "last",
-                        value: await Crypt.encrypt(
-                            edit.newValue,
-                            admin.password.value,
-                        ),
-                    },
-                ],
+        }
+        case "last": {
+            const [last] = await crypto.encrypt([edit.newValue], k1) ?? [null];
+            if (!last) {
+                toast.error("Failed to encrypt data");
+                return;
+            }
+
+            const res = await api.student.update({
+                body: { last },
+                path: { id_hashed: sha256(edit.data.studentId) },
             });
+
+            if (!res.data) {
+                api.error(res.error, res.response);
+            }
+
             break;
+        }
     }
 }
-
-provide("onopen", card);
 
 // export
 function exportCSV() {
@@ -98,20 +100,18 @@ function exportCSV() {
 
     const records = [header.join(",")];
 
-    for (const student of data.value) {
+    for (const student of (rows.value?.value ?? [])) {
         for (const cell of student.cells) {
-            for (const entry of cell.entries) {
+            for (const entry of cell.records) {
                 records.push(
                     [
                         student.id,
                         student.first,
                         student.last,
-                        entry.start.toString({ timeZoneName: "never" }),
-                        entry.end
-                            ? entry.end.toString({ timeZoneName: "never" })
-                            : "",
-                        (!entry.end).toString(),
-                        entry.kind,
+                        api.datetime.ser(entry.sign_in),
+                        api.datetime.ser(entry.sign_out) ?? "",
+                        entry.sign_out === null ? "Yes" : "No",
+                        entry.hour_type,
                     ].join(","),
                 );
             }
@@ -127,51 +127,52 @@ function exportCSV() {
     link.click();
 }
 
-function onDelete() {
-    selected.value.forEach((id) => {
-        send({
-            type: "DeleteStudent",
-            hashed: Crypt.sha256(id),
+async function onDelete() {
+    await Promise.all(selected.value.map(async (id) => {
+        const res = await api.student.delete({
+            path: { id_hashed: sha256(id) },
         });
-    });
+
+        if (!res.data) api.error(res.error, res.response);
+    }));
 }
 
-const AddStudentOpen = ref(false);
-const AddStudentSubmit = async (id: string, first: string, last: string) => {
-    const admin = auth.admin.value;
+// const AddStudentOpen = ref(false);
+// const AddStudentSubmit = async (id: string, first: string, last: string) => {
+//     const admin = auth.admin.value;
 
-    if (admin.status !== "ok") return;
+//     if (admin.status !== "ok") return;
 
-    send({
-        type: "AddStudent",
-        student: {
-            id: await Crypt.encrypt(id, admin.password.value),
-            hashed: Crypt.sha256(id),
-            first: await Crypt.encrypt(first, admin.password.value),
-            last: await Crypt.encrypt(last, admin.password.value),
-        },
-    });
-};
+//     send({
+//         type: "AddStudent",
+//         student: {
+//             id: await Crypt.encrypt(id, admin.password.value),
+//             hashed: Crypt.sha256(id),
+//             first: await Crypt.encrypt(first, admin.password.value),
+//             last: await Crypt.encrypt(last, admin.password.value),
+//         },
+//     });
+// };
 
-const AddDateOpen = ref(false);
-const AddDateSubmit = async (sub: AddDateSubmission) => {
-    const admin = auth.admin.value;
+// const AddDateOpen = ref(false);
+// const AddDateSubmit = async (sub: AddDateSubmission) => {
+//     const admin = auth.admin.value;
 
-    if (admin.status !== "ok") return;
+//     if (admin.status !== "ok") return;
 
-    const now = Temporal.Now.zonedDateTimeISO();
+//     const now = Temporal.Now.zonedDateTimeISO();
 
-    send({
-        type: "AddEntry",
-        date: sub.date,
-        hashed: Crypt.sha256(sub.student),
-        entry: {
-            start: sub.date.toPlainDateTime(sub.start).toZonedDateTime(now),
-            end: sub.date.toPlainDateTime(sub.end).toZonedDateTime(now),
-            kind: sub.kind as any,
-        },
-    });
-};
+//     send({
+//         type: "AddEntry",
+//         date: sub.date,
+//         hashed: Crypt.sha256(sub.student),
+//         entry: {
+//             start: sub.date.toPlainDateTime(sub.start).toZonedDateTime(now),
+//             end: sub.date.toPlainDateTime(sub.end).toZonedDateTime(now),
+//             kind: sub.kind as any,
+//         },
+//     });
+// };
 
 definePageMeta({ layout: "admin-protected" });
 defineExpose({ Dropdown: EditorDropdown });

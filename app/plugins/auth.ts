@@ -3,7 +3,6 @@ import {
     useSessionStorage as useSessionStoragePrim,
     type UseStorageOptions,
 } from "@vueuse/core";
-import { toast } from "vue-sonner";
 import api, { type Claims } from "~/utils/api";
 
 export const Keys = narrow({
@@ -161,7 +160,7 @@ export default defineNuxtPlugin(() => {
             });
 
             if (!complete.data) {
-                api.error(complete.error, complete.response, { handle401: "message" });
+                api.error(complete.error, complete.response, { handle401: "api-message" });
                 return { ok: false };
             }
 

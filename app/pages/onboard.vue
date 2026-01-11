@@ -53,7 +53,9 @@ const buttons = [
             const res = await api.auth.onboard.token();
 
             if (res.error) {
-                api.error(res.error, res.response, { handle401: "message" });
+                api.error(res.error, res.response, {
+                    handle401: "api-message",
+                });
                 return;
             }
 
@@ -86,7 +88,7 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
 
     if (!oldstudents.data) {
         api.error(oldstudents.error, oldstudents.response, {
-            handle401: "message",
+            handle401: "api-message",
         });
         return end();
     }
@@ -164,11 +166,13 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
     });
 
     if (obfinish.error) {
-        api.error(obfinish.error, obfinish.response, { handle401: "message" });
+        api.error(obfinish.error, obfinish.response, {
+            handle401: "api-message",
+        });
         return end();
     }
 
-    redirect("/", useRouter(), { throw: "onboard" });
+    useRouter().push(redirect.build("/login", "onboard"));
 }
 </script>
 <template>
