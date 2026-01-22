@@ -436,15 +436,23 @@ async fn declare_event_modules_impl() -> proc_macro2::TokenStream {
                 }
             }
 
-            impl #camel_idents {
-                pub(crate) fn sql_pair(&self) -> Result<(&'static str, serde_json::Value), serde_json::Error> {
-                    let discrim = #snake_strs;
+            impl EventSerializable for #camel_idents {
+                fn sql_pair(&self) -> Result<(EventType, serde_json::Value), serde_json::Error> {
+                    let discrim = EventType::#camel_idents;
                     let v = serde_json::to_value(self)?;
 
                     Ok((discrim, v))
                 }
             }
         )*
+
+        impl EventSerializable for Event {
+            fn sql_pair(&self) -> Result<(EventType, serde_json::Value), serde_json::Error> {
+                match self {
+                    #( Event::#camel_idents(inner) => inner.sql_pair(), )*
+                }
+            }
+        }
     }
 }
 

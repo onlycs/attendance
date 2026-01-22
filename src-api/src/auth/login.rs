@@ -153,11 +153,11 @@ pub(super) async fn finish(
         "Successfully authenticated client"
     );
 
-    let claims = jwt::Claims::new(srp.user_id, jwt::Claims::EXPIRY, &pg).await?;
+    let claims = jwt::Claims::new(srp.user_id.clone(), jwt::Claims::EXPIRY, &pg).await?;
     let jwt = claims.sign()?;
 
     tokio::spawn(async move {
-        if let Err(e) = sqlx::query!(
+        sqlx::query!(
             r#"
             DELETE FROM login_sessions
             WHERE id = $1
@@ -166,10 +166,9 @@ pub(super) async fn finish(
         )
         .execute(&pg)
         .await
-        {
-            error!("Failed to delete used login session: {}", e);
-            return;
-        }
+        .log();
+
+        telemeter(AdminLogin { id: srp.user_id }, &pg).await.log();
     });
 
     Ok(FinishResponse { jwt, claims })

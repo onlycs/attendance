@@ -39,6 +39,7 @@ pub(super) async fn route(
         sid_hashed,
         permissions,
     }: Request,
+    claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<Response, Error> {
     let token = cuid2();
@@ -49,16 +50,28 @@ pub(super) async fn route(
 
     sqlx::query!(
         r#"
-        INSERT INTO invites (id, k2, sid_hashed, permissions)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO invites (id, inviter_id, k2, sid_hashed, permissions)
+        VALUES ($1, $2, $3, $4, $5)
         "#,
         token,
+        claims.sub,
         k2,
         sid_hashed,
         serde_json::to_value(&permissions)?
     )
     .execute(&pg)
     .await?;
+
+    tokio::spawn(async move {
+        telemeter(
+            InviteAdd {
+                admin_id: claims.sub,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
 
     Ok(Response { token, k2 })
 }

@@ -1,4 +1,7 @@
-use crate::{dbstream::Student, prelude::*};
+use crate::{
+    dbstream::{PartialStudent, Student},
+    prelude::*,
+};
 
 #[derive(Object)]
 #[oai(rename = "StudentUpdateRequest")]
@@ -33,30 +36,56 @@ pub(super) enum Error {
 pub(super) async fn route(
     id_hashed: String,
     Request { id, first, last }: Request,
+    claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<Response, Error> {
-    let record = sqlx::query!(
+    let old = sqlx::query_as!(
+        Student,
         r#"
-        UPDATE students
-        SET id = COALESCE($1, id),
-            first = COALESCE($2, first),
-            last = COALESCE($3, last)
-        WHERE id_hashed = $4
-        RETURNING id, first, last
+        SELECT * FROM students
+        WHERE id_hashed = $1
         "#,
-        id,
-        first,
-        last,
         id_hashed,
     )
     .fetch_optional(&pg)
     .await?
     .ok_or(Error::not_found())?;
 
-    Ok(Response {
-        id: record.id,
+    let record = sqlx::query_as!(
+        Student,
+        r#"
+        UPDATE students
+        SET id = COALESCE($1, id),
+            first = COALESCE($2, first),
+            last = COALESCE($3, last)
+        WHERE id_hashed = $4
+        RETURNING *
+        "#,
+        id,
+        first,
+        last,
         id_hashed,
-        first: record.first,
-        last: record.last,
-    })
+    )
+    .fetch_one(&pg) // checked for existence above
+    .await?;
+
+    tokio::spawn(async move {
+        telemeter(
+            StudentEdit {
+                admin_id: claims.sub,
+                old,
+                updated: PartialStudent {
+                    id_hashed,
+                    id,
+                    first,
+                    last,
+                },
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
+
+    Ok(record)
 }

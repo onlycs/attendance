@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use poem_openapi::types::ToJSON;
 use totp_rs::{Algorithm, TOTP};
 
-use crate::{auth::Claims, prelude::*};
+use crate::prelude::*;
 
 #[derive(Object)]
 #[oai(rename = "SwipeRequest")]
@@ -142,7 +142,7 @@ pub(super) async fn route(
         return Err(SwipeError::unauthorized());
     }
 
-    let claims = Claims::new(issuer, Claims::EXPIRY, &pg).await?;
+    let claims = jwt::Claims::new(issuer, jwt::Claims::EXPIRY, &pg).await?;
     claims.perms.assert(Permission::Roster)?;
 
     if !kind.allowed() {
@@ -190,6 +190,19 @@ pub(super) async fn route(
         .execute(&pg)
         .await?;
 
+        tokio::spawn(async move {
+            telemeter(
+                StudentLogout {
+                    sid_hashed,
+                    record_id: record.id,
+                    admin_id: claims.sub,
+                },
+                &pg,
+            )
+            .await
+            .log();
+        });
+
         return Ok(Response::Acted(SwipeAction::Logout));
     }
 
@@ -197,6 +210,7 @@ pub(super) async fn route(
         return Ok(Response::Fallthrough(SwipeFallthrough::Ignored));
     }
 
+    let id = cuid2();
     let q = sqlx::query!(
         r#"
         INSERT INTO records (id, sid_hashed, hour_type, sign_in)
@@ -207,7 +221,7 @@ pub(super) async fn route(
             WHERE s.id_hashed = $2
         )
         "#,
-        cuid2(),
+        id,
         sid_hashed,
         kind as HourType,
     )
@@ -217,6 +231,19 @@ pub(super) async fn route(
     if q.rows_affected() == 0 {
         return Err(SwipeError::not_found());
     }
+
+    tokio::spawn(async move {
+        telemeter(
+            StudentLogin {
+                sid_hashed,
+                record_id: id,
+                admin_id: claims.sub,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
 
     Ok(Response::Acted(SwipeAction::Login))
 }

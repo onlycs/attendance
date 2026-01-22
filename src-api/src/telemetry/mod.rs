@@ -68,3 +68,27 @@ impl TelemetryService {
         ))
     }
 }
+
+pub async fn telemeter(
+    event: impl events::EventSerializable,
+    pg: &PgPool,
+) -> Result<(), sqlx::Error> {
+    let (evt, json) = event.sql_pair().map_err(|e| sqlx::Error::ColumnDecode {
+        index: "data".into(),
+        source: Box::new(e),
+    })?;
+
+    sqlx::query!(
+        r#"
+        INSERT INTO telemetry (id, event, data)
+        VALUES ($1, $2, $3)
+        "#,
+        cuid2(),
+        evt as EventType,
+        json,
+    )
+    .execute(pg)
+    .await?;
+
+    Ok(())
+}

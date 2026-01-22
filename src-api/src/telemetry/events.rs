@@ -44,6 +44,10 @@ macro_rules! migrator {
 
 declare_event_modules!();
 
+pub(crate) trait EventSerializable {
+    fn sql_pair(&self) -> Result<(EventType, serde_json::Value), serde_json::Error>;
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct RawTelemetryEvent {
     id: String,

@@ -121,7 +121,8 @@ impl RosterService {
     ) -> Result<Json<crud::CreateResponse>, crud::CreateError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursEdit)?;
-        Ok(Json(crud::add(request.0, self.pg.clone()).await?))
+
+        Ok(Json(crud::add(request.0, claims, self.pg.clone()).await?))
     }
 
     #[oai(path = "/", method = "patch")]
@@ -132,7 +133,10 @@ impl RosterService {
     ) -> Result<Json<crud::UpdateResponse>, crud::UpdateError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursEdit)?;
-        Ok(Json(crud::update(request.0, self.pg.clone()).await?))
+
+        Ok(Json(
+            crud::update(request.0, claims, self.pg.clone()).await?,
+        ))
     }
 
     #[oai(path = "/", method = "delete")]
@@ -143,7 +147,10 @@ impl RosterService {
     ) -> Result<Json<crud::DeleteResponse>, crud::DeleteError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursEdit)?;
-        Ok(Json(crud::delete(request.0, self.pg.clone()).await?))
+
+        Ok(Json(
+            crud::delete(request.0, claims, self.pg.clone()).await?,
+        ))
     }
 
     #[oai(path = "/allowed", method = "get")]

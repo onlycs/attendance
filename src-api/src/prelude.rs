@@ -56,8 +56,9 @@ pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use sqlx::PgPool;
 
 pub(crate) use crate::{
-    auth::{Jwt, JwtVerifyError, Permission, PermissionDeniedError},
+    auth::jwt::{self, Jwt, JwtVerifyError, Permission, PermissionDeniedError},
     dbstream,
     error::LogError,
     roster::HourType,
+    telemetry::{events::*, telemeter},
 };

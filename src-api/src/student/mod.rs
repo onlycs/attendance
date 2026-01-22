@@ -48,7 +48,7 @@ impl StudentService {
     async fn add(&self, request: Json<add::Request>, jwt: Jwt) -> Result<(), add::Error> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::StudentAdd)?;
-        add::route(request.0, self.pg.clone()).await
+        add::route(request.0, claims, self.pg.clone()).await
     }
 
     #[oai(path = "/:id_hashed", method = "get")]
@@ -72,7 +72,7 @@ impl StudentService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::StudentEdit)?;
         Ok(Json(
-            update::route(id_hashed.0, request.0, self.pg.clone()).await?,
+            update::route(id_hashed.0, request.0, claims, self.pg.clone()).await?,
         ))
     }
 
@@ -84,7 +84,9 @@ impl StudentService {
     ) -> Result<Json<delete::Response>, delete::Error> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::StudentDelete)?;
-        Ok(Json(delete::route(id_hashed.0, self.pg.clone()).await?))
+        Ok(Json(
+            delete::route(id_hashed.0, claims, self.pg.clone()).await?,
+        ))
     }
 
     #[oai(path = "/:id_hashed/hours", method = "get")]

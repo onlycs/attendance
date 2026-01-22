@@ -145,7 +145,11 @@ pub(super) async fn finish(
 
     tx.commit().await?;
 
-    super::register::finish(register, pg).await?;
+    let id = super::register::finish(register, pg.clone()).await?;
+
+    tokio::spawn(async move {
+        telemeter(Onboard { admin_id: id }, &pg).await.log();
+    });
 
     Ok(())
 }

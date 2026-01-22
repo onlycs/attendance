@@ -17,27 +17,31 @@ pub(super) enum Error {
 }
 
 #[tracing::instrument(skip(pg), err)]
-pub(super) async fn route(
-    Request {
-        id_hashed,
-        id,
-        first,
-        last,
-    }: Request,
-    pg: PgPool,
-) -> Result<(), Error> {
+pub(super) async fn route(incoming: Request, claims: jwt::Claims, pg: PgPool) -> Result<(), Error> {
     sqlx::query!(
         r#"
         INSERT INTO students (id_hashed, id, first, last)
         VALUES ($1, $2, $3, $4)
         "#,
-        id_hashed,
-        id,
-        first,
-        last
+        incoming.id_hashed,
+        incoming.id,
+        incoming.first,
+        incoming.last
     )
     .execute(&pg)
     .await?;
+
+    tokio::spawn(async move {
+        telemeter(
+            StudentAdd {
+                admin_id: claims.sub,
+                student: incoming,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
 
     Ok(())
 }

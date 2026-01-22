@@ -1,5 +1,5 @@
 mod invite;
-pub(in crate::auth) mod jwt;
+pub(crate) mod jwt;
 mod login;
 mod onboard;
 mod prelude;
@@ -48,7 +48,9 @@ impl AuthService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::AdminInvite)?;
 
-        Ok(Json(invite::route(request.0, self.pg.clone()).await?))
+        Ok(Json(
+            invite::route(request.0, claims, self.pg.clone()).await?,
+        ))
     }
 
     #[oai(path = "/register", method = "get")]
@@ -93,5 +95,3 @@ impl AuthService {
         Ok(())
     }
 }
-
-pub(crate) use jwt::{Claims, Jwt, JwtVerifyError, Permission, PermissionDeniedError};

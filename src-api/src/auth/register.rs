@@ -48,7 +48,7 @@ pub(super) enum FinishError {
 pub(super) async fn start(token: String, pg: PgPool) -> Result<StartResponse, StartError> {
     let invite = sqlx::query!(
         r#"
-        SELECT k2, sid_hashed, permissions
+        SELECT k2, inviter_id, sid_hashed, permissions
         FROM invites
         WHERE id = $1 AND expiry > NOW()
         "#,
@@ -60,10 +60,11 @@ pub(super) async fn start(token: String, pg: PgPool) -> Result<StartResponse, St
 
     sqlx::query!(
         r#"
-        INSERT INTO register_sessions (id, sid_hashed, permissions)
-        VALUES ($1, $2, $3)
+        INSERT INTO register_sessions (id, inviter_id, sid_hashed, permissions)
+        VALUES ($1, $2, $3, $4)
         "#,
         token,
+        invite.inviter_id,
         invite.sid_hashed,
         invite.permissions
     )
@@ -96,10 +97,10 @@ pub(super) async fn finish(
         s,
     }: FinishRequest,
     pg: PgPool,
-) -> Result<(), FinishError> {
+) -> Result<String, FinishError> {
     let res = sqlx::query!(
         r#"
-        SELECT sid_hashed, permissions FROM register_sessions
+        SELECT sid_hashed, inviter_id, permissions FROM register_sessions
         WHERE id = $1 AND expiry > NOW()
         "#,
         token
@@ -129,6 +130,7 @@ pub(super) async fn finish(
         .create(&userid, &pg)
         .await?;
 
+    let uid_telemetry = userid.clone();
     tokio::spawn(async move {
         sqlx::query!(
             r#"
@@ -140,7 +142,21 @@ pub(super) async fn finish(
         .execute(&pg)
         .await
         .log();
+
+        let Some(inviter) = res.inviter_id else {
+            return;
+        };
+
+        telemeter(
+            InviteUse {
+                invitee_id: uid_telemetry,
+                inviter_id: inviter,
+            },
+            &pg,
+        )
+        .await
+        .log();
     });
 
-    Ok(())
+    Ok(userid)
 }

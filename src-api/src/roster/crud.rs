@@ -158,6 +158,7 @@ pub(super) async fn add(
         time_in,
         time_out,
     }: CreateRequest,
+    claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<CreateResponse, CreateError> {
     if let Some(to) = time_out {
@@ -168,50 +169,59 @@ pub(super) async fn add(
         }
     }
 
-    sqlx::query!(
+    let res = sqlx::query_as::<_, Record>(
         r#"
         INSERT INTO records (id, sid_hashed, hour_type, sign_in, sign_out)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
+        RETURNING *
         "#,
-        cuid2(),
-        sid_hashed,
-        kind as HourType,
-        time_in,
-        time_out,
     )
+    .bind(cuid2())
+    .bind(sid_hashed)
+    .bind(kind)
+    .bind(time_in)
+    .bind(time_out)
     .fetch_one(&pg)
-    .await
-    .map_err(CreateError::from)
-    .map(|rec| CreateResponse { entry_id: rec.id })
+    .await?;
+
+    let entry_id = res.id.clone();
+
+    tokio::spawn(async move {
+        telemeter(
+            RecordAdd {
+                admin_id: claims.sub,
+                record: res,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
+
+    Ok(CreateResponse { entry_id })
 }
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn update(
-    UpdateRequest {
-        id,
-        sid_hashed,
-        hour_type,
-        sign_in,
-        sign_out,
-    }: UpdateRequest,
+    incoming: UpdateRequest,
+    claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<UpdateResponse, UpdateError> {
     'ok: {
         // if we set sign_out to null, skip all checks
-        if let MaybeUndefined::Null = sign_out {
+        if let MaybeUndefined::Null = incoming.sign_out {
             break 'ok;
         }
 
         // if we don't touch them, no need to validate
-        if sign_in.is_none()
-            && let MaybeUndefined::Undefined = sign_out
+        if incoming.sign_in.is_none()
+            && let MaybeUndefined::Undefined = incoming.sign_out
         {
             break 'ok;
         }
 
         // here, sign_out is either Undefined or present
-        let sign_out = match sign_out.value() {
+        let sign_out = match incoming.sign_out.value() {
             Some(out) => *out,
             None => {
                 let Some(out) = sqlx::query!(
@@ -219,7 +229,7 @@ pub(super) async fn update(
                     SELECT sign_out FROM records
                     WHERE id = $1
                     "#,
-                    id,
+                    incoming.id,
                 )
                 .fetch_optional(&pg)
                 .await?
@@ -234,7 +244,7 @@ pub(super) async fn update(
             }
         };
 
-        let sign_in = match sign_in {
+        let sign_in = match incoming.sign_in {
             Some(in_time) => in_time,
             None => {
                 sqlx::query!(
@@ -242,7 +252,7 @@ pub(super) async fn update(
                     SELECT sign_in FROM records
                     WHERE id = $1
                     "#,
-                    id,
+                    incoming.id,
                 )
                 .fetch_optional(&pg)
                 .await?
@@ -259,7 +269,19 @@ pub(super) async fn update(
         }
     };
 
-    sqlx::query_as::<_, Record>(
+    let old = sqlx::query_as::<_, Record>(
+        r#"
+        SELECT *
+        FROM records
+        WHERE id = $1
+        "#,
+    )
+    .bind(&incoming.id)
+    .fetch_optional(&pg)
+    .await?
+    .ok_or(UpdateError::not_found())?;
+
+    let new = sqlx::query_as::<_, Record>(
         r#"
         UPDATE records
         SET
@@ -271,19 +293,34 @@ pub(super) async fn update(
         RETURNING *
         "#,
     )
-    .bind(id)
-    .bind(sid_hashed)
-    .bind(hour_type)
-    .bind(sign_in)
-    .bind(sign_out.value())
-    .fetch_optional(&pg)
-    .await?
-    .ok_or(UpdateError::not_found())
+    .bind(&incoming.id)
+    .bind(&incoming.sid_hashed)
+    .bind(incoming.hour_type)
+    .bind(incoming.sign_in)
+    .bind(incoming.sign_out.value())
+    .fetch_one(&pg) // checked for existence above
+    .await?;
+
+    tokio::spawn(async move {
+        telemeter(
+            RecordEdit {
+                admin_id: claims.sub,
+                old,
+                updated: incoming,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
+
+    Ok(new)
 }
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn delete(
     DeleteRequest { entry_id }: DeleteRequest,
+    claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<DeleteResponse, DeleteError> {
     let record = sqlx::query_as::<_, Record>(
@@ -297,6 +334,19 @@ pub(super) async fn delete(
     .fetch_optional(&pg)
     .await?
     .ok_or(DeleteError::not_found())?;
+
+    let record_telemeter = record.clone();
+    tokio::spawn(async move {
+        telemeter(
+            RecordDelete {
+                admin_id: claims.sub,
+                record: record_telemeter,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
 
     Ok(record)
 }

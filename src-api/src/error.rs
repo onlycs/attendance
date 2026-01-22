@@ -36,34 +36,14 @@ pub enum InitError {
 pub(crate) trait LogError<E>: Sized {
     fn log(self)
     where
-        E: fmt::Display;
-
-    fn dbg(self)
-    where
-        E: fmt::Debug;
+        E: fmt::Display + fmt::Debug;
 }
 
 impl<T, E> LogError<E> for Result<T, E> {
     #[track_caller]
     fn log(self)
     where
-        E: fmt::Display,
-    {
-        let Err(e) = self else {
-            return;
-        };
-
-        error!(
-            source = %e,
-            location = %Location::caller(),
-            "Caught an error"
-        );
-    }
-
-    #[track_caller]
-    fn dbg(self)
-    where
-        E: fmt::Debug,
+        E: fmt::Display + fmt::Debug,
     {
         let Err(e) = self else {
             return;
@@ -72,7 +52,7 @@ impl<T, E> LogError<E> for Result<T, E> {
         error!(
             source = ?e,
             location = %Location::caller(),
-            "Caught an error"
-        )
+            "Caught an error: {e}"
+        );
     }
 }

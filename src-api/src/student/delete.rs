@@ -22,12 +22,17 @@ pub(super) enum Error {
 }
 
 #[tracing::instrument(skip(pg), err)]
-pub(super) async fn route(id_hashed: String, pg: PgPool) -> Result<Response, Error> {
-    let record = sqlx::query!(
+pub(super) async fn route(
+    id_hashed: String,
+    claims: jwt::Claims,
+    pg: PgPool,
+) -> Result<Response, Error> {
+    let student = sqlx::query_as!(
+        Student,
         r#"
         DELETE FROM students
         WHERE id_hashed = $1
-        RETURNING id, first, last
+        RETURNING *
         "#,
         id_hashed,
     )
@@ -35,10 +40,18 @@ pub(super) async fn route(id_hashed: String, pg: PgPool) -> Result<Response, Err
     .await?
     .ok_or(Error::not_found())?;
 
-    Ok(Response {
-        id: record.id,
-        id_hashed,
-        first: record.first,
-        last: record.last,
-    })
+    let student_telemeter = student.clone();
+    tokio::spawn(async move {
+        telemeter(
+            StudentDelete {
+                admin_id: claims.sub,
+                student: student_telemeter,
+            },
+            &pg,
+        )
+        .await
+        .log();
+    });
+
+    Ok(student)
 }
