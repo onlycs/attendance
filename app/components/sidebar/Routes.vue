@@ -25,9 +25,10 @@ onLoad(() => {
 });
 
 function expand(h: number) {
-    return {
-        height: `${(h * 9 + (h - 1) * 1.5) * 0.25}rem`,
-    };
+    const fit = h + 1;
+    const height = 12;
+    const gap = 1.5;
+    return `${0.25 * (fit * height + (fit - 1) * gap)}rem`;
 }
 </script>
 
@@ -47,7 +48,11 @@ function expand(h: number) {
             </Button>
             <div
                 class="dropdownbox"
-                :style="expand(Object.keys(route.children).length)"
+                :style="{
+                    '--expand': expand(
+                        Object.keys(route.children).length,
+                    ),
+                }"
                 v-else
             >
                 <div
@@ -89,26 +94,30 @@ function expand(h: number) {
     @apply relative;
 }
 
-.group\/sidebar:not(:hover) .dropdownbox {
-    @apply h-0!;
+.dropdownbox :deep(.routes) {
+    @apply h-0;
+}
+
+.dropdownbox {
+    @apply h-12 group-hover/sidebar:h-[var(--expand)];
 }
 
 .routes :deep(.routebtn) {
-    @apply p-3!;
+    @apply p-3;
     @apply transition-all;
 }
 
 .routes.child :deep(.routebtn) {
-    @apply opacity-0!;
+    @apply opacity-0;
     @apply group-hover/sidebar:opacity-100!;
 }
 
 .routes :deep(.route) {
-    @apply flex flex-row! justify-start! items-center!;
+    @apply flex justify-start;
 
     .icon {
         @apply size-6;
-        @apply group-hover/sidebar:mr-4!;
+        @apply group-hover/sidebar:mr-4;
     }
 
     .text {

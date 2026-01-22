@@ -170,14 +170,15 @@ pub(super) async fn add(
 
     sqlx::query!(
         r#"
-        INSERT INTO records (sid_hashed, hour_type, sign_in, sign_out)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO records (id, sid_hashed, hour_type, sign_in, sign_out)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
         "#,
+        cuid2(),
         sid_hashed,
         kind as HourType,
         time_in,
-        time_out
+        time_out,
     )
     .fetch_one(&pg)
     .await

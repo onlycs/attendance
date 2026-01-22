@@ -83,8 +83,6 @@ async function roster(id?: string, force = false) {
 }
 
 watch(currentId, (currentId, last) => {
-    console.log(currentId.length, last.length);
-
     if (
         currentId.length == studentId.length && last.length < studentId.length
     ) {

@@ -14,24 +14,25 @@ const open = ref(false);
 const loading = ref(false);
 const promise = ref((_a: AuthData & { role: "admin"; ok: true; }) => {});
 
-function exit(force?: boolean) {
-    if (!open.value && !force) return;
-    open.value = false;
-    usrhook.stop();
-    auth.clear();
-    router.push(redirect.build("/", "session-expired"));
-}
-
 const usrhook = watch(user, () => {
-    if (user.value.role !== "admin") return exit(true);
+    if (user.value.role !== "admin") return exit(true, false);
     if (user.value.ok) return open.value = false;
 
     const exp = user.value.claims.exp;
     const now = Math.floor(Date.now() / 1000);
-    if (exp < now) return exit();
+    if (exp < now) return exit(true, false);
 
     open.value = true;
 }, { immediate: true });
+
+function exit(force = false, kill = true) {
+    if (!(open.value || force)) return; // continue iff open or forced
+    if (kill) usrhook(); // when called in usrhook's constructor, don't kill the hook or will error
+
+    open.value = false;
+    auth.clear();
+    router.push(redirect.build("/", "session-expired"));
+}
 
 watch(open, open => {
     if (open) loading.value = false;
@@ -110,7 +111,7 @@ const deps = {};
             </div>
         </div>
 
-        <Drawer :open @close="exit">
+        <Drawer v-model:open="open" @close="exit">
             <div class="title">
                 Enter Password to Continue
             </div>

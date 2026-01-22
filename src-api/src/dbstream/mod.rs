@@ -25,8 +25,20 @@ pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>() -> BroadcastStr
             let mut listener = PgListener::connect(&*env::DATABASE_URL).await?;
             listener.listen(&format!("replicate:{}", R::NAME)).await?;
 
+            info!(
+                task = %format!("ws::sql::{}", R::NAME),
+                "started replication listener"
+            );
+
             while let Ok(notif) = listener.recv().await {
                 let pl = notif.payload();
+
+                debug!(
+                    task = %format!("ws::sql::{}", R::NAME),
+                    payload = %pl,
+                    "received replication notification"
+                );
+
                 let repl = match serde_json::from_str::<Replication<R>>(pl) {
                     Ok(r) => r,
                     Err(err) => {

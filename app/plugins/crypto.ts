@@ -9,7 +9,18 @@ export class CryptoWorker {
     private id = 0;
 
     constructor() {
-        this.worker = new Worker(new URL("~/workers/attendance-crypto.ts", import.meta.url), { type: "module" });
+        this.worker = new Worker(
+            new URL("../workers/attendance-crypto.ts", import.meta.url),
+            { type: "module" },
+        );
+
+        this.worker.onerror = (error) => {
+            console.error("Worker error:", error);
+        };
+
+        this.worker.onmessageerror = (error) => {
+            console.error("Worker message error:", error);
+        };
 
         this.worker.onmessage = (event: MessageEvent<{ id: number; result: any; }>) => {
             const { id, result } = event.data;

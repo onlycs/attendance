@@ -1,175 +1,230 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import { Math2 } from "~/utils/math";
 import type { InstantPickerProps } from "./TimePicker.vue";
 
-const { icon, color, background } = defineProps<InstantPickerProps>();
-const date = defineModel<Temporal.PlainDate>("date");
-const temp = ref(date.value ?? Temporal.Now.plainDateISO());
-const emit = defineEmits<{ submit: [Temporal.PlainDate]; }>();
-const edate = computed({
-    get() {
-        return date.value ?? temp.value;
+const props = withDefaults(
+    defineProps<InstantPickerProps>(),
+    {
+        icon: "hugeicons:calendar-03",
+        color: "gray",
+        background: "bg",
     },
-    set(v: Temporal.PlainDate) {
-        if (date.value) date.value = v;
-        else temp.value = v;
+);
+
+const pdate = defineModel<Temporal.PlainDate>("date");
+const tdate = ref(pdate.value ?? Temporal.PlainDate.from("1972-01-01")); // would have done 1970 but need leap year or temporal clamps
+const vis = ref(pdate.value ? 8 : 0);
+
+const DIGITS = 8;
+type DIGITS = typeof DIGITS;
+
+const date = computed({
+    get: () => pdate.value ?? tdate.value,
+    set: (v) => {
+        if (vis.value >= DIGITS) pdate.value = v;
+        else tdate.value = v;
     },
 });
 
-const month = computed<[number, number]>(() => {
-    const m = edate.value.month;
-    return [Math.floor(m / 10), m % 10] as const;
-});
+function digit(
+    getter: () => number,
+    setter: (n: number) => void,
+    place: number,
+) {
+    return computedWithControl([date], {
+        get: () => Math.floor(getter() / 10 ** place) % 10,
+        set: (v) => {
+            const cur = Math.floor(getter() / 10 ** place) % 10;
+            setter(getter() + (v - cur) * 10 ** place);
+        },
+    });
+}
 
-const day = computed(() => {
-    const d = edate.value.day;
-    return [Math.floor(d / 10), d % 10] as const;
-});
+function alldigits<N extends number>(
+    getter: () => number,
+    setter: (n: number) => void,
+    places: N,
+): FixedArray<Ref<number>, N> {
+    return Array.from(
+        { length: places },
+        (_, i) => digit(getter, setter, places - i - 1),
+    ) as FixedArray<Ref<number>, N>;
+}
 
-const year = computed(() => {
-    const y = edate.value.year.toString().slice(2);
-    return y.padStart(2, "0").split("").map(Number) as [number, number];
-});
+/// Ensure year is a leap year if not fully visible
+function visyear(year: number, add = false) {
+    const tens = (n: number) => Math.floor(n / 10);
+
+    const skipVis = vis.value + 1 >= DIGITS; // skip if year visible
+    const force = date.value.month === 2 && active.value === 3
+        && digits[2].value === 2; // force if editing feb 2X
+
+    if (skipVis && !force) return year;
+    if (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) return year;
+
+    // note: this function will return, eventually. each decade has >= 2 leap years
+    if (add || tens(year - 1) !== tens(year)) return visyear(year + 1, true);
+    return visyear(year - 1);
+}
+
+const digits = [
+    ...alldigits(
+        () => date.value.month,
+        (month) => {
+            date.value = date.value.with({
+                month,
+                year: visyear(date.value.year),
+            });
+        },
+        2,
+    ),
+    ...alldigits(
+        () => date.value.day,
+        (day) => {
+            date.value = date.value.with({
+                day,
+                year: visyear(date.value.year),
+            });
+        },
+        2,
+    ),
+    ...alldigits(
+        () => date.value.year,
+        (year) => date.value = date.value.with({ year: visyear(year) }),
+        4,
+    ),
+] as FixedArray<Ref<number>, DIGITS>;
+
+const max = [
+    1,
+    9,
+    computed(() => date.value.month === 2 ? 2 : 3), // no day 3x for feb
+    9,
+    9,
+    9,
+    9,
+    9,
+] as FixedArray<MaybeRef<number>, DIGITS>;
 
 const active = ref(-1);
-const input = ref<HTMLDivElement>();
+const hidden = ref<HTMLInputElement>();
 
-function placement(i: number) {
-    return i + Math.floor(i / 2);
+function start(n: number) {
+    hidden.value?.focus();
+    active.value = Math.min(n, vis.value);
 }
 
 function end() {
-    input.value?.blur();
+    hidden.value?.blur();
 }
 
 function blur() {
-    if ((date.value || active.value === 6) && active.value !== 0) {
-        if (!date.value) date.value = Temporal.PlainDate.from(edate.value);
-        emit("submit", Temporal.PlainDate.from(date.value));
-    }
-
     active.value = -1;
 }
 
-function start() {
-    active.value = 0;
-}
-
-function setMonth(m: number) {
-    const month = Math2.clamp(m, 1, 12);
-    edate.value = edate.value.with({ month });
-}
-
-function setDay(d: number) {
-    const day = Math2.clamp(d, 1, edate.value.daysInMonth);
-    edate.value = edate.value.with({ day });
-}
-
-function setYear(y: number) {
-    const year = Math2.clamp(y, 0, 99) + 2000;
-    edate.value = edate.value.with({ year });
+function focus() {
+    if (active.value === -1) start(0);
 }
 
 function keypress(kp: KeyboardEvent) {
-    if (active.value === -1) return;
+    const current = active.value;
+
+    if (current === -1) return;
 
     const key = kp.key.toLowerCase();
-    const canForwards = date.value && active.value < 5;
-    const canBack = active.value > 0;
+    const canForwards = current < vis.value;
+    const canBack = current > 0;
 
     if (key === "backspace" && canBack) return active.value--;
     if (key === "arrowleft" && canBack) return active.value--;
     if (key === "arrowright" && canForwards) return active.value++;
     if (key === "enter") return end();
 
-    if (!Math2.bounded(active.value, 0, 6) || key.length !== 1) return;
+    // if on day/month ones, and we hit "/"
+    if (key === "/" && current % 2 === 1 && current < 4) {
+        // move tens to ones, and 0 to tens
+        const prev = digits[current - 1]!.value;
+        if (prev === 0) return; // neither day nor month can be == 0
+
+        digits[current]!.value = prev;
+        setTimeout(() => digits[current - 1]!.value = 0, 0); // race condition in setters? who tf knows
+        active.value++;
+        vis.value = Math.max(vis.value, active.value);
+        return;
+    }
 
     if (!/^\d$/.test(key)) return;
     const num = Number(key);
 
-    const activate = (
-        tensLim: number,
-        set: (v: number) => void,
-        ref: Ref<readonly [number, number]>,
-    ) => {
-        if (active.value % 2 === 0) {
-            if (num > tensLim) {
-                active.value++;
-                set(num);
-            } else {
-                set(num * 10 + ref.value[1]);
-            }
-        } else {
-            set(ref.value[0] * 10 + num);
-        }
-    };
+    if (num > unref(max[active.value]!)) {
+        const cur = active.value;
+        setTimeout(() => digits[cur]!.value = 0, 0);
+        active.value++;
+    }
 
-    const index = Math.floor(active.value / 2);
-    const tensLim = [1, 3, 9][index]!;
-    const setter = [setMonth, setDay, setYear][index]!;
-    const ref = [month, day, year][index]!;
-
-    activate(tensLim, setter, ref);
+    digits[active.value]!.value = num;
     active.value++;
-
-    if (active.value === 6) end();
+    vis.value = Math.max(vis.value, active.value);
 }
 
 const datestr = computed(() => {
-    const hide = !date.value ? active.value : 6;
+    const display = (n: number) => {
+        const sep = [1, 3].includes(n);
+        return narrow([
+            n >= vis.value ? "-" : String(digits[n]!.value),
+            sep,
+        ]);
+    };
 
-    const m1 = hide <= 0 ? "-" : month.value[0];
-    const m2 = hide <= 1 ? "-" : month.value[1];
-    const d1 = hide <= 2 ? "-" : day.value[0];
-    const d2 = hide <= 3 ? "-" : day.value[1];
-    const y1 = hide <= 4 ? "-" : year.value[0];
-    const y2 = hide <= 5 ? "-" : year.value[1];
-
-    return `${m1}${m2}/${d1}${d2}/${y1}${y2}`;
+    return Array.from({ length: DIGITS }, (_, i) => display(i));
 });
 
-const iconClass = computed(() => {
-    if (color === "red") return "!text-red-400";
-    if (color === "green") return "!text-green-400";
-    return "!text-sub";
+watch(vis, (vis, old) => {
+    if (vis === DIGITS && old < DIGITS) {
+        pdate.value = tdate.value;
+    }
+});
+
+watch(active, active => {
+    if (active >= DIGITS) end();
 });
 </script>
 
 <template>
     <div
+        class="input"
         tabindex="0"
-        :class="cn(
-            'input',
-            $props.background === 'card' ? '!bg-card' : '!bg-background',
-        )"
-        ref="input"
-        @focusin="start"
+        @focusin="focus"
         @focusout="blur"
         @keydown="keypress"
     >
+        <input
+            ref="hidden"
+            class="hidden-input"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+        />
+
         <Icon
-            :name="icon ?? 'hugeicons:calendar-03'"
-            :class="cn('icon', active !== -1 ? 'focused' : '', iconClass)"
-            size="20"
+            :name="icon"
+            :class="cn('icon', props.color, active !== -1 ? 'focused' : '')"
+            size="24"
         />
 
         <div class="display">
-            {{ datestr }}
-
-            <div
-                v-for="i of 6"
-                :key="i - 1"
-                :class="cn(
-                    'line',
-                    i !== 7 && active === i - 1 ? 'active' : '',
-                )"
-                :style="{
-                    left: `${
-                        Math2.round(9.6 * placement(i - 1), 1)
-                    }px`,
-                }"
-            />
+            <template v-for="([n, sep], i) of datestr">
+                <span
+                    :class="cn(
+                        'text sel',
+                        i == active && 'active',
+                    )"
+                    @click="start(i)"
+                >
+                    {{ n }}
+                </span>
+                <span v-if="sep" class="text">/</span>
+            </template>
         </div>
     </div>
 </template>
@@ -179,37 +234,66 @@ const iconClass = computed(() => {
 
 .input {
     @apply relative;
-    @apply flex flex-row justify-center items-center gap-4 flex-1;
-    @apply bg-card rounded-lg px-6 py-4;
-    @apply font-["JetBrainsMono_Nerd_Font",monospace] select-none;
-    @apply transition-all duration-200;
+    @apply flex flex-row justify-center items-center;
+    @apply bg-drop rounded-lg p-3 pl-0.5;
+    @apply select-none;
+    @apply transition-all duration-150;
 }
 
 .display {
-    @apply relative;
-    @apply cursor-pointer select-none;
+    @apply flex relative flex-row gap-1;
+    @apply select-none;
 }
 
-.icon {
-    @apply text-sub;
-    @apply transition-colors duration-200;
+.text {
+    @apply text-lg py-1;
+    @apply transition-all duration-150;
 
-    &.focused {
-        @apply text-white;
+    &.sel {
+        @apply border rounded-xs px-1.5;
+        @apply duration-100;
+
+        &.active {
+            @apply border-white;
+        }
     }
 }
 
-.underlines {
-    @apply absolute;
+.icon {
+    @apply transition-colors duration-200;
+    @apply mx-4;
+
+    &.red {
+        @apply text-red-400;
+
+        &.focused {
+            @apply text-red-300;
+        }
+    }
+
+    &.green {
+        @apply text-green-400;
+
+        &.focused {
+            @apply text-green-300;
+        }
+    }
+
+    &.gray {
+        @apply text-sub;
+
+        &.focused {
+            @apply text-text;
+        }
+    }
 }
 
-.line {
-    @apply absolute top-[24px] h-[1px] w-[9.6px];
-    @apply border-b-sub border-b border-dotted;
-    @apply transition-all duration-200;
+.hidden-input {
+    @apply absolute w-1 h-1;
+    @apply opacity-0;
 
-    &.active {
-        @apply border-solid border-white;
+    &:focus {
+        @apply outline-none;
     }
 }
 </style>

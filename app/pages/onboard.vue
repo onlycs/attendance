@@ -172,7 +172,7 @@ async function submit(output: FormOutput<typeof form, typeof deps>) {
         return end();
     }
 
-    useRouter().push(redirect.build("/login", "onboard"));
+    useRouter().push(redirect.build("/", "onboard"));
 }
 </script>
 <template>

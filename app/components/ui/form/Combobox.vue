@@ -1,24 +1,24 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="K extends string | number">
 import type { Input } from "#components";
 import { Fzf } from "fzf";
 
-export interface ComboboxProps {
-    options: { [key: string]: string; };
+export interface ComboboxProps<Key extends string | number> {
+    kv: Record<Key, string>;
 }
 
-const props = defineProps<ComboboxProps>();
-const selected = defineModel<string>();
+const props = defineProps<ComboboxProps<K>>();
+const selected = defineModel<K>();
 
 const container = ref<HTMLDivElement>();
 const inputbox = ref<InstanceType<typeof Input>>();
-const active = computed(() => inputbox.value?.active);
+const active = computed(() => inputbox.value?.$el.active);
 
 const reversed = computed(() => {
     return Object.fromEntries(
-        Object.entries(props.options).map(([k, v]) => [v, k]),
+        Object.entries(props.kv).map(([k, v]) => [v, k]),
     );
 });
-const items = computed(() => Object.values(props.options));
+const items = computed(() => Object.values(props.kv) as string[]);
 
 const indisplay = ref("");
 const keyselect = ref(-1);
@@ -62,7 +62,7 @@ function next() {
 }
 
 function select(index?: number) {
-    inputbox.value?.blur();
+    inputbox.value?.$el.blur();
 
     if (index && typeof index === "number") keyselect.value = index;
     if (fzfout.value.length === 0) return;

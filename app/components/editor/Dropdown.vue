@@ -6,11 +6,15 @@ defineProps<{
     params: ICellRendererParams<AgRow, number>;
 }>();
 
-const onopen = inject<(data: AgRow, colDef: ColDef<AgRow, number>) => void>(
-    "onopen",
-);
+type Callback = (data: AgRow, colDef: ColDef<AgRow, number>) => void;
+const open = inject<Callback>("open");
 
-const fmt = (h: number) => (h === 0 ? "No Data" : Math2.formatHours(h));
+const fmt = (h: number) => {
+    return {
+        [-1]: "No data",
+        [0]: "Ongoing",
+    }[h] ?? Math2.formatHours(h);
+};
 </script>
 
 <template>
@@ -18,11 +22,9 @@ const fmt = (h: number) => (h === 0 ? "No Data" : Math2.formatHours(h));
         {{ fmt($props.params.value ?? 0) }}
 
         <Button
-            kind="card"
-            @click="() =>
-            onopen?.($props.params.data!, $props.params.colDef!)"
+            kind="secondary"
+            @click="() => open?.($props.params.data!, $props.params.colDef!)"
             class="button"
-            static
         >
             <Icon name="hugeicons:pencil-edit-01" class="icon" :size="16" />
         </Button>
@@ -34,7 +36,7 @@ const fmt = (h: number) => (h === 0 ? "No Data" : Math2.formatHours(h));
 
 .container {
     @apply flex flex-row items-center justify-between gap-2;
-    @apply w-full p-0;
+    @apply p-0 pt-px -mr-2 w-[calc(100%+0.5rem)];
 }
 
 .icon {

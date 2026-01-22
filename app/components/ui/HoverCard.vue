@@ -1,108 +1,60 @@
 <script setup lang="ts">
-import { Draggable } from "gsap/all";
 import { Math2 } from "~/utils/math";
 
-const ANIMATE_IN_Y = 64;
-
-const open = defineModel("open", {
-    type: Boolean,
-    default: false,
-});
-
-const { $gsap } = useNuxtApp();
+const open = defineModel<boolean>("open", { required: true });
 const mouse = useMouse();
 
-const pos = ref([0, 0] as [number, number]);
-const card = ref<HTMLDivElement>();
+const pos = ref<FixedArray<number, 2>>([0, 0]);
 const dragging = ref(false);
 
-const DRAG_W_MAX = new Lazy(
-    () => document.getElementById("content")!.clientWidth - 48,
-);
-const DRAG_H_MAX = new Lazy(
-    () => document.getElementById("content")!.clientHeight - 48,
-);
+const PAD_LEFT = 102;
+const PAD_TOP = 30;
+const PAD_RIGHT = 128;
+const PAD_BOTTOM = 128;
+const DRAG_OFFSET = 26;
 
-watch(open, (isOpen) => {
-    if (!isOpen) {
-        if (!card.value) return;
+const CONTENT = lazy(() => document.getElementById("content")!);
+const WIDTH = lazy(() => CONTENT.value!.clientWidth - PAD_RIGHT);
+const HEIGHT = lazy(() => CONTENT.value!.clientHeight - PAD_BOTTOM);
 
-        $gsap
-            .timeline()
-            .to(card.value, {
-                top: pos.value[1] - ANIMATE_IN_Y,
-                opacity: 0,
-                ...Timing.fast.out,
-            })
-            .set(card.value!, {
-                left: "-100%",
-                top: "-100%",
-            });
-    } else {
-        pos.value = [mouse.x.value, mouse.y.value];
-    }
+watch(open, (open) => {
+    if (!open) pos.value = [-1000, -1000];
+    else pos.value = [mouse.x.value, mouse.y.value];
 });
 
-watch(pos, (position) => {
-    if (!card.value) return;
-
-    if (!dragging.value) {
-        $gsap.set(card.value, {
-            opacity: 0,
-            left: position[0],
-            top: position[1] - ANIMATE_IN_Y,
-        });
-
-        $gsap.to(card.value, {
-            top: position[1],
-            opacity: 1,
-            ...Timing.fast.in,
-        });
-    } else {
-        $gsap.set(card.value, {
-            left: position[0],
-            top: position[1],
-        });
-    }
+watch([mouse.x, mouse.y], ([x, y]) => {
+    if (!dragging.value) return;
+    pos.value = [
+        Math2.clamp(x, PAD_LEFT, WIDTH.value) + DRAG_OFFSET,
+        Math2.clamp(y, PAD_TOP, HEIGHT.value) + DRAG_OFFSET,
+    ];
 });
 
-function update() {
-    pos.value = [mouse.x.value, mouse.y.value];
+function mdown() {
+    dragging.value = true;
 }
 
-function dragClick(down: boolean) {
-    dragging.value = down;
-    $gsap.to(card.value!, { opacity: 0.75, ...Timing.in });
+function mup() {
+    dragging.value = false;
 }
 
 onMounted(() => {
-    window.addEventListener("mousemove", (ev) => {
-        if (!dragging.value) return;
-        pos.value = [
-            Math2.clamp(ev.clientX, 32, DRAG_W_MAX.value) + 14,
-            Math2.clamp(ev.clientY, 32, DRAG_H_MAX.value) + 14,
-        ];
-    });
-
-    window.addEventListener("mouseup", () => {
-        if (!dragging.value) return;
-        dragging.value = false;
-        $gsap.to(card.value!, { opacity: 1, ...Timing.out });
-    });
+    window.addEventListener("mouseup", mup);
 });
-
-defineExpose({ update });
+onUnmounted(() => {
+    window.removeEventListener("mouseup", mup);
+});
 </script>
 
 <template>
-    <div class="card" ref="card" v-bind="$attrs">
+    <div
+        :class="cn('card', open && 'open', dragging && 'dragging')"
+        :style="{ left: `${pos[0]}px`, top: `${pos[1]}px` }"
+        ref="card"
+    >
         <slot />
 
-        <div
-            class="drag-container"
-            ref="drag"
-            @mousedown.prevent="(ev) => dragClick(true)"
-        >
+        <div class="drag-container" @mousedown.prevent="mdown">
             <Icon name="hugeicons:move" class="drag" size="20" />
         </div>
 
@@ -118,6 +70,14 @@ defineExpose({ update });
 .card {
     @apply fixed -top-full -left-full opacity-0;
     @apply z-50;
+
+    &.open {
+        @apply opacity-100;
+    }
+
+    &.dragging {
+        @apply opacity-80;
+    }
 }
 
 .drag-container {

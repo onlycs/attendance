@@ -89,7 +89,6 @@ fn decrypt_sync(ctxt: &str, k1: &[u8]) -> Option<String> {
     let nonce = XNonce::from_slice(&data[..NONCE_LEN]);
     let ciphertext = &data[NONCE_LEN..];
     let cipher = XChaCha20Poly1305::new_from_slice(k1).dbg_ok()?;
-
     let plaintext = cipher.decrypt(nonce, ciphertext).dbg_ok()?;
 
     Some(String::from_utf8(plaintext).dbg_ok()?)

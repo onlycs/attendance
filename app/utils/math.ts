@@ -1,4 +1,5 @@
 import _sha256 from "crypto-js/sha256";
+import { Temporal } from "temporal-polyfill";
 import { Option } from "./option";
 
 // fucking javascript
@@ -32,6 +33,19 @@ export namespace Math2 {
 
         if (mins < 15) return format(mins, "Minute");
         else return format(hours, "Hour", 2);
+    }
+
+    export function formatDate(dt: Temporal.ZonedDateTime): string {
+        const local = dt.withTimeZone(Temporal.Now.timeZoneId()).toPlainDateTime().toLocaleString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        });
+
+        return local;
     }
 }
 

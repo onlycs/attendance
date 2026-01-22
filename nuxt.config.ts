@@ -72,6 +72,9 @@ export default defineNuxtConfig({
                 process.env.API_URL || "http://localhost:3000",
             ),
         },
+        worker: {
+            format: "es",
+        },
     },
     icon: {
         serverBundle: {

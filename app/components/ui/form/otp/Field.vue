@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { mode } from "crypto-js";
 import {
     REGEXP_ONLY_DIGITS as Numeric,
     REGEXP_ONLY_DIGITS_AND_CHARS as Text,
 } from "vue-input-otp";
-import type { SlotSize } from "./Slot.vue";
+import type { OTPSlotProps } from "./Slot.vue";
 
-export interface OTPFieldProps {
+export type OTPFieldProps = {
     length: number;
     type: "text" | "numeric";
     password?: boolean;
-    size?: SlotSize;
-}
+} & Omit<OTPSlotProps, "isActive" | "char" | "hasFakeCaret" | "hidden">;
 
 defineProps<OTPFieldProps>();
 defineModel<string>("otp", { required: true });
@@ -31,9 +29,8 @@ defineModel<string>("otp", { required: true });
         <div class="slotcontainer">
             <OTPSlot
                 v-for="(slot, idx) of slots"
-                v-bind="slot"
+                v-bind="{ ...slot, ...$props }"
                 :key="idx"
-                :size="$props.size ?? 'md'"
                 :hidden="$props.password"
             />
         </div>

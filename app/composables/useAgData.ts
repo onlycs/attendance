@@ -47,9 +47,9 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useAgData(data: DeepReadonly<Ref<Row[]>>) {
-    const ag = computedWithControl(data, () => {
-        const students = data.value;
+export function useAgData(data: Row[], trigger: Readonly<Ref<number>>) {
+    const ag = computedWithControl(trigger, () => {
+        const students = data;
         if (students.length === 0) {
             return {
                 columns: [],
@@ -147,7 +147,9 @@ export function useAgData(data: DeepReadonly<Ref<Row[]>>) {
                             return total + diff.total("hours");
                         }, 0);
 
-                    acc[cell.date.toJSON()] = hours;
+                    const exists = cell.records.length > 0;
+
+                    acc[cell.date.toJSON()] = exists ? hours : -1;
                     return acc;
                 },
                 {} as Record<string, number>,

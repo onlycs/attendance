@@ -11,10 +11,11 @@ watch(user, (user) => {
     if (user.role !== "admin") return;
     if (!user.ok) return;
     k1.value = user.k1;
-});
+}, { immediate: true });
 
 const props = defineProps<{ currentId: string; }>();
 const open = defineModel<boolean>("open", { required: true });
+const loading = ref(false);
 const emit = defineEmits<{ retry: []; }>();
 
 const { form, buttons, deps, submit, cancel } = f.form(
@@ -57,7 +58,12 @@ const { form, buttons, deps, submit, cancel } = f.form(
     ],
     {
         async submit(submit) {
-            open.value = false;
+            const end = () => {
+                open.value = false;
+                setTimeout(() => loading.value = false, 500); // after drawer close animation
+            };
+
+            loading.value = true;
 
             if (!k1.value) {
                 useRouter().push(
@@ -77,10 +83,8 @@ const { form, buttons, deps, submit, cancel } = f.form(
             );
 
             if (!data || data.length !== 3) {
-                toast.error(
-                    "Encryption failed. Please try again. You were not signed in.",
-                );
-                return;
+                toast.error("Encryption failed. You were not signed in.");
+                return end();
             }
 
             const [id, first, last] = data as [string, string, string];
@@ -93,6 +97,8 @@ const { form, buttons, deps, submit, cancel } = f.form(
                 },
             });
 
+            end();
+
             if (res.error) {
                 return api.error(res.error, res.response);
             }
@@ -100,24 +106,22 @@ const { form, buttons, deps, submit, cancel } = f.form(
             emit("retry");
         },
         cancel() {
-            if (!open.value) return;
-
+            toast.warning("Cancelled. You were not signed in.");
             open.value = false;
-
-            toast.warning("Cancelled! You were not signed in!");
         },
     },
 );
 </script>
 <template>
     <Drawer
-        :open
+        v-model:open="open"
         @close="cancel"
     >
         <span class="title">New Student</span>
 
         <div class="form">
             <Form
+                v-model:loading="loading"
                 :form
                 :buttons
                 :deps

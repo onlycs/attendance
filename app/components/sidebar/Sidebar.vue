@@ -122,7 +122,7 @@ const entries = computed(() => ({
 
 .sidebar {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: 1fr auto 1fr;
 
     @apply h-full w-16;
     @apply p-2 bg-drop rounded-lg;
@@ -134,7 +134,7 @@ const entries = computed(() => ({
 }
 
 .header {
-    @apply flex flex-row items-center gap-4;
+    @apply flex flex-row items-center gap-4 self-start;
 
     .icon {
         @apply w-12 h-12;
@@ -149,6 +149,10 @@ const entries = computed(() => ({
         @apply group-hover/sidebar:translate-x-0;
         @apply group-hover/sidebar:duration-400;
     }
+}
+
+.footer {
+    @apply self-end;
 }
 </style>
 

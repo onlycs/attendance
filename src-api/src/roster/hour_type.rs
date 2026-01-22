@@ -20,6 +20,7 @@ use crate::prelude::*;
 )]
 #[oai(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "hour_type", rename_all = "lowercase")]
 pub(crate) enum HourType {
     Build,

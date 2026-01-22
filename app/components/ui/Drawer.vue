@@ -1,19 +1,23 @@
 <script setup lang="ts">
-defineProps<{ open: boolean; }>();
-defineEmits<{ close: []; }>();
+const open = defineModel<boolean>("open", { required: true });
+const emit = defineEmits<{ close: []; }>();
+
+watch(open, (open, old) => {
+    if (old && !open) emit("close");
+});
 
 defineOptions({ inheritAttrs: false });
 </script>
 
 <template>
     <DrawerRoot
-        :open="$props.open"
-        @close="() => $emit('close')"
+        :open
+        @close="() => open = false"
         class="root"
         should-scale-background
     >
         <DrawerPortal>
-            <DrawerOverlay class="overlay" @click="() => $emit('close')" />
+            <DrawerOverlay class="overlay" @click="() => open = false" />
 
             <DrawerContent class="dialog" v-bind="$attrs">
                 <DrawerHandle class="handle" />

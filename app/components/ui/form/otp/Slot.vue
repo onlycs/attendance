@@ -6,27 +6,40 @@ export type SlotSize = "sm" | "md" | "lg";
 export interface OTPSlotProps extends SlotProps {
     hidden?: boolean;
     size?: SlotSize;
+    placeholder?: string;
+    rect?: boolean;
 }
 
-const props = defineProps<OTPSlotProps>();
+const props = withDefaults(defineProps<OTPSlotProps>(), {
+    hidden: false,
+    size: "md",
+    placeholder: "",
+    rect: false,
+});
 
 const box = {
-    sm: "size-12",
-    md: "size-14",
-    lg: "size-16",
-}[props.size ?? "md"];
+    sm: props.rect ? "w-9 h-13" : "size-13",
+    md: props.rect ? "w-10 h-14" : "size-14",
+    lg: props.rect ? "w-12 h-16" : "size-16",
+}[props.size];
 
 const text = {
     sm: "text-md",
     md: "text-lg",
     lg: "text-xl",
-}[props.size ?? "md"];
+}[props.size];
 </script>
 
 <template>
     <div :class="cn(box, isActive && 'active', 'slot')">
         <div v-if="char !== null" :class="cn(text, 'char')">
             {{ hidden ? "●" : char }}
+        </div>
+        <div
+            v-else-if="!isActive"
+            :class="cn(text, 'char text-sub')"
+        >
+            {{ placeholder }}
         </div>
 
         <div
@@ -65,7 +78,7 @@ const text = {
     animation: caret-pulse linear 1000ms infinite;
 
     &.sm {
-        @apply h-4;
+        @apply h-5;
     }
 
     &.md {
@@ -73,7 +86,7 @@ const text = {
     }
 
     &.lg {
-        @apply h-8;
+        @apply h-7;
     }
 }
 </style>

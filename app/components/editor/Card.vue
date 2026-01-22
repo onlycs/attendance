@@ -1,162 +1,63 @@
 <script setup lang="ts">
-import { Select } from "#components";
 import { Temporal } from "temporal-polyfill";
-import { Math2 } from "~/utils/math";
-import type { ReplicationOutgoing } from "~/utils/zodws/schema/replicate";
-import type { Entry } from "~/utils/zodws/schema/table";
+import api from "~/utils/api";
 
-defineProps<{
+const props = defineProps<{
     hashed: string;
     date: Temporal.PlainDate;
-    entries: Entry[];
-    push: (repl: ReplicationOutgoing) => void;
+    entries: Ref<readonly AttendanceRecord[]>;
 }>();
 
-function entryLabel(entry: Entry) {
-    if (!entry.end) return "Ongoing";
-    return Math2.formatHours(
-        entry.start.until(entry.end).total({ unit: "hours" }),
-    );
+const hash = (e: AttendanceRecord) => {
+    return [
+        e.id,
+        e.hour_type,
+        e.sign_in.toPlainTime().toString(),
+        e.sign_out?.toPlainTime().toString() ?? "null",
+    ].join(":");
+};
+
+async function add() {
+    const res = await api.roster.record.add({
+        body: {
+            sid_hashed: props.hashed,
+            kind: "build",
+            time_in: api.datetime.ser(
+                props.date.toZonedDateTime({
+                    timeZone: Temporal.Now.timeZoneId(),
+                    plainTime: Temporal.Now.plainTimeISO(),
+                }),
+            ),
+            time_out: null,
+        },
+    });
+
+    if (!res.data) {
+        api.error(res.error, res.response);
+        return;
+    }
 }
 </script>
 
 <template>
-    <div class="mroot">
+    <div class="root">
         <div
-            v-for="entry of $props.entries"
+            v-for="(entry, i) of $props.entries.value"
             class="entry"
-            :key="entry.id"
-            :id="entry.id"
+            :key="hash(entry)"
         >
-            <div class="header">
-                <Button
-                    kind="error-transparent"
-                    class="button"
-                    @click="() => {
-                        push({
-                            type: 'DeleteEntry',
-                            hashed: $props.hashed,
-                            date: $props.date,
-                            id: entry.id,
-                        });
-                    }"
-                >
-                    <Icon name="hugeicons:delete-02" size="20" />
-                </Button>
-
-                <div class="label">
-                    {{ entryLabel(entry) }}
-                </div>
-            </div>
-
-            <Select
-                :selected="entry.kind"
-                :options="{
-                    learning: 'Learning',
-                    build: 'Build',
-                    demo: 'Outreach',
-                    offseason: 'Offseason',
-                }"
-                @update:selected="(kind) => {
-                    push({
-                        type: 'UpdateEntry',
-                        hashed: $props.hashed,
-                        date: $props.date,
-                        id: entry.id,
-                        updates: [
-                            {
-                                key: 'kind',
-                                value: kind,
-                            },
-                        ],
-                    });
-                }"
-            />
-
-            <div class="times">
-                <TimePickerModelSubmit
-                    :time="entry.start.toPlainTime()"
-                    background="card"
-                    @update:time="(time) => {
-                        push({
-                            type: 'UpdateEntry',
-                            hashed: $props.hashed,
-                            date: $props.date,
-                            id: entry.id,
-                            updates: [
-                                {
-                                    key: 'start',
-                                    value: entry.start.with({
-                                        hour: time.hour,
-                                        minute: time.minute,
-                                        second: time.second,
-                                        millisecond: 0,
-                                    }),
-                                },
-                            ],
-                        });
-                    }"
-                    icon="tabler:door-enter"
-                    color="green"
-                />
-
-                <TimePickerModelSubmit
-                    background="card"
-                    :time="entry.end
-                    ? entry.end.toPlainTime()
-                    : undefined"
-                    @update:time="(time) => {
-                        push({
-                            type: 'UpdateEntry',
-                            hashed: $props.hashed,
-                            date: $props.date,
-                            id: entry.id,
-                            updates: [
-                                {
-                                    key: 'end',
-                                    value: (entry.end
-                                        ?? entry.start)
-                                        .with({
-                                            hour: time.hour,
-                                            minute:
-                                                time.minute,
-                                            second:
-                                                time.second,
-                                            millisecond: 0,
-                                        }),
-                                },
-                            ],
-                        });
-                    }"
-                    icon="tabler:door-exit"
-                    color="red"
-                />
-            </div>
+            <EditorCardForm :entry />
         </div>
 
         <Button
-            kind="background"
+            kind="none"
             class="button-add"
-            @click="() => {
-                const now = Temporal.Now.zonedDateTimeISO().with({
-                    year: date.year,
-                    month: date.month,
-                    day: date.day,
-                });
-
-                push({
-                    type: 'AddEntry',
-                    hashed: $props.hashed,
-                    date: $props.date,
-                    entry: {
-                        kind: 'learning',
-                        start: now.with({ minute: now.minute - 5 }),
-                        end: now,
-                    },
-                });
-            }"
+            @click="add"
         >
-            <Icon name="tabler:plus" size="20" />
+            <Icon
+                name="hugeicons:add-01"
+                size="20"
+            />
         </Button>
     </div>
 </template>
@@ -164,35 +65,19 @@ function entryLabel(entry: Entry) {
 <style scoped>
 @reference "~/style/tailwind.css";
 
-.mroot {
-    @apply bg-drop rounded-lg;
+.root {
+    @apply flex flex-col;
+    @apply bg-drop rounded-lg gap-2 p-2;
     @apply border border-border;
-    @apply flex flex-col gap-4 p-4;
 
     .entry {
-        @apply bg-background rounded-lg;
-        @apply p-2;
-        @apply flex flex-col gap-2;
-
-        .header {
-            @apply flex flex-row items-center justify-between gap-4;
-
-            .button {
-                @apply flex flex-row justify-center items-center p-2.75;
-            }
-
-            .label {
-                @apply select-none mr-2;
-            }
-        }
-
-        .times {
-            @apply flex flex-row items-center gap-2 w-full;
-        }
+        @apply flex flex-col items-center;
+        @apply bg-background rounded-md gap-2 p-2;
     }
 
     .button-add {
         @apply flex items-center justify-center;
+        @apply w-full h-fit bg-background;
     }
 }
 </style>

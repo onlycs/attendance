@@ -1,10 +1,15 @@
+import type { Temporal } from "temporal-polyfill";
+import type { ZodTemporal } from "temporal-zod";
 import { type core, z } from "zod";
 import type { $ZodCheckLengthEqualsDef } from "zod/v4/core";
 import type { ButtonProps } from "~/components/ui/form/Button.vue";
+import type { ComboboxProps } from "~/components/ui/form/Combobox.vue";
 import type { InputProps } from "~/components/ui/form/Input.vue";
 import type { OTPFieldProps } from "~/components/ui/form/otp/Field.vue";
 import type { SelectProps } from "~/components/ui/form/Select.vue";
-import type { KeyOf } from "./gymnastics";
+import type { InstantPickerProps } from "~/components/ui/form/TimePicker.vue";
+import type { HourType } from "./api";
+import type { KeyOf, MaybePromise, Optionalize } from "./gymnastics";
 
 export interface ItemBase<Z extends core.SomeType = core.SomeType> {
     schema: Z;
@@ -17,7 +22,7 @@ export type ItemOutput<I> = I extends ItemBase<infer Z> ? z.output<Z> : never;
 export type ItemSelect<Z extends z.ZodEnum = z.ZodEnum> =
     & ItemBase<Z>
     & SelectProps<z.output<Z>>
-    & { item: "select"; };
+    & { item: "select"; default: z.output<Z>; };
 
 export type ItemInput =
     & ItemBase<z.ZodType<string>>
@@ -29,7 +34,22 @@ export type ItemOTP =
     & OTPFieldProps
     & { item: "otp"; };
 
-export type Item = ItemSelect | ItemInput | ItemOTP;
+export type ItemTime =
+    & ItemBase<ZodTemporal<typeof Temporal.PlainTime>>
+    & InstantPickerProps
+    & { item: "time"; };
+
+export type ItemDate =
+    & ItemBase<ZodTemporal<typeof Temporal.PlainDate>>
+    & InstantPickerProps
+    & { item: "date"; };
+
+export type ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> =
+    & ItemBase<Z>
+    & ComboboxProps<z.output<Z>>
+    & { item: "combobox"; };
+
+export type Item = ItemSelect | ItemInput | ItemOTP | ItemTime | ItemDate | ItemCombobox;
 export type Form = Record<string, Item>;
 
 export type Deps<F extends Form> = {
@@ -61,11 +81,16 @@ export type FormButton =
     & { label: string; }
     & ({ form: string; } | { action: () => unknown; });
 
-export class f {
-    static select<T extends Record<string, string>>(
+export type FormError<F extends Form> = {
+    field: keyof F & string;
+    message: string;
+};
+
+export const f = {
+    select<T extends Record<string, string>>(
         options:
             & Omit<ItemBase<z.ZodEnum<{ [K in keyof T & string]: K; }>>, "schema">
-            & { schema: T; }
+            & { schema: T; default: keyof T; }
             & Omit<SelectProps<keyof T & string>, "schema" | "kv">,
     ): ItemSelect<z.ZodEnum<{ [K in keyof T & string]: K; }>> {
         return {
@@ -73,18 +98,50 @@ export class f {
             ...options,
             schema: z.enum(Object.keys(options.schema)),
             kv: options.schema,
-            default: options.default,
         } as any;
-    }
+    },
 
-    static input(item: Omit<ItemInput, "item">): ItemInput {
+    combobox<O extends Record<string, string>>(
+        options:
+            & Omit<ItemBase<z.ZodEnum<{ [K in keyof O & string]: K; }>>, "schema">
+            & { schema: O; }
+            & Omit<ComboboxProps<keyof O & string>, "kv">,
+    ): ItemCombobox<z.ZodEnum<{ [K in keyof O & string]: K; }>> {
+        return {
+            item: "combobox",
+            ...options,
+            schema: z.enum(Object.keys(options.schema)) as z.ZodEnum<{ [K in keyof O & string]: K; }>,
+            kv: options.schema,
+        };
+    },
+
+    hourtype(
+        item:
+            & { default?: HourType; }
+            & Omit<ItemBase<z.ZodAny>, "schema">
+            & Omit<SelectProps<HourType>, "schema" | "kv"> = {},
+    ) {
+        return f.select<Record<HourType, string>>({
+            title: "Hour Type",
+            default: "build",
+            ...item,
+            schema: {
+                "build": "Build",
+                "learning": "Learning",
+                "demo": "Outreach",
+                "offseason": "Offseason",
+            },
+        });
+    },
+
+    input(item: Omit<ItemInput, "item">): ItemInput {
         return {
             ...item,
             item: "input",
         };
-    }
+    },
 
-    static otp(item: ItemBase<z.ZodType<string>> & Omit<OTPFieldProps, "length">): ItemOTP {
+    otp(item: ItemBase<z.ZodType<string>> & Omit<OTPFieldProps, "length">): ItemOTP {
         const checks = item.schema.def.checks?.map(c => c._zod.def) ?? [];
         const check: $ZodCheckLengthEqualsDef | undefined = checks.filter(c => c.check === "length_equals")[0] as any;
 
@@ -93,9 +150,9 @@ export class f {
             item: "otp",
             length: check?.length ?? 6,
         };
-    }
+    },
 
-    static username(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+    username(item: Partial<Omit<ItemInput, "item" | "schema" | "type">> = {}): ItemInput {
         return f.input({
             title: "Username",
             placeholder: "_johndoe01",
@@ -106,10 +163,10 @@ export class f {
                 .regex(/^[a-zA-Z0-9_]+$/, "Only numbers, letters, and underscores are allowed"),
             ...item,
         });
-    }
+    },
 
-    static password = {
-        new(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+    password: {
+        new(item: Partial<Omit<ItemInput, "item" | "schema" | "type">> = {}): ItemInput {
             return f.input({
                 title: "Password",
                 placeholder: "••••••••",
@@ -124,7 +181,7 @@ export class f {
                 ...item,
             });
         },
-        current(item: Partial<Omit<ItemInput, "item" | "schema" | "type">>): ItemInput {
+        current(item: Partial<Omit<ItemInput, "item" | "schema" | "type">> = {}): ItemInput {
             return f.input({
                 title: "Password",
                 placeholder: "••••••••",
@@ -134,9 +191,9 @@ export class f {
                 ...item,
             });
         },
-    };
+    },
 
-    static studentId(item: Partial<Omit<ItemOTP, "type" | "schema">>): ItemOTP {
+    studentId(item: Partial<Omit<ItemOTP, "type" | "schema">> = {}): ItemOTP {
         return f.otp({
             title: "Student ID",
             type: "numeric",
@@ -145,22 +202,40 @@ export class f {
                 .regex(/^\d*$/, "Student ID must contain only digits"),
             ...item,
         });
-    }
+    },
 
-    static form<F extends Form, D extends Deps<F> = {}>(
+    date(item: Omit<ItemDate, "item">): ItemDate {
+        return {
+            ...item,
+            item: "date",
+        };
+    },
+
+    time(item: Omit<ItemTime, "item">): ItemTime {
+        return {
+            ...item,
+            item: "time",
+        };
+    },
+
+    form<F extends Form, D extends Deps<F> = {}>(
         form: F,
-        buttons: FormButton[],
+        buttons: FormButton[] = [],
         etc: {
             deps?: D;
             submit?: (data: FormOutput<F, D>) => unknown;
             cancel?: () => unknown;
-        },
+            validate?: (data: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
+            defaults?: Partial<FormOutput<F, D>>;
+        } = {},
     ): {
         form: F;
         buttons: FormButton[];
         deps: D;
         submit: (data: FormOutput<F, D>) => unknown;
         cancel: () => unknown;
+        validate?: (data: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
+        defaults?: Partial<FormOutput<F, D>>;
     } {
         return {
             form,
@@ -168,6 +243,8 @@ export class f {
             submit: etc.submit ?? ((_) => {}),
             cancel: etc.cancel ?? (() => {}),
             deps: etc.deps ?? {} as D,
+            validate: etc.validate,
+            defaults: etc.defaults,
         };
-    }
-}
+    },
+} as const;

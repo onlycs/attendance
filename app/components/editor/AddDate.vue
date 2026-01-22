@@ -1,70 +1,120 @@
 <script setup lang="ts">
-import { zPlainDateInstance, zPlainTimeInstance } from "temporal-zod";
-import z from "zod";
+import { Temporal } from "temporal-polyfill";
+import { zPlainDate, zPlainTime } from "temporal-zod";
+import { toast } from "vue-sonner";
+import api from "~/utils/api";
 
-const Schema = z.object({
-    date: zPlainDateInstance,
-    student: z.string(),
-    kind: z.string(),
-    start: zPlainTimeInstance,
-    end: zPlainTimeInstance,
-});
+const props = defineProps<{ students: { [id: string]: string; }; }>();
+const open = defineModel<boolean>("open", { required: true });
+const loading = ref(false);
 
-export type AddDateSubmission = z.output<typeof Schema>;
+const { form, deps, buttons, validate, submit, cancel } = f.form(
+    {
+        student: f.combobox({
+            title: "Student",
+            schema: props.students,
+        }),
+        kind: f.hourtype(),
+        date: f.date({
+            schema: zPlainDate,
+            title: "Date",
+        }),
+        start: f.time({
+            schema: zPlainTime,
+            title: "Sign In",
+            color: "green",
+            icon: "hugeicons:login-02",
+        }),
+        end: f.time({
+            schema: zPlainTime,
+            title: "Sign Out",
+            color: "red",
+            icon: "hugeicons:logout-02",
+        }),
+    },
+    [
+        {
+            form: "submit",
+            label: "Submit",
+            kind: "primary",
+            class: "submit",
+        },
+        {
+            form: "cancel",
+            label: "Cancel",
+            kind: "secondary-card",
+        },
+    ],
+    {
+        async validate(submission) {
+            const start = submission.date.toPlainDateTime(submission.start);
+            const end = submission.date.toPlainDateTime(submission.end);
+            const dt = start.until(end);
 
-defineProps<{ students: { [id: string]: string; }; }>();
-defineModel<boolean>("open", { required: true });
-defineEmits<{ submit: [s: AddDateSubmission]; }>();
+            if (dt.total("minutes") <= 0) {
+                return [{
+                    field: "end",
+                    message: "End time must be after start time.",
+                }];
+            }
+
+            return [];
+        },
+
+        async submit(submission) {
+            // convert date and time, interpet as local and convert to UTC
+            const start = submission.date.toPlainDateTime(submission.start)
+                .toZonedDateTime(Temporal.Now.timeZoneId());
+            const end = submission.date.toPlainDateTime(submission.end)
+                .toZonedDateTime(Temporal.Now.timeZoneId());
+
+            loading.value = true;
+
+            const res = await api.roster.record.add({
+                body: {
+                    sid_hashed: sha256(submission.student),
+                    time_in: api.datetime.ser(start),
+                    time_out: api.datetime.ser(end),
+                    kind: submission.kind,
+                },
+            });
+
+            open.value = false;
+            setTimeout(() => loading.value = false, 500); // after drawer close animation
+
+            if (!res.data) {
+                return api.error(res.error, res.response);
+            }
+
+            toast.success("Entry added");
+        },
+
+        cancel() {
+            toast.warning("Entry not added");
+            open.value = false;
+        },
+    },
+);
 </script>
 
 <template>
     <Drawer
-        :open="$props.open"
-        @close="() => $emit('update:open', false)"
+        v-model:open="open"
+        @close="cancel"
     >
         <div class="title">Custom Entry</div>
 
-        <Form
-            @cancel="() => $emit('update:open', false)"
-            @submit="(ev) => {
-                $emit('submit', ev);
-                $emit('update:open', false);
-            }"
-            :schema="Schema"
-            :meta="{
-                date: {
-                    title: 'Date',
-                    type: 'date',
-                },
-                student: {
-                    title: 'Student',
-                    type: 'union',
-                    union: {
-                        options: $props.students,
-                    },
-                },
-                kind: {
-                    title: 'Kind',
-                    type: 'select',
-                    select: {
-                        options: {
-                            demo: 'Outreach',
-                            offseason: 'Offseason',
-                            learning: 'Learning',
-                            build: 'Build',
-                        },
-                    },
-                },
-                start: {
-                    title: 'Start Time',
-                    type: 'time',
-                },
-                end: {
-                    title: 'End Time',
-                    type: 'time',
-                },
-            }"
-        />
+        <div class="form">
+            <Form
+                v-model:loading="loading"
+                :form
+                :deps
+                :buttons
+                :validate
+                @cancel="cancel"
+                @submit="submit"
+            />
+        </div>
     </Drawer>
 </template>
 
@@ -72,6 +122,15 @@ defineEmits<{ submit: [s: AddDateSubmission]; }>();
 @reference "~/style/tailwind.css";
 
 .title {
-    @apply text-2xl mb-4;
+    @apply mb-2 text-xl md:text-2xl;
+}
+
+.form {
+    @apply mt-8 gap-2 flex flex-col;
+    @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+}
+
+.form :deep(.submit) {
+    @apply mt-6;
 }
 </style>

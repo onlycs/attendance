@@ -1,205 +1,244 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import { Math2 } from "~/utils/math";
 
 export interface InstantPickerProps {
     icon?: string;
     color?: "red" | "green" | "gray";
-    background?: "card" | "bg";
 }
 
-const { icon, color } = defineProps<InstantPickerProps>();
-const time = defineModel<Temporal.PlainTime>("time");
-const temp = ref(time.value ?? Temporal.Now.plainTimeISO());
-const emit = defineEmits<{ submit: [Temporal.PlainTime]; }>();
-const etime = computed({
-    get() {
-        return time.value ?? temp.value;
+const props = withDefaults(
+    defineProps<InstantPickerProps>(),
+    {
+        icon: "hugeicons:clock-01",
+        color: "gray",
+        background: "bg",
     },
-    set(v: Temporal.PlainTime) {
-        if (time.value) time.value = v;
-        else temp.value = v;
+);
+
+const DIGITS = 4;
+const SLOTS = 5; // AM/PM
+type DIGITS = typeof DIGITS;
+type SLOTS = typeof SLOTS;
+
+const ptime = defineModel<Temporal.PlainTime>("time");
+const ttime = ref(ptime.value ?? Temporal.PlainTime.from("00:00:00"));
+const vis = ref(ptime.value ? SLOTS : 0);
+
+const time = computed({
+    get: () => ptime.value ?? ttime.value,
+    set: (v) => {
+        if (vis.value >= SLOTS) ptime.value = v;
+        else ttime.value = v;
     },
 });
 
-const hour = computed<[number, number]>(() => {
-    const h24 = etime.value.hour;
-    const h12 = h24 % 12 || 12;
-    return [Math.floor(h12 / 10), h12 % 10] as const;
+function digit(
+    getter: () => number,
+    setter: (n: number) => void,
+    place: number,
+) {
+    return computedWithControl([time], {
+        get: () => Math.floor(getter() / 10 ** place) % 10,
+        set: (v) => {
+            const cur = Math.floor(getter() / 10 ** place) % 10;
+            setter(getter() + (v - cur) * 10 ** place);
+        },
+    });
+}
+
+function alldigits<N extends number>(
+    getter: () => number,
+    setter: (n: number) => void,
+    places: N,
+): FixedArray<Ref<number>, N> {
+    return Array.from(
+        { length: places },
+        (_, i) => digit(getter, setter, places - i - 1),
+    ) as FixedArray<Ref<number>, N>;
+}
+
+function to12(hour24: number) {
+    return ((hour24 + 11) % 12) + 1;
+}
+
+function auto24(hour12: number, isP?: boolean) {
+    const current24 = time.value.hour;
+    const isPM = isP === undefined ? current24 >= 12 : isP;
+    if (isPM) return hour12 % 12 + 12;
+    else return hour12 % 12;
+}
+
+function fix(hr: number) {
+    if (hr % 10 > 2 && hr > 10) {
+        if (active.value === 0) return 10;
+        return hr % 10;
+    }
+    return hr;
+}
+
+const digits = [
+    ...alldigits(
+        () => to12(time.value.hour),
+        (hour) => {
+            time.value = time.value.with({ hour: auto24(fix(hour)) });
+        },
+        2,
+    ),
+    ...alldigits(
+        () => time.value.minute,
+        (minute) => {
+            time.value = time.value.with({ minute });
+        },
+        2,
+    ),
+] as FixedArray<Ref<number>, DIGITS>;
+
+const isP = computedWithControl([time], {
+    get: () => time.value.hour >= 12,
+    set: (v) => {
+        const hour12 = to12(time.value.hour);
+        time.value = time.value.with({ hour: auto24(hour12, v) });
+    },
 });
 
-const minute = computed(() => {
-    const m = etime.value.minute;
-    return [Math.floor(m / 10), m % 10] as const;
-});
-
-const seconds = computed(() => {
-    const s = etime.value.second;
-    return [Math.floor(s / 10), s % 10] as const;
-});
-
-const isA = computed(() => {
-    return etime.value.hour < 12;
-});
-
-const period = computed(() => {
-    return isA.value ? "AM" : "PM";
-});
+const max = [
+    1,
+    computed(() => digits[0].value === 1 ? 2 : 9),
+    5,
+    9,
+] as FixedArray<MaybeRef<number>, DIGITS>;
 
 const active = ref(-1);
-const input = ref<HTMLDivElement>();
+const hidden = ref<HTMLInputElement>();
 
-function placement(i: number) {
-    return i + Math.floor(i / 2);
+function start(n: number) {
+    hidden.value?.focus();
+    active.value = Math.min(n, vis.value);
 }
 
 function end() {
-    input.value?.blur();
+    hidden.value?.blur();
 }
 
 function blur() {
-    if ((time.value || active.value === 6) && active.value !== 0) {
-        if (!time.value) time.value = Temporal.PlainTime.from(etime.value);
-        emit("submit", Temporal.PlainTime.from(etime.value));
-    }
-
     active.value = -1;
 }
 
-function start() {
-    active.value = 0;
-}
-
-function setH12(h12u: number) {
-    const h12 = Math2.clamp(h12u, 1, 12);
-    const h24 = isA.value ? h12 % 12 : (h12 % 12) + 12;
-    etime.value = etime.value.with({ hour: h24 });
-}
-
-function setMinutes(m: number) {
-    const minute = Math2.clamp(m, 0, 59);
-    etime.value = etime.value.with({ minute });
-}
-
-function setSeconds(s: number) {
-    const seconds = Math2.clamp(s, 0, 59);
-    etime.value = etime.value.with({ second: seconds });
+function focus() {
+    if (active.value === -1) start(0);
 }
 
 function keypress(kp: KeyboardEvent) {
-    if (active.value === -1) return;
+    const current = active.value;
+
+    if (current === -1) return;
 
     const key = kp.key.toLowerCase();
-    const canForwards = time.value && active.value < 6;
-    const canBack = active.value > 0;
+    const canForwards = current < vis.value;
+    const canBack = current > 0;
 
     if (key === "backspace" && canBack) return active.value--;
     if (key === "arrowleft" && canBack) return active.value--;
     if (key === "arrowright" && canForwards) return active.value++;
     if (key === "enter") return end();
 
-    if (!Math2.bounded(active.value, 0, 6) || key.length !== 1) return;
+    // if on hour ones, and we hit ":" or "."
+    if ([".", ":"].includes(key) && current === 1) {
+        // move tens to ones, and 0 to tens
+        const prev = digits[current - 1]!.value;
+        if (prev === 0) return; // neither day nor month can be == 0
 
-    if (active.value === 6) {
-        if (!/^[ap]$/.test(key)) return;
+        digits[current]!.value = prev;
+        setTimeout(() => digits[current - 1]!.value = 0, 0); // race condition in setters? who tf knows
+        active.value++;
+        vis.value = Math.max(vis.value, active.value);
+        return;
+    }
 
-        const isA = key === "a";
-        const h24 = etime.value.hour;
-
-        if (isA && h24 >= 12) {
-            etime.value = etime.value.with({ hour: h24 - 12 });
-        } else if (!isA && h24 < 12) {
-            etime.value = etime.value.with({ hour: h24 + 12 });
-        }
-
-        return end();
+    // if on AP/PM slot and we hit A/P
+    if (["a", "p"].includes(key) && current === 4) {
+        isP.value = key === "p";
+        active.value++;
+        vis.value = Math.max(vis.value, active.value);
+        return;
     }
 
     if (!/^\d$/.test(key)) return;
     const num = Number(key);
 
-    const activate = (
-        tensLim: number,
-        set: (v: number) => void,
-        ref: Ref<readonly [number, number]>,
-    ) => {
-        if (active.value % 2 === 0) {
-            if (num > tensLim) {
-                active.value++;
-                set(num);
-            } else {
-                set(num * 10 + ref.value[1]);
-            }
-        } else {
-            set(ref.value[0] * 10 + num);
-        }
-    };
+    if (num > unref(max[active.value]!) && current % 2 === 0) {
+        setTimeout(() => digits[current]!.value = 0, 0);
+        active.value++;
+    }
 
-    const index = Math.floor(active.value / 2);
-    const tensLim = [1, 5, 5][index]!;
-    const setter = [setH12, setMinutes, setSeconds][index]!;
-    const ref = [hour, minute, seconds][index]!;
-
-    activate(tensLim, setter, ref);
+    digits[active.value]!.value = num;
     active.value++;
+    vis.value = Math.max(vis.value, active.value);
 }
 
 const timestr = computed(() => {
-    const hide = !time.value ? active.value : 7;
+    const display = (n: number) => {
+        const sep = n === 1 ? ":" : n === 3 ? "\u2009" : "";
+        return narrow([
+            n >= vis.value ? "-" : String(digits[n]!.value),
+            sep,
+        ]);
+    };
 
-    const h1 = hide <= 0 ? "-" : hour.value[0];
-    const h2 = hide <= 1 ? "-" : hour.value[1];
-    const m1 = hide <= 2 ? "-" : minute.value[0];
-    const m2 = hide <= 3 ? "-" : minute.value[1];
-    const s1 = hide <= 4 ? "-" : seconds.value[0];
-    const s2 = hide <= 5 ? "-" : seconds.value[1];
-    const p = hide <= 6 ? "--" : period.value;
-
-    return `${h1}${h2}:${m1}${m2}:${s1}${s2} ${p}`;
+    return [
+        ...Array.from({ length: DIGITS }, (_, i) => display(i)),
+        SLOTS - 1 >= vis.value
+            ? narrow(["--", ""])
+            : narrow([isP.value ? "PM" : "AM", ""]),
+    ];
 });
 
-const iconClass = computed(() => {
-    if (color === "red") return "!text-red-400";
-    if (color === "green") return "!text-green-400";
-    return "!text-sub";
+watch(vis, (vis, old) => {
+    if (vis === SLOTS && old < SLOTS) {
+        ptime.value = ttime.value;
+    }
+});
+
+watch(active, active => {
+    if (active >= SLOTS) end();
 });
 </script>
 
 <template>
     <div
+        class="input"
         tabindex="0"
-        :class="cn(
-            'input',
-            $props.background === 'card' ? '!bg-card' : '!bg-background',
-        )"
-        ref="input"
-        @focusin="start"
+        @focusin="focus"
         @focusout="blur"
         @keydown="keypress"
     >
+        <input
+            ref="hidden"
+            class="hidden-input"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+        />
+
         <Icon
-            :name="icon ?? 'hugeicons:clock-01'"
-            :class="cn('icon', active !== -1 ? 'focused' : '', iconClass)"
-            size="20"
+            :name="icon"
+            :class="cn('icon', props.color, active !== -1 ? 'focused' : '')"
+            size="24"
         />
 
         <div class="display">
-            {{ timestr }}
-
-            <div
-                v-for="i of 8"
-                :key="i - 1"
-                :class="cn(
-                    'line',
-                    i !== 8 && active === i - 1 ? 'active' : '',
-                    active === 6 && i === 8 ? 'active' : '',
-                )"
-                :style="{
-                    left: `${
-                        Math2.round(9.6 * placement(i - 1), 1)
-                    }px`,
-                }"
-            />
+            <template v-for="([n, sep], i) of timestr">
+                <span
+                    :class="cn(
+                        'text sel',
+                        i == active && 'active',
+                    )"
+                    @click="start(i)"
+                >
+                    {{ n }}
+                </span>
+                <span v-if="sep !== ''" class="text">{{ sep }}</span>
+            </template>
         </div>
     </div>
 </template>
@@ -209,37 +248,66 @@ const iconClass = computed(() => {
 
 .input {
     @apply relative;
-    @apply flex flex-row justify-center items-center gap-4 flex-1;
-    @apply rounded-lg px-6 py-4;
-    @apply font-["JetBrainsMono_Nerd_Font",monospace] select-none;
-    @apply transition-all duration-200;
+    @apply flex flex-row justify-center items-center;
+    @apply bg-drop rounded-lg p-3 pl-0.5;
+    @apply select-none;
+    @apply transition-all duration-150;
 }
 
 .display {
-    @apply relative;
-    @apply cursor-pointer select-none;
+    @apply flex flex-row gap-1;
+    @apply select-none;
 }
 
-.icon {
-    @apply text-sub;
-    @apply transition-colors duration-200;
+.text {
+    @apply text-lg py-1;
+    @apply transition-all duration-150;
 
-    &.focused {
-        @apply text-white;
+    &.sel {
+        @apply border rounded-xs px-1.5;
+        @apply duration-100;
+
+        &.active {
+            @apply border-white;
+        }
     }
 }
 
-.underlines {
-    @apply absolute;
+.icon {
+    @apply transition-colors duration-200;
+    @apply mx-4;
+
+    &.red {
+        @apply text-red-400;
+
+        &.focused {
+            @apply text-red-300;
+        }
+    }
+
+    &.green {
+        @apply text-green-400;
+
+        &.focused {
+            @apply text-green-300;
+        }
+    }
+
+    &.gray {
+        @apply text-sub;
+
+        &.focused {
+            @apply text-text;
+        }
+    }
 }
 
-.line {
-    @apply absolute top-[24px] h-[1px] w-[9.6px];
-    @apply border-b-sub border-b border-dotted;
-    @apply transition-all duration-200;
+.hidden-input {
+    @apply absolute w-1 h-1;
+    @apply opacity-0;
 
-    &.active {
-        @apply border-solid border-white;
+    &:focus {
+        @apply outline-none;
     }
 }
 </style>

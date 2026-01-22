@@ -2,9 +2,17 @@
 
 export type { FilterArrayByValue as Filter, Narrow } from "@zodios/core/lib/utils.types";
 
-import type { IfAny } from "@vueuse/core";
+import type { MultiWatchSources } from "@vueuse/core";
 import type { Narrow, RequiredKeys } from "@zodios/core/lib/utils.types";
-import type { DeepReadonly, UnwrapNestedRefs, UnwrapRef } from "vue";
+import type {
+    DeepReadonly,
+    ShallowRef,
+    UnwrapNestedRefs,
+    UnwrapRef,
+    WatchCallback,
+    WatchHandle,
+    WatchSource,
+} from "vue";
 
 export type UnionToIntersection<U> = (U extends never ? never : (k: U) => void) extends (k: infer I) => void ? I
     : never;
@@ -61,6 +69,7 @@ export type UnPartial<T> = {
 export type UnPromise<T> = T extends Promise<infer U> ? U : never;
 export type NoneToNull<T> = T extends null | undefined ? null : T;
 export type MaybeNone<T> = T | null | undefined;
+export type MaybePromise<T> = T | Promise<T>;
 
 /**
  * `as const` minus the `readonly`. works best with literals.
@@ -80,31 +89,98 @@ export function narrow<T>(a: Narrow<T>): Narrow<T> {
 /**
  * Like `Object.assign`, but ignores undefined values in the source objects
  * ```ts
- * const a = { x: 1, y: 2 };
- * const b = { y: undefined, z: 3 };
- * safeassign(a, b); // { x: 1, y: 2, z: 3 }
- * Object.assign(a, b); // { x: 1, y: undefined, z: 3 }
+ * const a = { x: 1, y: 2, z: 3 };
+ * const b = { y: undefined, z: null };
+ * safeassign(a, b); // { x: 1, y: 2, z: null }
+ * Object.assign(a, b); // { x: 1, y: undefined, z: null }
  * ```
  *
  * @param a object to assign to
  * @param bs objects to assign from
- * @returns the merged object. `a` is also mutated.
+ * @returns the merged object. `a` is not modified.
  */
 export function safeassign<T extends object>(a: T, ...bs: Partial<T>[]): T {
     const safeBs = bs.map(b => Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)));
     return Object.assign({}, a, ...safeBs) as T;
 }
 
-export function watched<T>(getter: () => T, trigger: Ref<unknown>) {
-    const r: [T] extends [Ref] ? IfAny<T, Ref<T>, T> : Ref<UnwrapRef<T>, UnwrapRef<T> | T> = ref<T>(getter());
+/**
+ * Like `Object.assign`, but ignores undefined values in the source objects
+ * ```ts
+ * const a = { x: 1, y: 2, z: 3 };
+ * const b = { y: undefined, z: null };
+ * safeassign(a, b); // { x: 1, y: 2, z: null }
+ * Object.assign(a, b); // { x: 1, y: undefined, z: null }
+ * ```
+ *
+ * @param a object to assign to
+ * @param bs objects to assign from
+ * @returns the merged object. `a` is modified.
+ */
+export function safemut<T extends object>(a: T, ...bs: Partial<T>[]): T {
+    const safeBs = bs.map(b => Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)));
+    return Object.assign(a, ...safeBs) as T;
+}
 
-    watch(trigger, () => {
-        r.value = getter();
-    });
+type MapSources<T> = {
+    [K in keyof T]: T[K] extends WatchSource<infer V> ? V : T[K] extends object ? T[K] : never;
+};
 
-    return readonly(r);
+export function watched<T, K>(w: WatchSource<T>, f: (data: T) => K): DeepReadonly<Ref<K>>;
+export function watched<S extends MultiWatchSources, K>(w: [...S], f: (data: MapSources<S>) => K): DeepReadonly<Ref<K>>;
+
+// peak typescript
+export function watched(a: any, b: any): any {
+    const ret = ref();
+    watch(a, (next) => ret.value = b(next), { immediate: true });
+    return readonly(ret);
 }
 
 export function late<T>(): { value: T | null; } {
     return { value: null };
+}
+
+export function lazy<T>(factory: () => T): { get value(): T; } {
+    return new class {
+        private _value: T | null = null;
+
+        get value(): T {
+            if (this._value === null) {
+                this._value = factory();
+            }
+            return this._value;
+        }
+    }();
+}
+
+export type WithUndefined<T extends object> = {
+    [K in keyof T]: Exclude<T[K], null> | undefined;
+};
+
+export function null2undefined<O extends object>(a: O): WithUndefined<O>;
+export function null2undefined<T>(a: T | undefined | null): T | undefined;
+
+// peak typescript
+export function null2undefined(a: any): any {
+    if (a === null) return undefined;
+    if (typeof a === "object") {
+        const ret: any = {};
+        for (const [k, v] of Object.entries(a)) {
+            ret[k] = v === null ? undefined : v;
+        }
+        return ret;
+    }
+    return a;
+}
+
+/**
+ * Wraps a function so that if the input is null or undefined, null is returned instead of calling the function.
+ * @param f function to wrap
+ * @returns a function that returns null if the input is null or undefined
+ */
+export function ornull<T, K>(f: (a: T) => K): (a: T | null | undefined) => K | null {
+    return (a: T | null | undefined) => {
+        if (a === null || a === undefined) return null;
+        return f(a);
+    };
 }

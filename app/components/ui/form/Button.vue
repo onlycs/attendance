@@ -19,11 +19,24 @@ export interface ButtonProps {
     "class:content"?: string | string[];
 }
 
+const button = ref<HTMLButtonElement | null>(null);
+const hover = ref<HTMLDivElement | null>(null);
+const active = ref<HTMLDivElement | null>(null);
+const content = ref<HTMLDivElement | null>(null);
+
 defineProps<ButtonProps>();
+
+defineExpose({
+    button,
+    hover,
+    active,
+    content,
+});
 </script>
 
 <template>
     <button
+        ref="button"
         :class="cn(
             'button group/button',
             $props.class,
@@ -33,9 +46,9 @@ defineProps<ButtonProps>();
         v-bind="$attrs"
         :disabled
     >
-        <div :class="cn('hover', $props['class:hover'])" />
-        <div :class="cn('active', $props['class:active'])" />
-        <div :class="cn('content', $props['class:content'])">
+        <div ref="hover" :class="cn('hover', $props['class:hover'])" />
+        <div ref="active" :class="cn('active', $props['class:active'])" />
+        <div ref="content" :class="cn('content', $props['class:content'])">
             <slot />
         </div>
     </button>
@@ -81,20 +94,20 @@ defineProps<ButtonProps>();
     }
 
     .hover {
-        @apply absolute inset-0 rounded-lg bg-transparent;
+        @apply absolute inset-0 rounded-md bg-transparent;
         @apply transition-all duration-200;
         @apply group-hover/button:duration-300 group-hover/button:bg-white/5;
     }
 
     .active {
-        @apply absolute inset-0 rounded-lg bg-transparent;
+        @apply absolute inset-0 rounded-md bg-transparent;
         @apply transition-all duration-200;
         @apply group-active/button:duration-300 group-active/button:bg-black/20;
     }
 
     .content {
         @apply z-10 relative;
-        @apply flex flex-col items-center justify-center;
+        @apply flex flex-row items-center justify-center;
     }
 }
 </style>

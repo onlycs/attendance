@@ -23,12 +23,12 @@ interface TableProps {
     user: AuthData & { role: "admin"; ok: true; };
     connected: Ref<boolean>;
     onError: () => void;
+    crypto: ReturnType<typeof useCrypto>;
 }
 
-export async function useTable({ user, onError, connected }: TableProps) {
+export async function useTable({ user, onError, connected, crypto }: TableProps) {
     const creds = { ...user };
     const k1 = hex.asbytes(creds.k1);
-    const crypto = useCrypto();
 
     const data: Row[] = [];
     const uncategorized: Map<string, AttendanceRecord[]> = new Map();
@@ -109,10 +109,12 @@ export async function useTable({ user, onError, connected }: TableProps) {
                     break;
                 }
 
+                const saferepl = null2undefined(repl);
+
                 const r1 = safeassign(r0, {
-                    ...repl,
-                    sign_in: api.datetime.parse(repl.sign_in),
-                    sign_out: api.datetime.parse(repl.sign_out),
+                    ...saferepl,
+                    sign_in: api.datetime.parse(saferepl.sign_in),
+                    sign_out: api.datetime.parse(saferepl.sign_out),
                 });
 
                 const s0 = data.find(s => s.id_hashed === r0.sid_hashed);
@@ -141,7 +143,7 @@ export async function useTable({ user, onError, connected }: TableProps) {
                     break;
                 }
 
-                Object.assign(r0, r1);
+                safemut(r0, r1);
                 break;
             }
             case "DELETE": {
@@ -219,6 +221,7 @@ export async function useTable({ user, onError, connected }: TableProps) {
                             sign_out: r.sign_out ? api.datetime.ser(r.sign_out) : null,
                         });
                     }
+                    uncategorized.delete(repl.id_hashed);
                 }
 
                 break;
@@ -272,25 +275,26 @@ export async function useTable({ user, onError, connected }: TableProps) {
         hs: H,
         tries = 0,
     ) => {
-        const perf = new Performance();
-        const readystart = perf.now();
+        const readystart = performance.now();
 
-        const { signal, abort } = new AbortController();
+        const ctl = new AbortController();
         await Promise.any(hs.map(async h => {
             try {
                 const { ctor, f } = h;
                 const { stream } = await ctor();
                 connected.value = true;
                 for await (const batch of stream) {
-                    if (signal.aborted) break;
-                    const res = await Promise.all(batch.map(f));
-                    if (res.includes(false)) onError();
+                    if (ctl.signal.aborted) break;
+                    const res = await f(batch);
+                    if (res === false) onError();
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("SSE connection error", e);
+            }
         }));
-        abort();
+        ctl.abort();
 
-        const readyend = perf.now();
+        const readyend = performance.now();
         const dt = readyend - readystart;
 
         if (tries > 5) return;
@@ -308,13 +312,42 @@ export async function useTable({ user, onError, connected }: TableProps) {
         await sse(hs, dt < 5000 ? tries + 1 : 0);
     };
 
+    async function addStudents(students: Student[]) {
+        const ifle = students.flatMap(s => [s.id, s.first, s.last]);
+
+        const timer = new Profiler(`Decrypting ${students.length} students`);
+        const ifld = await crypto.decrypt(ifle, k1);
+        timer.stop();
+
+        if (!ifld) {
+            toast.error("Failed to decrypt student data");
+            return;
+        }
+
+        for (let i = 0; i < students.length; i++) {
+            const estream = i * 3;
+            const id_hashed = students[i]!.id_hashed;
+            const id = ifld[estream]!;
+            const first = ifld[estream + 1]!;
+            const last = ifld[estream + 2]!;
+
+            data.push({
+                id,
+                id_hashed,
+                first,
+                last,
+                cells: [],
+            });
+        }
+    }
+
     const students = await api.student.list();
     if (!students.data) {
         api.error(students.error, students.response);
         return;
     }
 
-    for (const s of students.data.students) student({ operation: "INSERT", ...s });
+    await addStudents(students.data.students);
 
     const records = await api.roster.record.query();
     if (!records.data) {
@@ -323,19 +356,23 @@ export async function useTable({ user, onError, connected }: TableProps) {
     }
 
     if (records.data.quantity !== "Many") throw new Error("unreachable");
-    for (const r of Object.values(records.data.records)) record({ operation: "INSERT", ...r });
+    await Promise.all(Object.values(records.data.records).map(r => record({ operation: "INSERT", ...r })));
 
-    function connect() {
-        return sse([
+    async function connect() {
+        await sse([
             { ctor: api.roster.record.stream, f: record },
             { ctor: api.student.stream, f: student },
-        ]).then(() => connected.value = false);
+        ]);
+
+        connected.value = false;
+        return;
     }
 
     connect();
 
     return {
         reconnect: connect,
-        data: watched(() => data, update),
+        data,
+        trigger: readonly(update),
     };
 }

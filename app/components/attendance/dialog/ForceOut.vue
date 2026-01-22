@@ -20,7 +20,7 @@ function cancel() {
 }
 </script>
 <template>
-    <Drawer :open @close="cancel">
+    <Drawer v-model:open="open" @close="cancel">
         <span class="title"><em>Woah</em> there.</span>
         <span class="desc">
             You signed in less than three minutes ago.

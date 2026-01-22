@@ -2,33 +2,59 @@
     setup
     lang="ts"
     generic="
-    F extends Record<string, Item>, // won't work with F extends Form, formatter gets all fucky
+    F extends Form, // removing this comment will cause dprint to fail.
     D extends Deps<F>
 "
 >
-import type { Deps, FormButton, FormOutput, Item } from "~/utils/form";
+import type { WatchHandle } from "vue";
+import type { MaybePromise } from "~/utils/gymnastics";
 import type { ButtonProps } from "./Button.vue";
 
-export interface Props<F extends Record<string, Item>, D extends Deps<F>> {
+export interface Props<F extends Form, D extends Deps<F>> {
     form: F;
     deps: D;
     buttons: FormButton[];
+    defaults?: Partial<FormOutput<F, D>>;
+    validate?: (output: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
     class?: string | string[];
 }
 
 const props = defineProps<Props<F, D>>();
 const emit = defineEmits<{ submit: [FormOutput<F, D>]; cancel: []; }>();
 const loading = defineModel<boolean>("loading");
+const dirty = defineModel<boolean>("dirty", { default: false });
 const keys = Object.keys(props.form) as string[];
 
-const outputs = Object.fromEntries(
-    Object.keys(props.form).map((k) => [k, ref(null)] as const),
-) as Record<string, Ref<unknown | null>>;
+function collectDefaults(): Record<string, Ref<unknown | null>> {
+    const entries: [string, Ref<unknown | null>][] = [];
 
-const errors = Object.fromEntries(
-    Object.keys(props.form).map((k) => [k, ref([] as string[])] as const),
-) as Record<string, Ref<string[]>>;
+    for (const k of keys) {
+        const item = props.form[k]!;
+        const itemInit = item.item === "select" ? item.default : null;
+        const init = (props.defaults as any)?.[k] ?? itemInit;
+        const x = ref(init);
 
+        const unwatch = watch(x, () => dirty.value = true);
+        onUnmounted(() => unwatch());
+
+        entries.push([k, x]);
+    }
+
+    return Object.fromEntries(entries);
+}
+
+function collectErrors(): Record<string, Ref<string[]>> {
+    const entries: [string, Ref<string[]>][] = [];
+
+    for (const k of keys) {
+        entries.push([k, ref([] as string[])]);
+    }
+
+    return Object.fromEntries(entries);
+}
+
+const outputs = collectDefaults();
+const errors = collectErrors();
 const showErrors = ref(false);
 
 function computeErrors() {
@@ -65,7 +91,7 @@ function computeErrors() {
     }
 }
 
-function submit() {
+async function submit() {
     showErrors.value = true;
     computeErrors();
 
@@ -79,21 +105,39 @@ function submit() {
         output[k] = outputs[k]!.value;
     }
 
+    if (props.validate) {
+        loading.value = true;
+        const validationErrors = await props.validate(output);
+
+        await sleep(500); // submit() may mess with loading.value, so sleep the thread, rather than settimeout to avoid race condition
+        loading.value = false; // prevent flashing the spinner
+
+        if (validationErrors.length > 0) {
+            for (const err of validationErrors) {
+                errors[err.field]!.value.push(err.message);
+            }
+
+            showErrors.value = true;
+            return;
+        }
+    }
+
     showErrors.value = false;
+    dirty.value = false;
     emit("submit", output);
 }
 
-const actions: Record<
-    Exclude<ButtonProps["form"], undefined | Function>,
-    () => void
-> = {
+const actions: Record<Exclude<ButtonProps["form"], undefined>, () => void> = {
     cancel: () => emit("cancel"),
-    submit: submit,
+    submit,
     reset: () => {
         for (const k of keys) {
-            outputs[k]!.value = null;
+            outputs[k]!.value = (props.defaults as any)?.[k] ?? null;
             errors[k]!.value = [];
         }
+
+        showErrors.value = false;
+        setTimeout(() => dirty.value = false, 50); // wait for outputs to update
     },
 };
 
@@ -109,11 +153,17 @@ const renderkeys = computed(() => {
     );
 });
 
+const hooks: WatchHandle[] = [];
 onMounted(() => {
     for (const ref of Object.values(outputs)) {
-        watch(ref, computeErrors);
+        hooks.push(watch(ref, computeErrors));
     }
 });
+onUnmounted(() => {
+    for (const hook of hooks) hook();
+});
+
+defineExpose({ ...actions });
 </script>
 
 <template>
@@ -151,6 +201,24 @@ onMounted(() => {
                 v-else-if="$props.form[key]!.item === 'otp'"
                 v-bind="$props.form[key]!"
                 v-model:otp="(outputs as any)[key].value"
+            />
+
+            <DatePicker
+                v-else-if="$props.form[key]!.item === 'date'"
+                v-bind="$props.form[key]!"
+                v-model:date="(outputs as any)[key].value"
+            />
+
+            <TimePicker
+                v-else-if="$props.form[key]!.item === 'time'"
+                v-bind="$props.form[key]!"
+                v-model:time="(outputs as any)[key].value"
+            />
+
+            <Combobox
+                v-else-if="$props.form[key]!.item === 'combobox'"
+                v-bind="$props.form[key]!"
+                v-model:selected="(outputs as any)[key].value"
             />
 
             <div class="w-2" v-if="showErrors">
