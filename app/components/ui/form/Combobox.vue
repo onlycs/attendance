@@ -28,7 +28,7 @@ const items = computed(() =>
     }) as string[]
 );
 
-const indisplay = ref("");
+const indisplay = ref(selected.value ? props.kv[selected.value] : "");
 const keyselect = ref(-1);
 
 const fzf = computed(() => new Fzf(items.value));

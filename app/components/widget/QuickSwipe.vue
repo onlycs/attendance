@@ -13,6 +13,8 @@ const crypto = useCrypto();
 const names = studentNames(students);
 
 const loading = ref(false);
+const ctl = ref<{ reset: () => void; }>();
+
 const form = computed(() => {
     return f.form(
         {
@@ -43,7 +45,10 @@ const form = computed(() => {
             async submit(output, ctx) {
                 loading.value = true;
 
-                const end = () => setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+                const end = () => {
+                    ctl.value?.reset();
+                    setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+                };
 
                 const otp = await api.roster.totp({
                     body: { hour_type: output.hour_type },
@@ -105,6 +110,9 @@ const form = computed(() => {
             :form="form.form"
             :buttons="unref(form.buttons)"
             :deps="form.deps"
+            :ref="(el) => {
+                ctl = el as any;
+            }"
             @submit="form.submit"
             v-model:loading="loading"
         />
@@ -115,7 +123,7 @@ const form = computed(() => {
 @reference "~/style/tailwind.css";
 
 .widget {
-    @apply min-w-[24rem] min-h-62 p-4 pt-2;
+    @apply min-w-[24rem] min-h-62.5 p-4 pt-2;
 }
 
 .widget :deep(.submit) {

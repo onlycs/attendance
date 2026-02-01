@@ -11,6 +11,10 @@ pub(super) enum Error {
     #[oai(status = 403)]
     Forbidden(PlainText<String>),
 
+    #[oai(status = 409)]
+    #[construct("Student with this ID already exists")]
+    Conflict(PlainText<String>),
+
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
     InternalServerError(PlainText<String>),
@@ -18,10 +22,11 @@ pub(super) enum Error {
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(incoming: Request, claims: jwt::Claims, pg: PgPool) -> Result<(), Error> {
-    sqlx::query!(
+    let affected = sqlx::query!(
         r#"
         INSERT INTO students (id_hashed, id, first, last)
         VALUES ($1, $2, $3, $4)
+        ON CONFLICT (id_hashed) DO NOTHING
         "#,
         incoming.id_hashed,
         incoming.id,
@@ -30,6 +35,10 @@ pub(super) async fn route(incoming: Request, claims: jwt::Claims, pg: PgPool) ->
     )
     .execute(&pg)
     .await?;
+
+    if affected.rows_affected() == 0 {
+        return Err(Error::conflict());
+    }
 
     tokio::spawn(async move {
         telemeter(

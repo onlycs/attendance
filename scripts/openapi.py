@@ -5,10 +5,8 @@ export_list: list[str] = []
 with open("app/utils/api/hey/sdk.gen.ts", "r") as f:
     gen = f.read()
 
-    # get all lines that start with "export const"
     lines = [line for line in gen.split("\n") if line.strip().startswith("export const")]
 
-    # get every const name
     export_list = [line.split(" ")[2] for line in lines]
 
 type Exports = dict[str, "Exports"] | str
@@ -34,7 +32,6 @@ for export in export_list:
             current_level = current_level[part] # type: ignore
 
 
-# construct a json-y object string from exports, no pretty needed
 def construct_obj(obj: dict[str, Exports]) -> str:
     result = "{"
 

@@ -47,7 +47,7 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useAgData(data: ShallowRef<Map<string, Row>>) {
+export function useTableAg(data: ShallowRef<Map<string, Row>>) {
     const ag = computedWithControl(data, () => {
         const students = data.value;
         if (students.size === 0) {

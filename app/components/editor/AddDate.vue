@@ -72,7 +72,7 @@ const { form, deps, buttons, validate, submit, cancel } = f.form(
 
             const res = await api.roster.record.add({
                 body: {
-                    sid_hashed: sha256(submission.student),
+                    sid_hashed: submission.student,
                     time_in: api.datetime.ser(start),
                     time_out: api.datetime.ser(end),
                     kind: submission.kind,
@@ -98,10 +98,7 @@ const { form, deps, buttons, validate, submit, cancel } = f.form(
 </script>
 
 <template>
-    <Drawer
-        v-model:open="open"
-        @close="cancel"
-    >
+    <Drawer v-model:open="open" @close="cancel">
         <div class="title">Custom Entry</div>
 
         <div class="form">
@@ -128,6 +125,7 @@ const { form, deps, buttons, validate, submit, cancel } = f.form(
 .form {
     @apply mt-8 gap-2 flex flex-col;
     @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+    @apply items-center;
 }
 
 .form :deep(.submit) {

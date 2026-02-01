@@ -20,7 +20,7 @@ const selected = ref<string[]>([]);
 
 const { connected, reconnect, data } = useTable();
 const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
-const ag = useAgData(data);
+const ag = useTableAg(data);
 
 watch(user, (user) => {
     if (user.role !== "admin") return;
@@ -172,6 +172,7 @@ defineExpose({ Dropdown: EditorDropdown });
     <EditorAddStudent v-model:open="studentOpen" />
 
     <EditorAddDate
+        v-if="Object.keys(studentKv).length > 0"
         v-model:open="entryOpen"
         :students="studentKv"
     />

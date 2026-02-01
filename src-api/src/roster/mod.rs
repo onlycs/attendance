@@ -69,13 +69,9 @@ impl RosterService {
         let stream = dbstream::stream::<dbstream::Record>().await;
         let pg = self.pg.clone();
 
-        Ok(EventStream::new(Box::pin(stream.filter_map(move |repl| {
+        Ok(EventStream::new(Box::pin(stream.filter_map(move |_| {
             let pg = pg.clone();
             async move {
-                let Ok(_) = repl else {
-                    return None;
-                };
-
                 match present::query(pg).await {
                     Ok(res) => Some(res),
                     Err(err) => {

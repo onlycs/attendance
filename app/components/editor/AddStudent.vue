@@ -16,7 +16,7 @@ watch(user, (user) => {
 const open = defineModel<boolean>("open", { required: true });
 const loading = ref(false);
 
-const { form, buttons, deps, submit, cancel } = f.form(
+const { form, buttons, deps, submit, cancel, validate } = f.form(
     {
         id: f.studentId(),
         first: f.input({
@@ -56,6 +56,21 @@ const { form, buttons, deps, submit, cancel } = f.form(
         },
     ],
     {
+        async validate(submit) {
+            const id_hashed = sha256(submit.id);
+            const existing = await api.student.query({
+                path: { id_hashed },
+            });
+
+            if (existing.data) {
+                return [{
+                    field: "id",
+                    message: "A student with this ID already exists.",
+                }];
+            }
+
+            return [];
+        },
         async submit(submit) {
             const end = () => {
                 open.value = false;
@@ -112,10 +127,7 @@ const { form, buttons, deps, submit, cancel } = f.form(
 );
 </script>
 <template>
-    <Drawer
-        v-model:open="open"
-        @close="cancel"
-    >
+    <Drawer v-model:open="open" @close="cancel">
         <span class="title">New Student</span>
 
         <div class="form">
@@ -124,6 +136,7 @@ const { form, buttons, deps, submit, cancel } = f.form(
                 :form
                 :buttons
                 :deps
+                :validate
                 @cancel="cancel"
                 @submit="submit"
             />
@@ -141,6 +154,7 @@ const { form, buttons, deps, submit, cancel } = f.form(
 .form {
     @apply mt-8 gap-2 flex flex-col;
     @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+    @apply items-center;
 }
 
 .form :deep(.submit) {

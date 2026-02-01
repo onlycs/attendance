@@ -32,6 +32,14 @@ onMounted(() => {
         sliderW.value = btn.button.offsetWidth;
         sliderX.value = btn.button.offsetLeft - 8;
     }, { immediate: true });
+
+    window.addEventListener("resize", () => {
+        const btn = buttons.value[nth.value];
+        if (!btn || !btn.button) return;
+
+        sliderW.value = btn.button.offsetWidth;
+        sliderX.value = btn.button.offsetLeft - 8;
+    });
 });
 </script>
 
@@ -75,10 +83,9 @@ onMounted(() => {
 
     .option {
         @apply active:scale-100! duration-75! md:h-10 h-12;
-        @apply relative z-10;
+        @apply relative z-10 bg-transparent mix-blend-difference;
 
         &.selected {
-            @apply bg-transparent! mix-blend-difference;
             @apply transition-all duration-150;
             @apply cursor-auto;
         }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { AgGridVue } from "ag-grid-vue3";
+
 definePageMeta({ layout: "admin-protected" });
 </script>
 
@@ -9,6 +11,11 @@ definePageMeta({ layout: "admin-protected" });
             <WidgetTotals />
         </div>
     </div>
+
+    <AgGridVue
+        style="width: 100%; height: 100%"
+        :theme="Theme"
+    />
 </template>
 
 <style scoped>

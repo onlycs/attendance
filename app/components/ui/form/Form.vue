@@ -145,7 +145,13 @@ const actions = {
     submit,
     reset: () => {
         for (const k of keys) {
-            outputs[k]!.value = (props.defaults as any)?.[k] ?? null;
+            if (
+                props.form[k]!.item !== "select"
+                || (props.defaults as any)?.[k] !== undefined
+            ) {
+                outputs[k]!.value = (props.defaults as any)?.[k] ?? null;
+            }
+
             errors[k]!.value = [];
         }
 

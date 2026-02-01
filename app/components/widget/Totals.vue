@@ -10,7 +10,7 @@ const present = ref(res.data?.present.length ?? 0);
 const absent = ref(res.data?.absent.length ?? 0);
 
 function update(res: PresentResponse) {
-    present.value = res.present.length + 50;
+    present.value = res.present.length;
     absent.value = res.absent.length;
 }
 
@@ -23,6 +23,10 @@ const safepercent = computed(() => {
 });
 
 useSSE().add(api.roster.present.stream, update);
+
+// setInterval(() => {
+//     present.value += Math.floor(Math.random() * 3);
+// }, 500);
 </script>
 
 <template>
@@ -69,8 +73,11 @@ useSSE().add(api.roster.present.stream, update);
     @apply flex flex-row;
 
     .present, .absent {
-        @apply min-w-[22%] p-2;
+        @apply min-w-fit p-2;
         @apply flex flex-col items-center justify-center;
+
+        @apply transition-all duration-150;
+        transition-timing-function: linear;
     }
 
     .present {
@@ -88,10 +95,12 @@ useSSE().add(api.roster.present.stream, update);
 
 .bar {
     @apply w-full h-6 bg-red-500/40 rounded-md;
-    @apply col-span-2;
 
     .present {
         @apply h-full bg-drop rounded-md;
+
+        @apply transition-all duration-150;
+        transition-timing-function: linear;
 
         .inner {
             @apply bg-green-500/40 w-full h-full rounded-md;
