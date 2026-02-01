@@ -22,14 +22,14 @@
         --tw-duration: 0.15s;
         --ring: #d7d7d7;
 
-        --drop: #171717;
-        --background: #242424;
+        --drop: #191919;
+        --background: #272727;
 
-        --card: #303030;
-        --card-2: #3d3d3d;
+        --card: #313131;
+        --card-2: #494949;
 
-        --text: #d7d7d7;
-        --text-sub: #8c8c8c;
+        --text: #f2f2f2;
+        --text-sub: #929292;
         --border: #4d4d4d;
         --spacing: 0.25rem;
     }

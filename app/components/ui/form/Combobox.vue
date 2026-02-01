@@ -1,39 +1,55 @@
 <script setup lang="ts" generic="K extends string | number">
 import type { Input } from "#components";
-import { Fzf } from "fzf";
+import { Fzf, type FzfResultItem } from "fzf";
 
 export interface ComboboxProps<Key extends string | number> {
     kv: Record<Key, string>;
+    compare?: (a: string, b: string) => number;
+    placeholder?: string;
 }
 
 const props = defineProps<ComboboxProps<K>>();
-const selected = defineModel<K>();
+const selected = defineModel<K | null>("selected", { required: true });
 
 const container = ref<HTMLDivElement>();
 const inputbox = ref<InstanceType<typeof Input>>();
-const active = computed(() => inputbox.value?.$el.active);
+const active = ref(false);
 
-const reversed = computed(() => {
+const reversed = computed<Record<string, K>>(() => {
     return Object.fromEntries(
         Object.entries(props.kv).map(([k, v]) => [v, k]),
     );
 });
-const items = computed(() => Object.values(props.kv) as string[]);
+
+const items = computed(() =>
+    Object.values<string>(props.kv).sort((a, b) => {
+        if (props.compare) return props.compare(a, b);
+        return a.localeCompare(b);
+    }) as string[]
+);
 
 const indisplay = ref("");
 const keyselect = ref(-1);
 
 const fzf = computed(() => new Fzf(items.value));
 const fzfin = ref("");
-const fzfout = ref(items.value);
+const fzfout = ref<FzfResultItem<string>[] | string[]>(items.value);
+
+function unfzf(
+    item: FzfResultItem<string> | string | undefined,
+): string | undefined {
+    if (item === undefined) return undefined;
+    if (typeof item === "string") return item;
+    return item.item;
+}
 
 watch([fzf, fzfin], ([fzf, fzfin]) => {
-    fzfout.value = fzf.find(fzfin).map((res) => res.item);
+    fzfout.value = fzf.find(fzfin);
 });
 
 watch(keyselect, (keyselect) => {
-    const key = fzfout.value[keyselect];
-    selected.value = reversed.value[key ?? -1];
+    const key = unfzf(fzfout.value[keyselect]);
+    selected.value = reversed.value[key ?? -1] ?? null;
     if (key) indisplay.value = key;
 });
 
@@ -64,7 +80,7 @@ function next() {
 function select(index?: number) {
     inputbox.value?.$el.blur();
 
-    if (index && typeof index === "number") keyselect.value = index;
+    if (typeof index === "number") keyselect.value = index;
     if (fzfout.value.length === 0) return;
     if (fzfin.value) keyselect.value = Math.max(0, keyselect.value);
     if (keyselect.value === -1) return;
@@ -83,11 +99,14 @@ function typewatch(ev: string) {
             ref="inputbox"
             :model-value="indisplay"
             @update:model-value="typewatch($event!)"
+            v-model:focused="active"
             @keydown.arrow-up.prevent="prev"
             @keydown.arrow-down.prevent="next"
             @keydown.enter.prevent="select"
-            placeholder="Select an option..."
+            @focusout="select()"
+            :placeholder="$props.placeholder ?? 'Select an option...'"
         />
+
         <div
             v-if="active"
             class="dropdown"
@@ -95,11 +114,33 @@ function typewatch(ev: string) {
         >
             <div
                 v-for="(item, index) of fzfout"
-                :key="item"
-                :class="cn('item', keyselect === index && 'selected')"
+                :key="unfzf(item)"
                 @mousedown.prevent="select(index)"
+                class="item"
             >
-                {{ item }}
+                <template v-if="typeof item === 'string'">
+                    {{ item }}
+                </template>
+
+                <template v-else>
+                    <span
+                        v-for="(char, i) of item.item"
+                        :class="cn(
+                            item.positions.has(i)
+                                && 'text-red-300',
+                        )"
+                        :key="char"
+                    >
+                        {{ char }}
+                    </span>
+                </template>
+
+                <div
+                    :class="cn(
+                        'hover',
+                        keyselect === index && 'selected',
+                    )"
+                />
             </div>
 
             <div v-if="!fzfout.length" class="item sub">No results found.</div>
@@ -115,16 +156,22 @@ function typewatch(ev: string) {
 }
 
 .dropdown {
-    @apply absolute w-full max-h-60 overflow-y-scroll;
-    @apply bg-drop rounded-lg shadow-lg;
-    @apply flex flex-col p-3 z-50;
+    @apply absolute w-full max-h-52 overflow-y-scroll;
+    @apply bg-card rounded-lg drop-shadow-xl;
+    @apply flex flex-col p-2 gap-2 z-50 text-sm;
 
     .item:not(.sub) {
-        @apply py-2 px-3 hover:bg-card rounded-md;
+        @apply py-2 px-3 rounded-md relative;
         @apply scroll-my-3;
 
-        &.selected {
-            @apply bg-card;
+        .hover {
+            @apply absolute top-0 left-0 w-full h-full;
+            @apply rounded-md bg-transparent;
+            @apply hover:bg-white/5;
+
+            &.selected {
+                @apply bg-white/10;
+            }
         }
     }
 

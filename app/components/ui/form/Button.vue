@@ -3,6 +3,8 @@ export type ButtonVariant =
     | "primary"
     | "secondary"
     | "secondary-card"
+    | "success"
+    | "success-card"
     | "danger"
     | "danger-card"
     | "warning"
@@ -10,7 +12,6 @@ export type ButtonVariant =
 
 export interface ButtonProps {
     disabled?: boolean;
-    form?: "submit" | "cancel" | "reset";
     kind?: ButtonVariant;
 
     class?: string | string[];
@@ -85,8 +86,16 @@ defineExpose({
         @apply bg-red-500/10 text-red-500;
     }
 
+    &.success {
+        @apply bg-green-500/10 text-green-500;
+    }
+
     &.danger-card {
-        @apply bg-red-500/20 text-red-500;
+        @apply bg-red-500/20 text-red-400;
+    }
+
+    &.success-card {
+        @apply bg-green-500/20 text-green-400;
     }
 
     &.warning {

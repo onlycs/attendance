@@ -22,6 +22,7 @@ export default defineNuxtConfig({
         { path: "~/components/sidebar", prefix: "Sidebar" },
         { path: "~/components/attendance", prefix: "Attendance" },
         { path: "~/components/attendance/dialog", prefix: "Attendance" },
+        { path: "~/components/widget", prefix: "Widget" },
         { path: "~/components", pathPrefix: false },
     ],
     nitro: {
@@ -34,10 +35,7 @@ export default defineNuxtConfig({
             },
         },
     },
-    devtools: {
-        enabled: true,
-        timeline: { enabled: true },
-    },
+    devtools: { enabled: false },
     modules: [
         "@nuxt/icon",
         "@nuxt/image",

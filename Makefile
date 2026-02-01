@@ -1,6 +1,6 @@
-.PHONY: all wasm openapi front
+.PHONY: all wasm openapi fmt typegen postinstall
 
-all: front
+all: build
 
 wasm:
 	@echo "=== Building WASM package"
@@ -31,5 +31,15 @@ fmt:
 typegen:
 	@echo "=== Generating TypeScript types"
 	bunx nuxi prepare
+
+build:
+	@echo "=== Building the API"
+	cd src-api && cargo build --release
+
+	@echo "=== Installing dependencies"
+	bun i # will run `make postinstall` (see package.json)
+
+	@echo "=== Building frontend"
+	bun run build
 
 postinstall: openapi wasm fmt typegen

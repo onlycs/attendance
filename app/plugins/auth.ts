@@ -90,10 +90,6 @@ export type User = Ref<AuthData>;
 export interface Auth {
     __local: Ref<AuthLocalStorage | null>;
     __session: Ref<AuthSessionStorage | null>;
-    prompt: {
-        provide(cb: () => Promise<AuthData & { role: "admin"; "ok": true; }>): void;
-        inject(): () => Promise<AuthData & { role: "admin"; "ok": true; }>;
-    };
     admin(username: string, password: string): Promise<{ ok: boolean; }>;
     student(id: string): void;
     clear(): void;
@@ -175,16 +171,6 @@ export default defineNuxtPlugin(() => {
             session.value = k1s ? { k1: k1s } : null;
 
             return { ok: true };
-        },
-        prompt: {
-            provide(cb) {
-                provide("auth:prompt", cb);
-            },
-            inject() {
-                return inject("auth:prompt", () => {
-                    throw new Error("auth:prompt used outside of AdminProtected");
-                });
-            },
         },
         student(id) {
             const local = useLocalAuth();

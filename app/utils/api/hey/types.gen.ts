@@ -5,16 +5,22 @@ export type ClientOptions = {
 };
 
 /**
- * AdminLogin
+ * AdminIdFilter
  */
-export type AdminLogin = {
-    id: string;
+export type AdminIdFilter = {
+    /**
+     * List of admin IDs to filter by
+     *
+     * This will correspond to the admin who performed, authorized, or is
+     * otherwise associated with the event.
+     */
+    admin_id: Array<string>;
 };
 
 /**
- * AdminLogout
+ * AdminLogin
  */
-export type AdminLogout = {
+export type AdminLogin = {
     id: string;
 };
 
@@ -48,8 +54,14 @@ export type Event =
         event?: "admin_login";
     } & EventAdminLogin)
     | ({
-        event?: "admin_logout";
-    } & EventAdminLogout)
+        event?: "invite_add";
+    } & EventInviteAdd)
+    | ({
+        event?: "invite_use";
+    } & EventInviteUse)
+    | ({
+        event?: "onboard";
+    } & EventOnboard)
     | ({
         event?: "student_add";
     } & EventStudentAdd)
@@ -75,25 +87,23 @@ export type Event =
         event?: "student_logout";
     } & EventStudentLogout);
 
-export type EventType =
-    | "admin_login"
-    | "admin_logout"
-    | "student_add"
-    | "student_delete"
-    | "student_edit"
-    | "record_add"
-    | "record_delete"
-    | "record_edit"
-    | "student_login"
-    | "student_logout";
+export type EventTypeFilter = AdminIdFilter | InviteUseFilter | StudentActionFilter;
 
 export type EventAdminLogin = {
     event: "admin_login";
 } & AdminLogin;
 
-export type EventAdminLogout = {
-    event: "admin_logout";
-} & AdminLogout;
+export type EventInviteAdd = {
+    event: "invite_add";
+} & InviteAdd;
+
+export type EventInviteUse = {
+    event: "invite_use";
+} & InviteUse;
+
+export type EventOnboard = {
+    event: "onboard";
+} & Onboard;
 
 export type EventRecordAdd = {
     event: "record_add";
@@ -130,6 +140,13 @@ export type EventStudentLogout = {
 export type HourType = "build" | "learning" | "demo" | "offseason";
 
 /**
+ * InviteAdd
+ */
+export type InviteAdd = {
+    admin_id: string;
+};
+
+/**
  * InviteRequest
  */
 export type InviteRequest = {
@@ -158,6 +175,28 @@ export type InviteResponse = {
 };
 
 /**
+ * InviteUse
+ */
+export type InviteUse = {
+    inviter_id: string;
+    invitee_id: string;
+};
+
+/**
+ * InviteUseFilter
+ */
+export type InviteUseFilter = {
+    /**
+     * List of inviter IDs to filter by
+     */
+    inviter_id: Array<string>;
+    /**
+     * List of invitee IDs to filter by
+     */
+    invitee_id: Array<string>;
+};
+
+/**
  * LoginFinishRequest
  */
 export type LoginFinishRequest = {
@@ -181,6 +220,13 @@ export type LoginStartResponse = {
     session: string;
     salt: string;
     b: string;
+};
+
+/**
+ * Onboard
+ */
+export type Onboard = {
+    admin_id: string;
 };
 
 /**
@@ -416,6 +462,20 @@ export type Student = {
 };
 
 /**
+ * StudentActionFilter
+ */
+export type StudentActionFilter = {
+    /**
+     * List of admin IDs to filter by
+     */
+    admin_id: Array<string>;
+    /**
+     * List of student hashed SIDs to filter by
+     */
+    sid_hashed: Array<string>;
+};
+
+/**
  * StudentAdd
  */
 export type StudentAdd = {
@@ -546,6 +606,58 @@ export type TelemetryEvent = {
     id: string;
     event: Event;
     timestamp: string;
+};
+
+/**
+ * TelemetryFilter
+ */
+export type TelemetryFilter = {
+    /**
+     * Type of telemetry event to retrieve
+     */
+    event_type?: (EventTypeFilter & unknown) | null;
+    /**
+     * Start time for telemetry events
+     */
+    after?: string | null;
+    /**
+     * End time for telemetry events
+     */
+    before?: string | null;
+};
+
+/**
+ * TelemetryQueryRequest
+ */
+export type TelemetryQueryRequest = {
+    /**
+     * Number of telemetry events to retrieve.
+     *
+     * This will correspond to the events fetched from the database PRECEDING
+     * ALL OTHER FILTERING. In other words are NOT guaranteed to receive
+     * `count` events in the response, as the filtering is done after fetching.
+     *
+     * You will not recieve an empty response unless there are no events
+     * matching your filters.
+     *
+     * Default: 10
+     * Maximum: 100
+     */
+    count: number;
+    /**
+     * Number of telemetry events to skip. Will be sorted by timestamp
+     * descending.
+     *
+     * Default: 0
+     */
+    skip: number;
+    /**
+     * Filters to apply to the telemetry events.
+     *
+     * All filters are applied after the initial `count` and `skip` are
+     * applied to the database query.
+     */
+    filters: TelemetryFilter & unknown;
 };
 
 /**
@@ -1152,13 +1264,10 @@ export type StudentHoursResponses = {
 export type StudentHoursResponse2 = StudentHoursResponses[keyof StudentHoursResponses];
 
 export type TelemetryGetData = {
-    body?: never;
+    body: TelemetryQueryRequest;
     path?: never;
-    query: {
-        count: number;
-        skip: number;
-    };
-    url: "/telemetry";
+    query?: never;
+    url: "/telemetry/search";
 };
 
 export type TelemetryGetErrors = {
@@ -1179,14 +1288,16 @@ export type TelemetryGetResponse = TelemetryGetResponses[keyof TelemetryGetRespo
 export type TelemetryStreamData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        id?: string;
+    };
     url: "/telemetry/stream";
 };
 
 export type TelemetryStreamErrors = {
-    400: string;
     401: string;
     403: string;
+    404: string;
     500: string;
 };
 
@@ -1198,29 +1309,24 @@ export type TelemetryStreamResponses = {
 
 export type TelemetryStreamResponse = TelemetryStreamResponses[keyof TelemetryStreamResponses];
 
-export type TelemetryQueryData = {
-    body?: never;
-    path: {
-        event_type: EventType;
-    };
-    query: {
-        count: number;
-        skip: number;
-    };
-    url: "/telemetry/{event_type}";
+export type TelemetryCreateStreamData = {
+    body: TelemetryFilter;
+    path?: never;
+    query?: never;
+    url: "/telemetry/stream";
 };
 
-export type TelemetryQueryErrors = {
+export type TelemetryCreateStreamErrors = {
     400: string;
     401: string;
     403: string;
     500: string;
 };
 
-export type TelemetryQueryError = TelemetryQueryErrors[keyof TelemetryQueryErrors];
+export type TelemetryCreateStreamError = TelemetryCreateStreamErrors[keyof TelemetryCreateStreamErrors];
 
-export type TelemetryQueryResponses = {
-    200: TelemetryResponse;
+export type TelemetryCreateStreamResponses = {
+    200: string;
 };
 
-export type TelemetryQueryResponse = TelemetryQueryResponses[keyof TelemetryQueryResponses];
+export type TelemetryCreateStreamResponse = TelemetryCreateStreamResponses[keyof TelemetryCreateStreamResponses];

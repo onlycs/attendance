@@ -4,6 +4,16 @@ definePageMeta({ layout: "admin-protected" });
 
 <template>
     <div class="content">
-        <div></div>
+        <WidgetQuickSwipe />
+        <WidgetTotals />
     </div>
 </template>
+
+<style scoped>
+@reference "~/style/tailwind.css";
+
+.content {
+    @apply w-full h-full;
+    @apply grid items-start justify-items-start;
+}
+</style>

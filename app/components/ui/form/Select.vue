@@ -57,7 +57,7 @@ onMounted(() => {
         </Button>
 
         <div
-            class="overlay"
+            :class="cn('overlay', $props['class:overlay'])"
             :style="{
                 width: `${sliderW}px`,
                 transform: `translateX(${sliderX}px)`,

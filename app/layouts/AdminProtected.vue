@@ -13,49 +13,44 @@ const creds = computed<typeof user["value"] & { role: "admin"; }>(() => {
 const open = ref(false);
 const loading = ref(false);
 const promise = ref((_a: AuthData & { role: "admin"; ok: true; }) => {});
+const route = useRoute();
 
-const usrhook = watch(user, () => {
-    if (user.value.role !== "admin") return exit(true, false);
-    if (user.value.ok) return open.value = false;
+function exit(
+    usr: typeof user["value"] = user.value,
+): usr is typeof user["value"] & { role: "admin"; } {
+    usr = user.value;
 
-    const exp = user.value.claims.exp;
-    const now = Math.floor(Date.now() / 1000);
-    if (exp < now) return exit(true, false);
+    if (user.value.role === "admin" && user.value.ok) {
+        const exp = user.value.claims.exp;
+        const now = Math.floor(Date.now() / 1000);
+        if (exp > now) return true;
+    }
 
-    open.value = true;
-}, { immediate: true });
-
-function exit(force = false, kill = true) {
-    if (!(open.value || force)) return; // continue iff open or forced
-    if (kill) usrhook(); // when called in usrhook's constructor, don't kill the hook or will error
-
-    open.value = false;
     auth.clear();
     router.push(redirect.build("/", "session-expired"));
+    return false;
 }
 
 watch(open, open => {
     if (open) loading.value = false;
 });
 
-auth.prompt.provide(() => {
-    const p = new Promise<AuthData & { role: "admin"; ok: true; }>((res) => {
-        promise.value = res;
-    });
+watch(
+    () => route.path,
+    async () => {
+        await sleep(10);
 
-    if (user.value.role !== "admin") {
-        exit(true);
-        return p;
-    }
+        if (
+            user.value.role !== "admin"
+            || user.value.claims.exp < Math.floor(Date.now() / 1000)
+        ) return exit();
 
-    if (user.value.ok) {
-        promise.value(user.value);
-        return p;
-    }
+        if (user.value.ok) return;
 
-    open.value = true;
-    return p;
-});
+        open.value = true;
+    },
+    { immediate: true },
+);
 
 async function submit(password: string) {
     loading.value = true;
@@ -63,6 +58,7 @@ async function submit(password: string) {
 
     if (res.ok) {
         promise.value(user.value as AuthData & { role: "admin"; ok: true; });
+        promise.value = () => {};
         open.value = false;
         return;
     }
@@ -150,7 +146,7 @@ const deps = {};
     display: grid;
     grid-template-columns: auto 1fr;
 
-    @apply w-full h-full p-2;
+    @apply w-full h-full p-2 gap-2;
 }
 
 .content {

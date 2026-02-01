@@ -25,3 +25,5 @@ src-api/.env
 .postgres
 nohup.out
 target
+
+app/wasm/*

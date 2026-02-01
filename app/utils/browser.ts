@@ -46,6 +46,6 @@ export function useIsFirefox(): Readonly<Ref<boolean>> {
     return readonly(isFirefox);
 }
 
-export async function sleep(ms: number) {
+export async function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/vue";
 import { Toaster } from "vue-sonner";
 
 onLoad(handleRedirectQuery);
+useRouter().beforeEach(() => useCleanup().run());
 </script>
 
 <template>

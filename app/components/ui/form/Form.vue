@@ -2,25 +2,35 @@
     setup
     lang="ts"
     generic="
-    F extends Form, // removing this comment will cause dprint to fail.
-    D extends Deps<F>
+    F extends Form, // a
+    D extends Deps<F>,
+    B extends Array<FormButton>
 "
 >
 import type { WatchHandle } from "vue";
 import type { MaybePromise } from "~/utils/gymnastics";
-import type { ButtonProps } from "./Button.vue";
 
-export interface Props<F extends Form, D extends Deps<F>> {
+export interface Props<
+    F extends Form,
+    D extends Deps<F>,
+    B extends FormButton[]
+> {
     form: F;
     deps: D;
-    buttons: FormButton[];
+    buttons: B;
     defaults?: Partial<FormOutput<F, D>>;
     validate?: (output: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
     class?: string | string[];
 }
 
-const props = defineProps<Props<F, D>>();
-const emit = defineEmits<{ submit: [FormOutput<F, D>]; cancel: []; }>();
+const props = defineProps<Props<F, D, B>>();
+const emit = defineEmits<
+    {
+        submit: [FormOutput<F, D>, ButtonContext<B>];
+        cancel: [];
+        "update:outputs": [outputs: FormTemporary<F>];
+    }
+>();
 const loading = defineModel<boolean>("loading");
 const dirty = defineModel<boolean>("dirty", { default: false });
 const keys = Object.keys(props.form) as string[];
@@ -34,7 +44,10 @@ function collectDefaults(): Record<string, Ref<unknown | null>> {
         const init = (props.defaults as any)?.[k] ?? itemInit;
         const x = ref(init);
 
-        const unwatch = watch(x, () => dirty.value = true);
+        const unwatch = watch(x, () => {
+            dirty.value = true;
+            emit("update:outputs", outputs as FormTemporary<F>);
+        });
         onUnmounted(() => unwatch());
 
         entries.push([k, x]);
@@ -91,7 +104,7 @@ function computeErrors() {
     }
 }
 
-async function submit() {
+async function submit(context: ButtonContext<B>) {
     showErrors.value = true;
     computeErrors();
 
@@ -124,10 +137,10 @@ async function submit() {
 
     showErrors.value = false;
     dirty.value = false;
-    emit("submit", output);
+    emit("submit", output, context);
 }
 
-const actions: Record<Exclude<ButtonProps["form"], undefined>, () => void> = {
+const actions = {
     cancel: () => emit("cancel"),
     submit,
     reset: () => {
@@ -236,8 +249,10 @@ defineExpose({ ...actions });
             :key="button.form"
             v-bind="button"
             @click.prevent="() => {
-                if ('action' in button) button.action();
-                else actions[button.form]();
+                if (button.action) button.action();
+                else if (button.form === 'submit') {
+                    submit(button.context as ButtonContext<B>);
+                } else actions[button.form]();
             }"
         >
             {{ button.label }}

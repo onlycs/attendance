@@ -78,12 +78,12 @@ import type {
     StudentUpdateData,
     StudentUpdateErrors,
     StudentUpdateResponses,
+    TelemetryCreateStreamData,
+    TelemetryCreateStreamErrors,
+    TelemetryCreateStreamResponses,
     TelemetryGetData,
     TelemetryGetErrors,
     TelemetryGetResponses,
-    TelemetryQueryData,
-    TelemetryQueryErrors,
-    TelemetryQueryResponses,
     TelemetryStreamData,
     TelemetryStreamErrors,
     TelemetryStreamResponses,
@@ -412,10 +412,14 @@ export const studentHours = <ThrowOnError extends boolean = false>(options: Opti
  * Get
  */
 export const telemetryGet = <ThrowOnError extends boolean = false>(options: Options<TelemetryGetData, ThrowOnError>) =>
-    (options.client ?? client).get<TelemetryGetResponses, TelemetryGetErrors, ThrowOnError>({
+    (options.client ?? client).post<TelemetryGetResponses, TelemetryGetErrors, ThrowOnError>({
         security: [{ scheme: "bearer", type: "http" }],
-        url: "/telemetry",
+        url: "/telemetry/search",
         ...options,
+        headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...options.headers,
+        },
     });
 
 /**
@@ -430,12 +434,16 @@ export const telemetryStream = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * Query
+ * CreateStream
  */
-export const telemetryQuery = <ThrowOnError extends boolean = false>(
-    options: Options<TelemetryQueryData, ThrowOnError>,
-) => (options.client ?? client).get<TelemetryQueryResponses, TelemetryQueryErrors, ThrowOnError>({
+export const telemetryCreateStream = <ThrowOnError extends boolean = false>(
+    options: Options<TelemetryCreateStreamData, ThrowOnError>,
+) => (options.client ?? client).post<TelemetryCreateStreamResponses, TelemetryCreateStreamErrors, ThrowOnError>({
     security: [{ scheme: "bearer", type: "http" }],
-    url: "/telemetry/{event_type}",
+    url: "/telemetry/stream",
     ...options,
+    headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...options.headers,
+    },
 });

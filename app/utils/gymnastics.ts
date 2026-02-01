@@ -3,16 +3,8 @@
 export type { FilterArrayByValue as Filter, Narrow } from "@zodios/core/lib/utils.types";
 
 import type { MultiWatchSources } from "@vueuse/core";
-import type { Narrow, RequiredKeys } from "@zodios/core/lib/utils.types";
-import type {
-    DeepReadonly,
-    ShallowRef,
-    UnwrapNestedRefs,
-    UnwrapRef,
-    WatchCallback,
-    WatchHandle,
-    WatchSource,
-} from "vue";
+import type { Narrow, OptionalProps, RequiredKeys } from "@zodios/core/lib/utils.types";
+import type { DeepReadonly, WatchSource } from "vue";
 
 export type UnionToIntersection<U> = (U extends never ? never : (k: U) => void) extends (k: infer I) => void ? I
     : never;
@@ -48,6 +40,7 @@ export type Optionalize<T, K extends keyof T> =
     & Partial<Pick<T, K>>;
 
 export type UndefinedIfOptional<T> = RequiredKeys<T> extends never ? undefined : T;
+export type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
 
 export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
 export type Merge<A, B> = Prettify<
@@ -66,7 +59,7 @@ export type UnPartial<T> = {
     [K in keyof T]-?: NonNullable<T[K]>;
 };
 
-export type UnPromise<T> = T extends Promise<infer U> ? U : never;
+export type UnPromise<T> = T extends Promise<infer U> ? U : T;
 export type NoneToNull<T> = T extends null | undefined ? null : T;
 export type MaybeNone<T> = T | null | undefined;
 export type MaybePromise<T> = T | Promise<T>;
@@ -92,7 +85,7 @@ export function narrow<T>(a: Narrow<T>): Narrow<T> {
  * const a = { x: 1, y: 2, z: 3 };
  * const b = { y: undefined, z: null };
  * safeassign(a, b); // { x: 1, y: 2, z: null }
- * Object.assign(a, b); // { x: 1, y: undefined, z: null }
+ * Object.assign({}, a, b); // { x: 1, y: undefined, z: null }
  * ```
  *
  * @param a object to assign to
@@ -120,20 +113,6 @@ export function safeassign<T extends object>(a: T, ...bs: Partial<T>[]): T {
 export function safemut<T extends object>(a: T, ...bs: Partial<T>[]): T {
     const safeBs = bs.map(b => Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)));
     return Object.assign(a, ...safeBs) as T;
-}
-
-type MapSources<T> = {
-    [K in keyof T]: T[K] extends WatchSource<infer V> ? V : T[K] extends object ? T[K] : never;
-};
-
-export function watched<T, K>(w: WatchSource<T>, f: (data: T) => K): DeepReadonly<Ref<K>>;
-export function watched<S extends MultiWatchSources, K>(w: [...S], f: (data: MapSources<S>) => K): DeepReadonly<Ref<K>>;
-
-// peak typescript
-export function watched(a: any, b: any): any {
-    const ret = ref();
-    watch(a, (next) => ret.value = b(next), { immediate: true });
-    return readonly(ret);
 }
 
 export function late<T>(): { value: T | null; } {

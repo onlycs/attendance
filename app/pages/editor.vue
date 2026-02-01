@@ -16,35 +16,22 @@ const { user } = useAuth();
 const router = useRouter();
 const crypto = useCrypto();
 
-const connected = ref(false);
 const selected = ref<string[]>([]);
 
+const { connected, reconnect, data } = useTable();
 const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
-const reconnect = ref<() => void>(() => {});
-const rows = late<Row[]>();
-const ag = ref<ReturnType<typeof useAgData> | null>(null);
-const trigger = late<Readonly<Ref<number>>>();
-
-watch(creds, async (user) => {
-    if (rows.value) return;
-
-    const tbl = await useTable({
-        connected,
-        onError: () => toast.error("Failed to replicate"),
-        user,
-        crypto,
-    });
-
-    if (!tbl) return;
-    reconnect.value = tbl.reconnect;
-    rows.value = tbl.data;
-    trigger.value = tbl.trigger;
-    ag.value = useAgData(tbl.data, tbl.trigger);
-});
+const ag = useAgData(data);
 
 watch(user, (user) => {
     if (user.role !== "admin") return;
     if (!user.ok) return;
+
+    const perms = user.claims.perms;
+
+    if (!perms.student_view || !perms.hours_view) {
+        router.push(redirect.build("/dashboard", "unauthorized"));
+    }
+
     creds.value = { ...user };
 }, { immediate: true });
 
@@ -106,8 +93,8 @@ function exportCSV() {
 
     const records = [header.join(",")];
 
-    for (const student of (rows.value ?? [])) {
-        for (const cell of student.cells) {
+    for (const student of data.value.values()) {
+        for (const cell of student.cells ?? []) {
             for (const entry of cell.records) {
                 records.push(
                     [
@@ -154,29 +141,21 @@ const sWrap = { e: sEntries };
 
 // idrc about ag, but once it's updated, we get a ref in rows, which matters
 // also, this effect only runs once praise the lord
-watch(ag, () => {
-    watch(
-        [trigger.value!, sHashed, sDate],
-        ([_, hashed, date]) => {
-            const data = rows.value!;
-            const student = data.find(s => s.id_hashed === hashed);
-            if (!student) return [];
+watch(
+    [data, sHashed, sDate],
+    ([data, hashed, date]) => {
+        const student = data.get(hashed);
+        if (!student) return [];
 
-            const cell = student.cells.find(c => c.date.equals(date));
-            if (!cell) return [];
+        student.cells ??= [];
+        const cell = student.cells.find(c => c.date.equals(date));
+        if (!cell) return [];
 
-            sEntries.value = [...cell.records];
-        },
-    );
-});
+        sEntries.value = [...cell.records];
+    },
+);
 
-const studentKv = computed(() => {
-    return Object.fromEntries(
-        (rows.value ?? []).map(
-            s => [s.id, `${s.first} ${s.last}`],
-        ),
-    );
-});
+const studentKv = studentNames(data);
 
 provide("open", (row: AgRow, col: ColDef<AgRow, number>) => {
     sHashed.value = sha256(row.studentId);
@@ -224,6 +203,7 @@ defineExpose({ Dropdown: EditorDropdown });
                 class="!w-fit"
                 class:content="button"
                 @click="() => studentOpen = true"
+                :disabled="!creds?.claims.perms.student_add"
             >
                 <Icon name="hugeicons:user-add-01" size="22" />
                 Add Student
@@ -234,6 +214,7 @@ defineExpose({ Dropdown: EditorDropdown });
                 class="!w-fit"
                 class:content="button"
                 @click="() => entryOpen = true"
+                :disabled="!creds?.claims.perms.hours_edit"
             >
                 <Icon name="hugeicons:calendar-add-01" size="22" />
                 Add Date
@@ -243,7 +224,8 @@ defineExpose({ Dropdown: EditorDropdown });
                 kind="danger"
                 class="!w-fit"
                 class:content="button"
-                :disabled="selected.length === 0"
+                :disabled="selected.length === 0
+                || !creds?.claims.perms.student_delete"
                 @click="onDelete"
             >
                 <Icon name="hugeicons:delete-03" size="22" />
@@ -265,8 +247,8 @@ defineExpose({ Dropdown: EditorDropdown });
         <div class="table-container">
             <AgGridVue
                 style="width: 100%; height: 100%"
-                :column-defs="ag?.columns"
-                :row-data="ag?.rows"
+                :column-defs="ag.columns.value"
+                :row-data="ag.rows.value"
                 :theme="Theme"
                 :row-selection="{ mode: 'multiRow' }"
                 :selection-column-def="{ pinned: 'left' }"
@@ -300,7 +282,7 @@ defineExpose({ Dropdown: EditorDropdown });
 @reference "~/style/tailwind.css";
 
 .page {
-    @apply flex flex-col relative pl-2 gap-2;
+    @apply flex flex-col relative gap-2;
     @apply w-full h-full;
 }
 

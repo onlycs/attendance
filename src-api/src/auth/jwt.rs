@@ -53,21 +53,31 @@ fn verify(jwt: &str) -> Result<Claims, JwtVerifyError> {
 // i legitimately could not have thought of a better use of my time
 declare_permissions!();
 
+impl AsRef<Permission> for Permission {
+    fn as_ref(&self) -> &Permission {
+        self
+    }
+}
+
 #[derive(ApiResponse, ApiError)]
 pub(crate) enum PermissionDeniedError {
-    #[oai(status = 401)]
+    #[oai(status = 403)]
     #[construct(new(Permission), "Missing permission `{source}`")]
     #[construct(new_ambiguous, "Missing required permissions")]
-    Unauthorized(PlainText<String>),
+    Forbidden(PlainText<String>),
 
     #[oai(status = 500)]
     InternalServerError(PlainText<String>),
 }
 
 impl Permissions {
-    pub(crate) fn assert(&self, permission: Permission) -> Result<(), PermissionDeniedError> {
-        if !self[permission] {
-            return Err(PermissionDeniedError::new(permission));
+    pub(crate) fn assert(
+        &self,
+        permission: impl AsRef<Permission>,
+    ) -> Result<(), PermissionDeniedError> {
+        let p = *permission.as_ref();
+        if !self[p] {
+            return Err(PermissionDeniedError::new(p));
         }
         Ok(())
     }
@@ -77,7 +87,7 @@ impl Permissions {
         permissions: impl Iterator<Item = impl AsRef<Permission>>,
     ) -> Result<(), PermissionDeniedError> {
         for permission in permissions {
-            self.assert(*permission.as_ref())?;
+            self.assert(permission)?;
         }
 
         Ok(())

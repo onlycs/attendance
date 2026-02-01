@@ -343,7 +343,14 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
             #( #field_attrs pub #idents: #tys ),*
         }
 
-        #[derive(Clone, Debug, PartialEq, ::serde::Serialize, ::serde::Deserialize, ::poem_openapi::Object)]
+        #[derive(
+            Clone,
+            Debug,
+            PartialEq,
+            ::serde::Serialize,
+            ::serde::Deserialize,
+            ::poem_openapi::Object
+        )]
         pub(crate) struct #partial_ident {
             pub #pkey: #pkey_ty,
             #( #partial_attrs pub #partial_idents: #partial_tys ),*
@@ -573,6 +580,12 @@ pub fn auto_operation_ids(
                 #[doc = #oid_camel]
             },
         );
+        func.attrs.insert(
+            1,
+            syn::parse_quote! {
+                #[doc = ""]
+            },
+        )
     }
 
     quote! { #input }.into()

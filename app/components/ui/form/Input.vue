@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue";
-
 export type InputProps = Partial<HTMLInputElement>;
-
 const value = defineModel<string>();
+const focused = defineModel<boolean>("focused", { default: false });
 </script>
 
 <template>
@@ -11,7 +9,10 @@ const value = defineModel<string>();
         ref="input"
         class="input"
         autocomplete="off"
-        @input="(ev) => (value = (ev.target as HTMLInputElement).value)"
+        :value
+        @input="value = ($event as any).target.value"
+        @focusin="focused = true"
+        @focusout="focused = false"
     />
 </template>
 
@@ -19,13 +20,14 @@ const value = defineModel<string>();
 @reference "~/style/tailwind.css";
 
 .input {
-    @apply flex h-16 w-full bg-drop px-6 py-2;
+    @apply flex h-fit w-full bg-drop px-6 py-5;
     @apply rounded-md border border-border;
     @apply text-sm placeholder:text-sub;
     @apply transition-all duration-150;
 
     &:focus-visible {
-        @apply border-white border-2;
+        @apply border-white;
+        box-shadow: 0 0 0 2px white;
         @apply outline-none ring-0;
         @apply duration-100;
     }

@@ -1,22 +1,22 @@
-import * as crypto from "~/wasm/attendance_crypto";
+import * as attendance_crypto from "~/wasm/attendance_crypto";
 
 let initialized = false;
 
-export interface WorkerMessage<K extends keyof typeof crypto> {
+export interface WorkerMessage<K extends keyof typeof attendance_crypto> {
     id: number;
     operation: K;
-    args: (typeof crypto)[K] extends (...args: infer P) => any ? P : never;
+    args: (typeof attendance_crypto)[K] extends (...args: infer P) => any ? P : never;
 }
 
-self.onmessage = async (event: MessageEvent<WorkerMessage<keyof typeof crypto>>) => {
+self.onmessage = async (event: MessageEvent<WorkerMessage<keyof typeof attendance_crypto>>) => {
     if (!initialized) {
-        await crypto.default();
-        await crypto.initThreadPool(navigator.hardwareConcurrency || 4);
+        await attendance_crypto.default();
+        await attendance_crypto.initThreadPool(navigator.hardwareConcurrency || 4);
         initialized = true;
     }
 
     const { id, operation, args } = event.data;
-    const func = crypto[operation] as (...args: any[]) => any;
+    const func = attendance_crypto[operation] as (...args: any[]) => any;
     const fnargs = args as any[];
     const result = await (func as any)(...fnargs);
 

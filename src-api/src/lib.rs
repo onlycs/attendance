@@ -1,4 +1,4 @@
-#![feature(never_type, error_generic_member_access)]
+#![feature(never_type, error_generic_member_access, if_let_guard)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::similar_names, clippy::missing_errors_doc)]
 

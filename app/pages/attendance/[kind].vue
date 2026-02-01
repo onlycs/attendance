@@ -92,7 +92,7 @@ watch(currentId, (currentId, last) => {
 
 const studentId = f.studentId({ size: "lg" });
 
-onBeforeUnmount(() => auth.clearsession());
+useCleanup().add(auth.clearsession);
 </script>
 
 <template>

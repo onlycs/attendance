@@ -13,6 +13,8 @@ name = "openapi"
 path = "scripts/openapi.rs"
 
 [dependencies]
+async-graphql = { version = "7.2.1", features = ["chrono"] }
+async-graphql-poem = "7.2.1"
 async-stream = "0.3.6"
 attendance-api-macro = { version = "0.1.0", path = "../src-macro" }
 base64 = "0.22.1"

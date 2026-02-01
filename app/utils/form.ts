@@ -1,3 +1,4 @@
+import type { FilterArrayByValue } from "@zodios/core/lib/utils.types";
 import type { Temporal } from "temporal-polyfill";
 import type { ZodTemporal } from "temporal-zod";
 import { type core, z } from "zod";
@@ -9,6 +10,7 @@ import type { OTPFieldProps } from "~/components/ui/form/otp/Field.vue";
 import type { SelectProps } from "~/components/ui/form/Select.vue";
 import type { InstantPickerProps } from "~/components/ui/form/TimePicker.vue";
 import type { HourType } from "./api";
+import api from "./api";
 import type { KeyOf, MaybePromise, Optionalize } from "./gymnastics";
 
 export interface ItemBase<Z extends core.SomeType = core.SomeType> {
@@ -76,10 +78,30 @@ export type FormOutput<F extends Form, D extends Deps<F>> =
     & IndependentOutputs<F, D>
     & ValueIntersection<{ [K in keyof F & keyof D]: DependentOutputs<F, K, D>; }>;
 
-export type FormButton =
+export type FormTemporary<F extends Form> = {
+    [K in keyof F]: Ref<ItemOutput<F[K]> | null | undefined>;
+};
+
+export type FormButton<C extends string = string> =
     & Partial<ButtonProps>
     & { label: string; }
-    & ({ form: string; } | { action: () => unknown; });
+    & (
+        | (
+            & (
+                | { form: "submit"; context?: C; }
+                | { form: "cancel" | "reset"; }
+            )
+            & {
+                action?: never;
+            }
+        )
+        | { form?: never; action: () => unknown; }
+    );
+
+export type ButtonAction = Exclude<FormButton["form"], undefined>;
+
+// dprint-ignore
+export type ButtonContext<B extends FormButton[]> = FilterArrayByValue<B, { form: 'submit' }>[number]['context'];
 
 export type FormError<F extends Form> = {
     field: keyof F & string;
@@ -131,6 +153,25 @@ export const f = {
                 "demo": "Outreach",
                 "offseason": "Offseason",
             },
+        });
+    },
+
+    async hourtype_available(
+        item:
+            & { default?: HourType; }
+            & Omit<ItemBase<z.ZodAny>, "schema">
+            & Omit<SelectProps<HourType>, "schema" | "kv"> = {},
+    ) {
+        const available = await api.roster.allowed();
+        const ht = f.hourtype();
+        const allowed = available.data ?? ht.schema.options;
+        const titles = Object.fromEntries(allowed.map(al => [al, ht.kv[al]] as const));
+
+        return f.select<Partial<Record<HourType, string>>>({
+            title: "Hour Type",
+            default: allowed.includes("build") ? "build" : "offseason",
+            ...item,
+            schema: titles,
         });
     },
 
@@ -218,29 +259,29 @@ export const f = {
         };
     },
 
-    form<F extends Form, D extends Deps<F> = {}>(
+    form<F extends Form, D extends Deps<F> = {}, B extends FormButton[] = []>(
         form: F,
-        buttons: FormButton[] = [],
+        buttons: MaybeRef<Narrow<B>> = [] as any,
         etc: {
             deps?: D;
-            submit?: (data: FormOutput<F, D>) => unknown;
+            submit?: (data: FormOutput<F, D>, context: ButtonContext<B>) => unknown;
             cancel?: () => unknown;
             validate?: (data: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
             defaults?: Partial<FormOutput<F, D>>;
         } = {},
     ): {
         form: F;
-        buttons: FormButton[];
+        buttons: MaybeRef<B>;
         deps: D;
-        submit: (data: FormOutput<F, D>) => unknown;
+        submit: (data: FormOutput<F, D>, context: ButtonContext<B>) => unknown;
         cancel: () => unknown;
         validate?: (data: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
         defaults?: Partial<FormOutput<F, D>>;
     } {
         return {
             form,
-            buttons,
-            submit: etc.submit ?? ((_) => {}),
+            buttons: buttons as MaybeRef<B>,
+            submit: etc.submit ?? (() => {}),
             cancel: etc.cancel ?? (() => {}),
             deps: etc.deps ?? {} as D,
             validate: etc.validate,

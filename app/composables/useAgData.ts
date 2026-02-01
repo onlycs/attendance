@@ -1,6 +1,6 @@
 import { type ColDef, type ColGroupDef, themeQuartz, type ValueFormatterParams } from "ag-grid-community";
 import { Temporal } from "temporal-polyfill";
-import type { DeepReadonly } from "vue";
+import type { ShallowRef } from "vue";
 import type { HourType } from "~/utils/api";
 import { Math2 } from "~/utils/math";
 import type { Row } from "./useTable";
@@ -47,15 +47,28 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useAgData(data: Row[], trigger: Readonly<Ref<number>>) {
-    const ag = computedWithControl(trigger, () => {
-        const students = data;
-        if (students.length === 0) {
+export function useAgData(data: ShallowRef<Map<string, Row>>) {
+    const ag = computedWithControl(data, () => {
+        const students = data.value;
+        if (students.size === 0) {
             return {
                 columns: [],
                 rows: [],
             };
         }
+
+        const dates = [] as Temporal.PlainDate[];
+
+        for (const s of students.values()) {
+            s.cells ??= [];
+
+            for (const cell of s.cells) {
+                if (!dates.find((d) => d.equals(cell.date))) dates.push(cell.date);
+            }
+        }
+
+        dates.sort((a, b) => Temporal.PlainDate.compare(a, b));
+        dates.reverse();
 
         const columns: (ColGroupDef<AgRow> | ColDef<AgRow>)[] = [
             {
@@ -84,9 +97,9 @@ export function useAgData(data: Row[], trigger: Readonly<Ref<number>>) {
             {
                 headerName: "Hours",
                 children: [
-                    ...students[0]!.cells.map((cell) => ({
-                        field: cell.date.toJSON(),
-                        headerName: dateFmt(cell.date),
+                    ...dates.map((date) => ({
+                        field: date.toJSON(),
+                        headerName: dateFmt(date),
                         cellRenderer: "Dropdown",
                         sortable: false,
                         filter: false,
@@ -134,11 +147,20 @@ export function useAgData(data: Row[], trigger: Readonly<Ref<number>>) {
             },
         ] as const;
 
-        const rows: AgRow[] = students.map((student) => ({
+        const sortedStudents = Array.from(students.values()).sort(sortNames);
+
+        const rows: AgRow[] = sortedStudents.map((student) => ({
             studentId: student.id,
             first: student.first,
             last: student.last,
-            ...student.cells.reduce(
+            ...dates.reduce(
+                (acc, date) => {
+                    acc[date.toJSON()] = -1;
+                    return acc;
+                },
+                {} as Record<string, number>,
+            ),
+            ...student.cells!.reduce(
                 (acc, cell) => {
                     const hours = cell.records
                         .filter((entry) => !!entry.sign_out)
@@ -154,7 +176,7 @@ export function useAgData(data: Row[], trigger: Readonly<Ref<number>>) {
                 },
                 {} as Record<string, number>,
             ),
-            ...student.cells.reduce(
+            ...student.cells!.reduce(
                 (acc, cell) => {
                     for (const entry of cell.records) {
                         if (!entry.sign_out) continue;

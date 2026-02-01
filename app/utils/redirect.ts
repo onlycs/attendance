@@ -19,8 +19,6 @@ const meta = {
     } satisfies Record<RedirectToast, "error" | "success" | "info" | "warning">,
 } as const;
 
-type Router = ReturnType<typeof useRouter>;
-
 export const redirect = {
     build(to: string, message?: RedirectToast) {
         return message ? `${to}${to.includes("?") ? "&" : "?"}throw=${message}` : to;
@@ -35,5 +33,5 @@ export function handleRedirectQuery() {
         toast[meta.status[message]](meta.messages[message]);
     }
 
-    route.query.throw = null;
+    useRouter().replace({ query: {} });
 }

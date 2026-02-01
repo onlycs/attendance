@@ -104,7 +104,7 @@ const entries = computed(() => ({
                         icon: 'hugeicons:settings-02',
                         name: 'Settings',
                     },
-                    '__logout': {
+                    '/_logout': {
                         icon: 'hugeicons:logout-01',
                         name: 'Logout',
                         button: {

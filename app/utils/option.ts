@@ -19,8 +19,11 @@ abstract class OptionBase<T> {
         return Some(value);
     }
 
-    or(other: Option<T>): Option<T> {
-        return this.isSome() ? this : other;
+    or(other: Option<T>): Option<T>;
+    or(other: T): T;
+    or(other: Option<T> | T): Option<T> | T {
+        if (other instanceof OptionBase) return this.isSome() ? this : other;
+        return this.isSome() ? this.value : other;
     }
 
     equals(other: T): boolean {
@@ -60,7 +63,7 @@ class OptionNone<T> extends OptionBase<T> {
     }
 
     unwrap(or?: ValueOrProducer<T> | undefined): T {
-        if (or) return unpack(or);
+        if (or !== undefined) return unpack(or);
         throw new Error("Attempted to unwrap a None value");
     }
 
