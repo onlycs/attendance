@@ -10,15 +10,45 @@ const present = ref(res.data?.present.length ?? 0);
 const absent = ref(res.data?.absent.length ?? 0);
 
 function update(res: PresentResponse) {
-    present.value = res.present.length;
+    present.value = res.present.length + 50;
     absent.value = res.absent.length;
 }
+
+const percent = computed(() => {
+    return present.value * 100 / (present.value + absent.value);
+});
+const safepercent = computed(() => {
+    if (percent.value < 22 || percent.value > 78) return 50;
+    return percent.value;
+});
 
 useSSE().add(api.roster.present.stream, update);
 </script>
 
 <template>
     <WidgetRoot class="widget" :required="['student_view', 'hours_view']">
+        <div class="box">
+            <div class="data">
+                <div class="present" :style="{ width: `${safepercent}%` }">
+                    <span class="label">Present</span>
+                    <span class="value">{{ present }}</span>
+                </div>
+
+                <div class="absent" :style="{ width: `${100 - safepercent}%` }">
+                    <span class="label">Absent</span>
+                    <span class="value">{{ absent }}</span>
+                </div>
+            </div>
+
+            <div class="bar">
+                <div
+                    class="present"
+                    :style="{ width: `${percent}%` }"
+                >
+                    <div class="inner" />
+                </div>
+            </div>
+        </div>
     </WidgetRoot>
 </template>
 
@@ -27,5 +57,45 @@ useSSE().add(api.roster.present.stream, update);
 
 .widget {
     @apply bg-drop rounded-lg;
+    @apply min-w-[24rem] min-h-37;
+}
+
+.box {
+    @apply w-full h-full p-4 pt-5;
+    @apply flex flex-col gap-4;
+}
+
+.data {
+    @apply flex flex-row;
+
+    .present, .absent {
+        @apply min-w-[22%] p-2;
+        @apply flex flex-col items-center justify-center;
+    }
+
+    .present {
+        @apply border-r;
+    }
+
+    .label {
+        @apply text-sub text-sm select-none;
+    }
+
+    .value {
+        @apply text-3xl font-bold select-none;
+    }
+}
+
+.bar {
+    @apply w-full h-6 bg-red-500/40 rounded-md;
+    @apply col-span-2;
+
+    .present {
+        @apply h-full bg-drop rounded-md;
+
+        .inner {
+            @apply bg-green-500/40 w-full h-full rounded-md;
+        }
+    }
 }
 </style>
