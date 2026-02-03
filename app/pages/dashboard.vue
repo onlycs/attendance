@@ -5,29 +5,35 @@ definePageMeta({ layout: "admin-protected" });
 </script>
 
 <template>
-    <div class="rows">
-        <div class="col">
-            <WidgetQuickSwipe />
-            <WidgetTotals />
-        </div>
-    </div>
+    <div class="page">
+        <div class="filter"></div>
 
-    <AgGridVue
-        style="width: 100%; height: 100%"
-        :theme="Theme"
-    />
+        <WidgetQuickSwipe />
+        <WidgetTotals />
+
+        <AgGridVue
+            style="width: 100%; height: 100%; grid-column: span 2 / span 2"
+            :theme="Theme"
+        />
+    </div>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
-.rows {
+.page {
     @apply w-full h-full;
-    @apply flex flex-row gap-2;
+    @apply grid gap-2;
+
+    grid-template-rows: auto auto 1fr;
+    grid-template-columns: 1fr auto;
 }
 
-.col {
-    @apply w-fit self-start h-full;
-    @apply flex flex-col gap-2;
+.filter {
+    @apply row-span-2;
+}
+
+.table {
+    @apply col-span-2;
 }
 </style>

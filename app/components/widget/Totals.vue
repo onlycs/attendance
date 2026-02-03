@@ -35,12 +35,12 @@ useSSE().add(api.roster.present.stream, update);
             <div class="data">
                 <div class="present" :style="{ width: `${safepercent}%` }">
                     <span class="label">Present</span>
-                    <span class="value">{{ present }}</span>
+                    <NumberScroll :value="present" />
                 </div>
 
                 <div class="absent" :style="{ width: `${100 - safepercent}%` }">
                     <span class="label">Absent</span>
-                    <span class="value">{{ absent }}</span>
+                    <NumberScroll :value="absent" />
                 </div>
             </div>
 
@@ -86,10 +86,6 @@ useSSE().add(api.roster.present.stream, update);
 
     .label {
         @apply text-sub text-sm select-none;
-    }
-
-    .value {
-        @apply text-3xl font-bold select-none;
     }
 }
 

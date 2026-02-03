@@ -1,7 +1,9 @@
 <script setup>
-const e = ref();
+const value = ref(4);
+
+setTimeout(() => value.value = 18, 3500);
 </script>
 
 <template>
-    <TimePicker v-model:time="e" />
+    <NumberScroll :value />
 </template>

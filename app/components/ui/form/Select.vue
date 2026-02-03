@@ -1,50 +1,59 @@
 <script setup lang="ts" generic="K extends string | number">
 import type { Button } from "#components";
-
 export interface SelectProps<K extends string | number> {
     kv: Record<K, string>;
-
     class?: string | string[];
     "class:btn"?: string | string[];
     "class:overlay"?: string | string[];
+    rows?: number;
 }
-
-const props = defineProps<SelectProps<K>>();
+const props = withDefaults(defineProps<SelectProps<K>>(), {
+    rows: 1,
+});
 const selected = defineModel<K>("selected", { required: true });
 const nth = computed(() => {
     const sel = selected.value ?? Object.keys(props.kv)[0]!;
     return Object.keys(props.kv).indexOf(String(sel));
 });
-
 const buttons = ref<InstanceType<typeof Button>[]>([]);
 const sliderW = ref(0);
 const sliderX = ref(0);
+const sliderY = ref(0);
+
+// Calculate grid layout
+const totalItems = computed(() => Object.keys(props.kv).length);
+const itemsPerRow = computed(() => Math.ceil(totalItems.value / props.rows));
 
 function select(key: K) {
     selected.value = key;
 }
 
-onMounted(() => {
-    watch([nth, buttons], ([nth, buttons]) => {
-        const btn = buttons[nth];
-        if (!btn || !btn.button) return;
+function updateSliderPosition() {
+    const btn = buttons.value[nth.value];
+    if (!btn || !btn.button) return;
 
-        sliderW.value = btn.button.offsetWidth;
-        sliderX.value = btn.button.offsetLeft - 8;
+    sliderW.value = btn.button.offsetWidth;
+    sliderX.value = btn.button.offsetLeft - 8;
+    sliderY.value = btn.button.offsetTop - 8;
+}
+
+onMounted(() => {
+    watch([nth, buttons], () => {
+        updateSliderPosition();
     }, { immediate: true });
 
-    window.addEventListener("resize", () => {
-        const btn = buttons.value[nth.value];
-        if (!btn || !btn.button) return;
-
-        sliderW.value = btn.button.offsetWidth;
-        sliderX.value = btn.button.offsetLeft - 8;
-    });
+    window.addEventListener("resize", updateSliderPosition);
 });
 </script>
 
 <template>
-    <div :class="cn('select', $props.class)">
+    <div
+        :class="cn('select', $props.class)"
+        :style="{
+            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            gridTemplateColumns: `repeat(${itemsPerRow}, 1fr)`,
+        }"
+    >
         <Button
             v-for="([key, label], i) of Object.entries($props.kv) as [K, string][]"
             :class="cn(
@@ -63,12 +72,11 @@ onMounted(() => {
         >
             {{ label }}
         </Button>
-
         <div
             :class="cn('overlay', $props['class:overlay'])"
             :style="{
                 width: `${sliderW}px`,
-                transform: `translateX(${sliderX}px)`,
+                transform: `translate(${sliderX}px, ${sliderY}px)`,
             }"
         />
     </div>
@@ -76,9 +84,8 @@ onMounted(() => {
 
 <style scoped>
 @reference "~/style/tailwind.css";
-
 .select {
-    @apply flex flex-row w-full h-fit justify-around items-center;
+    @apply grid w-full h-fit;
     @apply p-2 bg-drop rounded-lg gap-2 relative;
 
     .option {
@@ -93,7 +100,7 @@ onMounted(() => {
 
     .overlay {
         @apply absolute top-2 left-2;
-        @apply h-[calc(100%-1rem)] transition-all duration-300;
+        @apply h-[calc(3rem)] md:h-[calc(2.5rem)] transition-all duration-200;
         @apply bg-white rounded-sm z-0;
     }
 }

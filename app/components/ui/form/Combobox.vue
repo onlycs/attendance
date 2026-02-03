@@ -107,44 +107,53 @@ function typewatch(ev: string) {
             :placeholder="$props.placeholder ?? 'Select an option...'"
         />
 
-        <div
-            v-if="active"
-            class="dropdown"
-            :style="{ top: `${10 + (container?.offsetHeight ?? 0)}px` }"
-        >
+        <transition name="dropdown">
             <div
-                v-for="(item, index) of fzfout"
-                :key="unfzf(item)"
-                @mousedown.prevent="select(index)"
-                class="item"
+                v-if="active"
+                class="dropdown"
+                :style="{
+                    top: `${
+                        10 + (container?.offsetHeight ?? 0)
+                    }px`,
+                }"
             >
-                <template v-if="typeof item === 'string'">
-                    {{ item }}
-                </template>
-
-                <template v-else>
-                    <span
-                        v-for="(char, i) of item.item"
-                        :class="cn(
-                            item.positions.has(i)
-                                && 'text-red-300',
-                        )"
-                        :key="char"
-                    >
-                        {{ char }}
-                    </span>
-                </template>
-
                 <div
-                    :class="cn(
-                        'hover',
-                        keyselect === index && 'selected',
-                    )"
-                />
-            </div>
+                    v-for="(item, index) of fzfout"
+                    :key="unfzf(item)"
+                    @mousedown.prevent="select(index)"
+                    class="item"
+                >
+                    <template v-if="typeof item === 'string'">
+                        {{ item }}
+                    </template>
 
-            <div v-if="!fzfout.length" class="item sub">No results found.</div>
-        </div>
+                    <template v-else>
+                        <span
+                            v-for="(char, i) of item.item"
+                            :class="cn(
+                                item.positions.has(i)
+                                    && 'text-red-300',
+                            )"
+                            :key="char"
+                        >
+                            {{ char }}
+                        </span>
+                    </template>
+
+                    <div
+                        :class="cn(
+                            'hover',
+                            keyselect === index
+                                && 'selected',
+                        )"
+                    />
+                </div>
+
+                <div v-if="!fzfout.length" class="item sub">
+                    No results found.
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
@@ -153,6 +162,16 @@ function typewatch(ev: string) {
 
 .container {
     @apply relative w-full p-0;
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+    @apply transition-all duration-200;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+    @apply opacity-0 -translate-y-2;
 }
 
 .dropdown {
