@@ -11,7 +11,7 @@ import type { SelectProps } from "~/components/ui/form/Select.vue";
 import type { InstantPickerProps } from "~/components/ui/form/TimePicker.vue";
 import type { HourType } from "./api";
 import api from "./api";
-import type { KeyOf, MaybePromise, Optionalize } from "./gymnastics";
+import type { KeyOf, MaybePromise } from "./gymnastics";
 
 export interface ItemBase<Z extends core.SomeType = core.SomeType> {
     schema: Z;
@@ -51,14 +51,23 @@ export type ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> =
     & ComboboxProps<z.output<Z>>
     & { item: "combobox"; };
 
-export type Item = ItemSelect | ItemInput | ItemOTP | ItemTime | ItemDate | ItemCombobox;
+type ItemAtom = ItemSelect | ItemInput | ItemOTP | ItemTime | ItemDate | ItemCombobox;
+
+export type ItemMany<Z extends core.SomeType = core.SomeType, I extends ItemAtom = ItemAtom> =
+    & ItemBase<z.ZodArray<Z>>
+    & { inner: I extends ItemBase<Z> ? I : never; }
+    & { item: "many"; };
+
+export type Item = ItemSelect | ItemInput | ItemOTP | ItemTime | ItemDate | ItemCombobox | ItemMany;
 export type Form = Record<string, Item>;
 
 export type Deps<F extends Form> = {
     [K in keyof F]?: {
-        [K2 in keyof F]?: ItemOutput<F[K2]> extends string ? string : never;
+        [K2 in keyof F]?: ItemOutput<F[K2]> extends string ? string | string[] : never;
     };
 };
+
+type DepValue<T> = T extends string[] ? T[number] : T;
 
 // dprint-ignore
 export type DepOutput<F extends Form, K extends keyof F, D extends Deps<F>> = K extends keyof D
@@ -71,8 +80,8 @@ export type IndependentOutputs<F extends Form, D extends Deps<F>> = {
 };
 
 export type DependentOutputs<F extends Form, K extends keyof F & keyof D, D extends Deps<F>> =
-    | ({ [_K in K]: ItemOutput<F[K]>; } & D[K])
-    | ({ [_K in K]?: never; } & ({ [K2 in keyof D[K] & keyof F]: Exclude<ItemOutput<F[K2]>, D[K][K2]>; }));
+    | ({ [_K in K]: ItemOutput<F[K]>; } & { [K2 in keyof D[K]]: DepValue<D[K][K2]>; })
+    | ({ [_K in K]?: never; } & ({ [K2 in keyof D[K] & keyof F]: Exclude<ItemOutput<F[K2]>, DepValue<D[K][K2]>>; }));
 
 export type FormOutput<F extends Form, D extends Deps<F>> =
     & IndependentOutputs<F, D>
@@ -257,6 +266,20 @@ export const f = {
             ...item,
             item: "time",
         };
+    },
+
+    many<I extends ItemAtom>(
+        item: Omit<ItemMany<I["schema"], I>, "schema" | "item">,
+    ): ItemMany<I["schema"], I extends ItemBase<I["schema"]> ? I : never> {
+        return {
+            ...item,
+            item: "many",
+            schema: z.array(item.inner.schema),
+        };
+    },
+
+    permit<S extends string[]>(...valid: S): S[number][] {
+        return valid;
     },
 
     form<F extends Form, D extends Deps<F> = {}, B extends FormButton[] = []>(

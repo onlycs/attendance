@@ -1,26 +1,20 @@
 pub(crate) mod events;
 mod query;
-
-use std::{collections::HashMap, sync::Arc};
+mod stream;
 
 pub(crate) use events::{EventType, TelemetryEvent};
 use futures_util::stream::BoxStream;
 use poem_openapi::payload::EventStream;
-use tokio::sync::Mutex;
 
 use crate::prelude::*;
 
 pub(crate) struct TelemetryService {
     pg: PgPool,
-    streams: Arc<Mutex<HashMap<String, query::Filter>>>,
 }
 
 impl TelemetryService {
     pub(crate) fn new(pg: PgPool) -> Self {
-        Self {
-            pg,
-            streams: Arc::new(Mutex::new(HashMap::new())),
-        }
+        Self { pg }
     }
 }
 
@@ -28,7 +22,7 @@ impl TelemetryService {
 #[OpenApi(tag = "Tag::Telemetry", prefix_path = "/telemetry")]
 impl TelemetryService {
     #[oai(path = "/search", method = "post")]
-    async fn get(
+    async fn search(
         &self,
         request: Json<query::Request>,
         jwt: Jwt,
@@ -39,22 +33,81 @@ impl TelemetryService {
         Ok(Json(query::route(request.0, self.pg.clone()).await?))
     }
 
-    #[oai(path = "/stream", method = "post")]
-    async fn create_stream(
+    #[oai(path = "/:id", method = "get")]
+    async fn get(
         &self,
-        request: Json<query::Filter>,
+        id: Path<String>,
         jwt: Jwt,
-    ) -> Result<PlainText<String>, query::Error> {
+    ) -> Result<Json<TelemetryEvent>, query::ByIdError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::Telemetry)?;
 
-        let id = cuid2();
-        let filter = request.0;
+        Ok(Json(query::by_id(id.0, self.pg.clone()).await?))
+    }
 
-        let mut streams = self.streams.lock().await;
-        streams.insert(id.clone(), filter);
+    /// Creates a new stream filter, returning an ID.
+    #[oai(path = "/stream/filter", method = "post")]
+    async fn filter_create(
+        &self,
+        request: Json<query::Filter>,
+        jwt: Jwt,
+    ) -> Result<PlainText<String>, stream::CreateError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::Telemetry)?;
+
+        let id = format!("{}:{}", Utc::now().timestamp(), cuid2());
+        let filter = request.0;
+        let pg = self.pg.clone();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO telemetry_streams (id, filter)
+            VALUES ($1, $2)
+            "#,
+            id,
+            serde_json::to_value(&filter)?,
+        )
+        .execute(&pg)
+        .await?;
+
+        tokio::spawn(async move {
+            sqlx::query!(
+                r#"
+                DELETE FROM telemetry_streams
+                WHERE updated_at < (NOW() - INTERVAL '1 hour')
+                "#
+            )
+            .execute(&pg)
+            .await
+            .log();
+        });
 
         Ok(PlainText(id))
+    }
+
+    #[oai(path = "/stream/filter", method = "put")]
+    async fn filter_update(
+        &self,
+        id: Query<String>,
+        request: Json<query::Filter>,
+        jwt: Jwt,
+    ) -> Result<(), stream::UpdateError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::Telemetry)?;
+
+        sqlx::query!(
+            r#"
+            UPDATE telemetry_streams
+            SET filter = $2, updated_at = NOW()
+            WHERE id = $1
+            "#,
+            id.0,
+            serde_json::to_value(&request.0).map_err(|e| sqlx::Error::Encode(Box::new(e)))?,
+        )
+        .execute(&self.pg)
+        .await?;
+
+        Ok(())
     }
 
     #[oai(path = "/stream", method = "get")]
@@ -62,27 +115,58 @@ impl TelemetryService {
         &self,
         id: Query<Option<String>>,
         jwt: Jwt,
-    ) -> Result<EventStream<BoxStream<'static, TelemetryEvent>>, query::StreamError> {
+    ) -> Result<EventStream<BoxStream<'static, TelemetryEvent>>, stream::Error> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::Telemetry)?;
 
-        let filter = if let Some(id) = id.0 {
-            let mut streams = self.streams.lock().await;
-            streams
-                .remove(&id)
-                .ok_or_else(|| query::StreamError::not_found())?
-        } else {
-            query::Filter::default()
-        };
-
         let stream = dbstream::stream::<TelemetryEvent>().await;
-        Ok(EventStream::new(Box::pin(stream.filter_map(move |repl| {
-            let evt = match repl {
-                Ok(dbstream::Replication::Insert(event)) if filter.matches(&event) => Some(event),
-                _ => None,
-            };
+        let pg = self.pg.clone();
 
-            async move { evt }
+        sqlx::query!(
+            r#"
+            SELECT id, filter
+            FROM telemetry_streams
+            WHERE id = $1
+            "#,
+            id.0,
+        )
+        .fetch_optional(&self.pg)
+        .await?
+        .ok_or_else(|| stream::Error::not_found())?;
+
+        Ok(EventStream::new(Box::pin(stream.filter_map(move |repl| {
+            let id = id.0.clone();
+            let pg = pg.clone();
+
+            async move {
+                let filter = if let Some(id) = id.as_ref() {
+                    let rec = sqlx::query!(
+                        r#"
+                        UPDATE telemetry_streams
+                        SET updated_at = NOW()
+                        WHERE id = $1
+                        RETURNING filter
+                        "#,
+                        id,
+                    )
+                    .fetch_optional(&pg)
+                    .await
+                    .ok()??;
+
+                    serde_json::from_value(rec.filter).ok()?
+                } else {
+                    query::Filter::default()
+                };
+
+                let evt = match repl {
+                    Ok(dbstream::Replication::Insert(event)) if filter.matches(&event) => {
+                        Some(event)
+                    }
+                    _ => None,
+                };
+
+                evt
+            }
         }))))
     }
 }

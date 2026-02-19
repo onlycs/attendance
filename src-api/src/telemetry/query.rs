@@ -1,16 +1,19 @@
 use poem_openapi::Union;
 
-use crate::{prelude::*, telemetry::TelemetryEvent};
+use crate::{dbstream::Admin, prelude::*, telemetry::TelemetryEvent};
 
 const MAX_COUNT: usize = 100;
 const DEFAULT_COUNT: usize = 30;
 
-#[derive(Object, Debug)]
+#[derive(Serialize, Deserialize, Object, Clone, Debug)]
 struct AdminIdFilter {
     /// List of admin IDs to filter by
     ///
-    /// This will correspond to the admin who performed, authorized, or is
-    /// otherwise associated with the event.
+    /// This will correspond to the admin who performed or otherwise authorized
+    /// or triggered the event.
+    ///
+    /// This will NOT correspond to the admin that was acted upon, if any,
+    /// unless, of course, it is the same as the acting admin.
     admin_id: Vec<String>,
 }
 
@@ -20,7 +23,29 @@ impl AdminIdFilter {
     }
 }
 
-#[derive(Object, Debug)]
+#[derive(Serialize, Deserialize, Object, Clone, Debug)]
+struct AdminOperationFilter {
+    /// Corresponds to the admin who performed the operation
+    admin_id: Vec<String>,
+
+    /// Corresponds to the admin acted upon.
+    target_id: Vec<String>,
+}
+
+impl AdminOperationFilter {
+    fn matches(&self, admin_id: &str, target_id: &str) -> bool {
+        let admin = self.admin_id.contains(&admin_id.to_string()) || self.admin_id.is_empty();
+        let target = self.target_id.contains(&target_id.to_string()) || self.target_id.is_empty();
+
+        admin && target
+    }
+
+    fn match_admin(&self, admin_id: &str, target: &Admin) -> bool {
+        self.matches(admin_id, &target.id)
+    }
+}
+
+#[derive(Serialize, Deserialize, Object, Clone, Debug)]
 struct InviteUseFilter {
     /// List of inviter IDs to filter by
     inviter_id: Vec<String>,
@@ -31,16 +56,16 @@ struct InviteUseFilter {
 
 impl InviteUseFilter {
     fn matches(&self, inviter_id: &str, invitee_id: &str) -> bool {
-        let inviter_match =
+        let inviter =
             self.inviter_id.contains(&inviter_id.to_string()) || self.inviter_id.is_empty();
-        let invitee_match =
+        let invitee =
             self.invitee_id.contains(&invitee_id.to_string()) || self.invitee_id.is_empty();
 
-        inviter_match && invitee_match
+        inviter && invitee
     }
 }
 
-#[derive(Object, Debug)]
+#[derive(Serialize, Deserialize, Object, Clone, Debug)]
 struct StudentActionFilter {
     /// List of admin IDs to filter by
     admin_id: Vec<String>,
@@ -51,21 +76,26 @@ struct StudentActionFilter {
 
 impl StudentActionFilter {
     fn matches(&self, admin_id: &str, sid_hashed: &str) -> bool {
-        let admin_match = self.admin_id.contains(&admin_id.to_string()) || self.admin_id.is_empty();
-        let sid_match =
-            self.sid_hashed.contains(&sid_hashed.to_string()) || self.sid_hashed.is_empty();
+        let admin = self.admin_id.contains(&admin_id.to_string()) || self.admin_id.is_empty();
+        let sid = self.sid_hashed.contains(&sid_hashed.to_string()) || self.sid_hashed.is_empty();
 
-        admin_match && sid_match
+        admin && sid
     }
 }
 
-#[derive(Union, Debug)]
-#[oai(rename = "EventTypeFilter", discriminator_name = "type")]
+#[derive(Serialize, Deserialize, Union, Clone, Debug)]
+#[oai(
+    rename = "EventTypeFilter",
+    discriminator_name = "type",
+    rename_all = "snake_case"
+)]
 enum EventTypeFilter {
+    AdminDelete(AdminOperationFilter),
+    AdminEdit(AdminOperationFilter),
+    PermissionEdit(AdminOperationFilter),
     AdminLogin(AdminIdFilter),
     InviteAdd(AdminIdFilter),
     InviteUse(InviteUseFilter),
-    Onboard(AdminIdFilter),
     RecordAdd(AdminIdFilter),
     RecordDelete(AdminIdFilter),
     RecordEdit(AdminIdFilter),
@@ -79,16 +109,22 @@ enum EventTypeFilter {
 impl EventTypeFilter {
     fn matches(&self, event: &TelemetryEvent) -> bool {
         macro_rules! filter_match {
-            ($($variant:ident { $($field:ident),* $(,)? });* $(;)?) => {
+            (@use $f:ident,, $($field:ident),*) => {
+                $f.matches( $( $field ),* )
+            };
+
+            (@use $f:ident, $matcher:ident, $($field:ident),*) => {
+                $f.$matcher( $( $field ),* )
+            };
+
+            ($($variant:ident { $($field:ident),* $(,)? }  $($matcher:ident)?);* $(;)?) => {
                 match self {
                     $(
-                        EventTypeFilter::$variant(f)
-                            if let Event::$variant( $variant { $($field),*, .. } ) = &event.event =>
-                        {
-                            f.matches( $( $field ),* )
-                        }
+                        EventTypeFilter::$variant(f) if let Event::$variant( $variant { $($field),*, .. } ) = &event.event => {
+                            filter_match!(@use f, $($matcher)?, $($field),*)
+                        },
+                        EventTypeFilter::$variant(_) => false,
                     )*
-                    _ => false,
                 }
             };
         }
@@ -97,7 +133,9 @@ impl EventTypeFilter {
             AdminLogin { id };
             InviteAdd { admin_id };
             InviteUse { inviter_id, invitee_id };
-            Onboard { admin_id };
+            AdminDelete { admin_id, target } match_admin;
+            AdminEdit { admin_id, old } match_admin;
+            PermissionEdit { admin_id, target_id };
             RecordAdd { admin_id };
             RecordDelete { admin_id };
             RecordEdit { admin_id };
@@ -110,7 +148,7 @@ impl EventTypeFilter {
     }
 }
 
-#[derive(Object, Debug)]
+#[derive(Serialize, Deserialize, Object, Clone, Debug)]
 #[oai(rename = "TelemetryFilter")]
 #[oai(default)]
 pub(super) struct Filter {
@@ -230,7 +268,7 @@ pub(super) enum Error {
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub(super) enum StreamError {
+pub(super) enum ByIdError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
@@ -238,7 +276,7 @@ pub(super) enum StreamError {
     Forbidden(PlainText<String>),
 
     #[oai(status = 404)]
-    #[construct(not_found, "No such stream")]
+    #[construct("No telemetry event with the specified ID exists")]
     NotFound(PlainText<String>),
 
     #[oai(status = 500)]
@@ -289,4 +327,15 @@ pub(super) async fn route(
     }
 
     Ok(Response { events })
+}
+
+#[tracing::instrument(skip(pg), err)]
+pub(super) async fn by_id(id: String, pg: PgPool) -> Result<TelemetryEvent, ByIdError> {
+    let event = sqlx::query_as::<_, TelemetryEvent>("SELECT * FROM telemetry WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&pg)
+        .await?
+        .ok_or_else(|| ByIdError::not_found())?;
+
+    Ok(event)
 }

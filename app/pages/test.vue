@@ -1,9 +1,23 @@
-<script setup>
-const value = ref(4);
+<script setup lang="ts">
+import { zPlainTime } from "temporal-zod";
 
-setTimeout(() => value.value = 18, 3500);
+const { form, deps, buttons } = f.form({
+    test: f.many({
+        title: "tests",
+        inner: f.time({
+            schema: zPlainTime,
+        }),
+    }),
+}, [
+    {
+        label: "submit",
+        form: "submit",
+    },
+]);
 </script>
 
 <template>
-    <NumberScroll :value />
+    <div class="cntr">
+        <Form :form :deps :buttons />
+    </div>
 </template>

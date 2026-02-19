@@ -11,7 +11,14 @@ export interface WorkerMessage<K extends keyof typeof attendance_crypto> {
 self.onmessage = async (event: MessageEvent<WorkerMessage<keyof typeof attendance_crypto>>) => {
     if (!initialized) {
         await attendance_crypto.default();
-        await attendance_crypto.initThreadPool(navigator.hardwareConcurrency || 4);
+
+        try {
+            await attendance_crypto.initThreadPool(navigator.hardwareConcurrency || 4);
+        } catch (e) {
+            console.error("Failed to initialize thread pool:", e);
+            console.warn("Assuming pool is already initialized");
+        }
+
         initialized = true;
     }
 

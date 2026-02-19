@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate tracing;
 
+mod admin;
 mod auth;
 mod dbstream;
 mod error;
@@ -21,6 +22,7 @@ use sqlx::PgPool;
 pub fn oai(pg: PgPool) -> OpenApiService<impl OpenApi, ()> {
     OpenApiService::new(
         (
+            admin::AdminService::new(pg.clone()),
             auth::AuthService::new(pg.clone()),
             roster::RosterService::new(pg.clone()),
             student::StudentService::new(pg.clone()),

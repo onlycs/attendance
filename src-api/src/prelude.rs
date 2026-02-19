@@ -23,7 +23,7 @@ pub mod env {
     static_env!(pub(crate) PUBLIC_ADDRESS or _PUBLIC_ADDRESS);
 }
 
-pub trait DateTimeExt {
+pub(crate) trait DateTimeExt {
     fn and_local(&self) -> chrono::DateTime<chrono::Local>;
 }
 
@@ -36,6 +36,7 @@ impl DateTimeExt for chrono::DateTime<Utc> {
 
 #[derive(poem_openapi::Tags)]
 pub(crate) enum Tag {
+    Admin,
     Auth,
     Roster,
     Student,

@@ -1,6 +1,6 @@
 import type { ShallowRef } from "vue";
 import { toast } from "vue-sonner";
-import type { ReplicationStudent, Student } from "~/utils/api";
+import type { Admin, ReplicationAdmin, ReplicationStudent, Student } from "~/utils/api";
 import api from "~/utils/api";
 import { useCreds } from "./useAuth";
 import { useSSE } from "./useSSE";
@@ -115,23 +115,85 @@ export function useStudentData({ onDenied, onInit }: StudentDataOptions = {}) {
 }
 
 export function studentNames(students: ShallowRef<Map<string, Student>>) {
-    // const names = shallowRef<Record<string, string>>({});
-
-    // watch(students, (students) => {
-    //     for (const student of students.values()) {
-    //         names.value[student.id_hashed] = `${student.first} ${student.last}`;
-    //     }
-
-    //     triggerRef(names);
-    // });
-    //
-    // return names;
-
     return computed(() => {
         const names = {} as Record<string, string>;
 
         for (const student of students.value.values()) {
             names[student.id_hashed] = `${student.first} ${student.last}`;
+        }
+
+        return names;
+    });
+}
+
+export function useAdminData({ onDenied, onInit }: StudentDataOptions = {}) {
+    const creds = useCreds();
+
+    const admins = shallowRef(new Map<string, Admin>());
+    const store: ReplicationAdmin[] = [];
+
+    async function fetch(): Promise<unknown> {
+        const res = await api.admin.query.many();
+        if (!res.data) return api.error(res.error, res.response, { handle: { [401]: onDenied } });
+
+        const data = Object.values(res.data.admins);
+        admins.value.clear();
+
+        for (const admin of data) {
+            admins.value.set(admin.id, admin);
+        }
+
+        triggerRef(admins);
+    }
+
+    async function replicate(repl: ReplicationAdmin) {
+        if (!creds.value) return store.push(repl);
+
+        switch (repl.operation) {
+            case "INSERT": {
+                admins.value.set(
+                    repl.id,
+                    repl,
+                );
+
+                break;
+            }
+            case "UPDATE": {
+                const admin = admins.value.get(repl.id);
+                if (!admin) return fetch();
+
+                safeassign(admin, repl);
+                break;
+            }
+            case "DELETE": {
+                const success = admins.value.delete(repl.pkey);
+                if (!success) return fetch();
+                break;
+            }
+        }
+
+        triggerRef(admins);
+    }
+
+    watch(creds, async (creds) => {
+        if (!creds) return;
+        if (!creds.claims.perms.student_view) return onDenied?.();
+        if (admins.value.size !== 0) return;
+
+        await fetch();
+        useSSE().add(api.admin.stream, replicate);
+        onInit?.();
+    }, { immediate: true });
+
+    return { admins, reload: fetch };
+}
+
+export function adminUsernames(admins: ShallowRef<Map<string, Admin>>) {
+    return computed(() => {
+        const names = {} as Record<string, string>;
+
+        for (const admin of admins.value.values()) {
+            names[admin.id] = admin.username;
         }
 
         return names;

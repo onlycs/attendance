@@ -56,7 +56,7 @@ async fn declare_permissions_impl() -> proc_macro2::TokenStream {
         permissions
             .iter()
             .enumerate()
-            .map(|(i, p)| format!("{p} = COALESCE(${}, {p})", i + 2))
+            .map(|(i, p)| format!("{p} = ${}", i + 2))
             .join(", ")
     );
 
@@ -87,6 +87,28 @@ async fn declare_permissions_impl() -> proc_macro2::TokenStream {
                 }
             }
 
+            pub async fn fetch(user_id: &str, pg: &::sqlx::PgPool) -> Result<Option<Self>, sqlx::Error> {
+                let rec = sqlx::query!(
+                    r#"
+                    SELECT *
+                    FROM permissions
+                    WHERE user_id = $1
+                    "#,
+                    user_id
+                )
+                .fetch_optional(pg)
+                .await?;
+
+                let rec = match rec {
+                    Some(r) => r,
+                    None => return Ok(None),
+                };
+
+                Ok(Some(Self {
+                    #( #permissions: rec.#permissions ),*
+                }))
+            }
+
             pub async fn create(&self, user_id: &str, pg: &::sqlx::PgPool) -> Result<(), sqlx::Error> {
                 sqlx::query!(
                     #insert_str,
@@ -97,6 +119,20 @@ async fn declare_permissions_impl() -> proc_macro2::TokenStream {
                 .await?;
 
                 Ok(())
+            }
+
+            pub async fn update(&self, user_id: &str, pg: &::sqlx::PgPool) -> Result<Permissions, sqlx::Error> {
+                let rec = sqlx::query!(
+                    #update_str,
+                    user_id,
+                    #( self.#permissions ),*
+                )
+                .fetch_one(pg)
+                .await?;
+
+                Ok(Permissions {
+                    #( #permissions: rec.#permissions ),*
+                })
             }
         }
 
@@ -127,35 +163,6 @@ async fn declare_permissions_impl() -> proc_macro2::TokenStream {
                 opt.unwrap_or(DbPermissions {
                     user_id: String::new(),
                     #( #permissions: false ),*
-                })
-            }
-        }
-
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            Default,
-            ::poem_openapi::Object,
-            ::serde::Serialize,
-            ::serde::Deserialize,
-        )]
-        pub struct PartialPermissions {
-            #(pub(crate) #permissions: Option<bool>),*
-        }
-
-        impl PartialPermissions {
-            pub async fn update(&self, user_id: &str, pg: &::sqlx::PgPool) -> Result<Permissions, sqlx::Error> {
-                let rec = sqlx::query!(
-                    #update_str,
-                    user_id,
-                    #( self.#permissions ),*
-                )
-                .fetch_one(pg)
-                .await?;
-
-                Ok(Permissions {
-                    #( #permissions: rec.#permissions ),*
                 })
             }
         }
@@ -245,7 +252,8 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
     let mut field_attrs = vec![];
 
     for col in &schema {
-        let name = match &col.column_name {
+        let name = match col.column_name.as_ref().map(|s| s.as_str()) {
+            Some("k1e") => continue, // skip the encrypted key column, we don't want to touch it
             Some(n) => n,
             None => continue,
         };
@@ -254,8 +262,10 @@ async fn declare_replication_impl(table: String) -> proc_macro2::TokenStream {
             Some("text") => "String",
             Some("timestamp with time zone") => "::chrono::DateTime<::chrono::Utc>",
             Some("boolean") => "bool",
+            Some("bytea") => continue, // encrypted data, don't touch
             Some("USER-DEFINED") => "HourType",
-            _ => panic!("Unsupported data type"),
+            Some(other) => panic!("Unsupported data type: {other}"),
+            None => continue,
         }
         .to_string();
 

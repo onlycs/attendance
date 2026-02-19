@@ -7,6 +7,7 @@ use crate::{prelude::*, telemetry::TelemetryEvent};
 
 declare_replication!("students");
 declare_replication!("records");
+declare_replication!("admins");
 
 /// Dummy: we're never going to send/recieve update/deletes for telemetry, it's
 /// constant!

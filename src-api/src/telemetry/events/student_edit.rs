@@ -6,11 +6,11 @@ use crate::{
 #[derive(Clone, Debug, Serialize, Deserialize, Object)]
 #[serde(from = "Migrator")]
 pub(crate) struct StudentEdit {
-    pub admin_id: String,
-    pub old: Student,
+    pub(crate) admin_id: String,
+    pub(crate) old: Student,
     #[serde(flatten)]
     #[oai(flatten)]
-    pub updated: PartialStudent,
+    pub(crate) updated: PartialStudent,
 }
 
 migrator! {

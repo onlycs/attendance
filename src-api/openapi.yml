@@ -4,11 +4,324 @@ info:
   version: http://localhost:8080
 servers: []
 tags:
+- name: Admin
 - name: Auth
 - name: Roster
 - name: Student
 - name: Telemetry
 paths:
+  /admin:
+    get:
+      tags:
+      - Admin
+      summary: |
+        QueryMany
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/AdminQueryManyResponse'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_query_many
+    patch:
+      tags:
+      - Admin
+      summary: |
+        Update
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/PartialAdmin'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Admin'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_update
+    delete:
+      tags:
+      - Admin
+      summary: |
+        Delete
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/AdminDeleteRequest'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Admin'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_delete
+  /admin/{id}:
+    get:
+      tags:
+      - Admin
+      summary: |
+        QueryOne
+      parameters:
+      - name: id
+        schema:
+          type: string
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Admin'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_query_one
+  /admin/stream:
+    get:
+      tags:
+      - Admin
+      summary: |
+        Stream
+      responses:
+        '200':
+          description: ''
+          content:
+            text/event-stream:
+              schema:
+                type: array
+                format: event-stream
+                items:
+                  $ref: '#/components/schemas/Replication_Admin'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_stream
+  /admin/{id}/permissions:
+    get:
+      tags:
+      - Admin
+      summary: |
+        PermissionsQuery
+      parameters:
+      - name: id
+        schema:
+          type: string
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Permissions'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_permissions_query
+    put:
+      tags:
+      - Admin
+      summary: |
+        PermissionsUpdate
+      parameters:
+      - name: id
+        schema:
+          type: string
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/Permissions'
+        required: true
+      responses:
+        '200':
+          description: ''
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: Admin with the given ID does not exist
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: admin_permissions_update
   /auth/login:
     get:
       tags:
@@ -460,7 +773,7 @@ paths:
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/RosterGetResponse'
+                $ref: '#/components/schemas/RosterQueryResponse'
         '401':
           description: ''
           content:
@@ -774,6 +1087,12 @@ paths:
             text/plain; charset=utf-8:
               schema:
                 type: string
+        '409':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
         '500':
           description: ''
           content:
@@ -1013,7 +1332,7 @@ paths:
       tags:
       - Telemetry
       summary: |
-        Get
+        Search
       requestBody:
         content:
           application/json; charset=utf-8:
@@ -1053,13 +1372,61 @@ paths:
                 type: string
       security:
       - Jwt: []
-      operationId: telemetry_get
-  /telemetry/stream:
-    post:
+      operationId: telemetry_search
+  /telemetry/{id}:
+    get:
       tags:
       - Telemetry
       summary: |
-        CreateStream
+        Get
+      parameters:
+      - name: id
+        schema:
+          type: string
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TelemetryEvent'
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: telemetry_get
+  /telemetry/stream/filter:
+    post:
+      tags:
+      - Telemetry
+      summary: FilterCreate
+      description: Creates a new stream filter, returning an ID.
       requestBody:
         content:
           application/json; charset=utf-8:
@@ -1068,12 +1435,6 @@ paths:
         required: true
       responses:
         '200':
-          description: ''
-          content:
-            text/plain; charset=utf-8:
-              schema:
-                type: string
-        '400':
           description: ''
           content:
             text/plain; charset=utf-8:
@@ -1099,7 +1460,57 @@ paths:
                 type: string
       security:
       - Jwt: []
-      operationId: telemetry_create_stream
+      operationId: telemetry_filter_create
+    put:
+      tags:
+      - Telemetry
+      summary: |
+        FilterUpdate
+      parameters:
+      - name: id
+        schema:
+          type: string
+        in: query
+        required: true
+        deprecated: false
+        explode: true
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/TelemetryFilter'
+        required: true
+      responses:
+        '200':
+          description: ''
+        '401':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '404':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '500':
+          description: ''
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+      security:
+      - Jwt: []
+      operationId: telemetry_filter_update
+  /telemetry/stream:
     get:
       tags:
       - Telemetry
@@ -1152,6 +1563,60 @@ paths:
       operationId: telemetry_stream
 components:
   schemas:
+    Admin:
+      type: object
+      title: Admin
+      required:
+      - id
+      - sid_hashed
+      - username
+      properties:
+        id:
+          type: string
+        sid_hashed:
+          type: string
+          nullable: true
+        username:
+          type: string
+    AdminDelete:
+      type: object
+      title: AdminDelete
+      required:
+      - admin_id
+      - target
+      properties:
+        admin_id:
+          type: string
+        target:
+          $ref: '#/components/schemas/Admin'
+    AdminDeleteRequest:
+      type: object
+      title: AdminDeleteRequest
+      required:
+      - admin_id
+      properties:
+        admin_id:
+          type: string
+    AdminEdit:
+      type: object
+      title: AdminEdit
+      required:
+      - admin_id
+      - old
+      - id
+      properties:
+        admin_id:
+          type: string
+          description: Corresponds to the admin who performed the edit
+        old:
+          $ref: '#/components/schemas/Admin'
+        id:
+          type: string
+        sid_hashed:
+          type: string
+          nullable: true
+        username:
+          type: string
     AdminIdFilter:
       type: object
       title: AdminIdFilter
@@ -1163,8 +1628,11 @@ components:
           description: |-
             List of admin IDs to filter by
 
-            This will correspond to the admin who performed, authorized, or is
-            otherwise associated with the event.
+            This will correspond to the admin who performed or otherwise authorized
+            or triggered the event.
+
+            This will NOT correspond to the admin that was acted upon, if any,
+            unless, of course, it is the same as the acting admin.
           items:
             type: string
     AdminLogin:
@@ -1175,6 +1643,33 @@ components:
       properties:
         id:
           type: string
+    AdminOperationFilter:
+      type: object
+      title: AdminOperationFilter
+      required:
+      - admin_id
+      - target_id
+      properties:
+        admin_id:
+          type: array
+          description: Corresponds to the admin who performed the operation
+          items:
+            type: string
+        target_id:
+          type: array
+          description: Corresponds to the admin acted upon.
+          items:
+            type: string
+    AdminQueryManyResponse:
+      type: object
+      title: AdminQueryManyResponse
+      required:
+      - admins
+      properties:
+        admins:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Admin'
     Claims:
       type: object
       title: Claims
@@ -1196,6 +1691,14 @@ components:
           type: string
         username:
           type: string
+    Deletion_Admin:
+      type: object
+      title: Deletion_Admin
+      required:
+      - pkey
+      properties:
+        pkey:
+          type: string
     Deletion_Record:
       type: object
       title: Deletion_Record
@@ -1216,9 +1719,11 @@ components:
       type: object
       anyOf:
       - $ref: '#/components/schemas/Event_AdminLogin'
+      - $ref: '#/components/schemas/Event_AdminDelete'
+      - $ref: '#/components/schemas/Event_AdminEdit'
+      - $ref: '#/components/schemas/Event_PermissionEdit'
       - $ref: '#/components/schemas/Event_InviteAdd'
       - $ref: '#/components/schemas/Event_InviteUse'
-      - $ref: '#/components/schemas/Event_Onboard'
       - $ref: '#/components/schemas/Event_StudentAdd'
       - $ref: '#/components/schemas/Event_StudentDelete'
       - $ref: '#/components/schemas/Event_StudentEdit'
@@ -1231,9 +1736,11 @@ components:
         propertyName: event
         mapping:
           admin_login: '#/components/schemas/Event_AdminLogin'
+          admin_delete: '#/components/schemas/Event_AdminDelete'
+          admin_edit: '#/components/schemas/Event_AdminEdit'
+          permission_edit: '#/components/schemas/Event_PermissionEdit'
           invite_add: '#/components/schemas/Event_InviteAdd'
           invite_use: '#/components/schemas/Event_InviteUse'
-          onboard: '#/components/schemas/Event_Onboard'
           student_add: '#/components/schemas/Event_StudentAdd'
           student_delete: '#/components/schemas/Event_StudentDelete'
           student_edit: '#/components/schemas/Event_StudentEdit'
@@ -1245,18 +1752,229 @@ components:
     EventTypeFilter:
       type: object
       anyOf:
+      - $ref: '#/components/schemas/EventTypeFilter_AdminDelete'
+      - $ref: '#/components/schemas/EventTypeFilter_AdminEdit'
+      - $ref: '#/components/schemas/EventTypeFilter_PermissionEdit'
+      - $ref: '#/components/schemas/EventTypeFilter_AdminLogin'
+      - $ref: '#/components/schemas/EventTypeFilter_InviteAdd'
+      - $ref: '#/components/schemas/EventTypeFilter_InviteUse'
+      - $ref: '#/components/schemas/EventTypeFilter_RecordAdd'
+      - $ref: '#/components/schemas/EventTypeFilter_RecordDelete'
+      - $ref: '#/components/schemas/EventTypeFilter_RecordEdit'
+      - $ref: '#/components/schemas/EventTypeFilter_StudentAdd'
+      - $ref: '#/components/schemas/EventTypeFilter_StudentDelete'
+      - $ref: '#/components/schemas/EventTypeFilter_StudentEdit'
+      - $ref: '#/components/schemas/EventTypeFilter_StudentLogin'
+      - $ref: '#/components/schemas/EventTypeFilter_StudentLogout'
+      discriminator:
+        propertyName: type
+        mapping:
+          admin_delete: '#/components/schemas/EventTypeFilter_AdminDelete'
+          admin_edit: '#/components/schemas/EventTypeFilter_AdminEdit'
+          permission_edit: '#/components/schemas/EventTypeFilter_PermissionEdit'
+          admin_login: '#/components/schemas/EventTypeFilter_AdminLogin'
+          invite_add: '#/components/schemas/EventTypeFilter_InviteAdd'
+          invite_use: '#/components/schemas/EventTypeFilter_InviteUse'
+          record_add: '#/components/schemas/EventTypeFilter_RecordAdd'
+          record_delete: '#/components/schemas/EventTypeFilter_RecordDelete'
+          record_edit: '#/components/schemas/EventTypeFilter_RecordEdit'
+          student_add: '#/components/schemas/EventTypeFilter_StudentAdd'
+          student_delete: '#/components/schemas/EventTypeFilter_StudentDelete'
+          student_edit: '#/components/schemas/EventTypeFilter_StudentEdit'
+          student_login: '#/components/schemas/EventTypeFilter_StudentLogin'
+          student_logout: '#/components/schemas/EventTypeFilter_StudentLogout'
+    EventTypeFilter_AdminDelete:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - admin_delete
+            example: admin_delete
+      - $ref: '#/components/schemas/AdminOperationFilter'
+    EventTypeFilter_AdminEdit:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - admin_edit
+            example: admin_edit
+      - $ref: '#/components/schemas/AdminOperationFilter'
+    EventTypeFilter_AdminLogin:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - admin_login
+            example: admin_login
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_InviteAdd:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - invite_add
+            example: invite_add
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_InviteUse:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - invite_use
+            example: invite_use
       - $ref: '#/components/schemas/InviteUseFilter'
+    EventTypeFilter_PermissionEdit:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - permission_edit
+            example: permission_edit
+      - $ref: '#/components/schemas/AdminOperationFilter'
+    EventTypeFilter_RecordAdd:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - record_add
+            example: record_add
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_RecordDelete:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - record_delete
+            example: record_delete
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_RecordEdit:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - record_edit
+            example: record_edit
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_StudentAdd:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - student_add
+            example: student_add
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_StudentDelete:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - student_delete
+            example: student_delete
       - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_StudentEdit:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - student_edit
+            example: student_edit
       - $ref: '#/components/schemas/AdminIdFilter'
-      - $ref: '#/components/schemas/AdminIdFilter'
+    EventTypeFilter_StudentLogin:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - student_login
+            example: student_login
       - $ref: '#/components/schemas/StudentActionFilter'
+    EventTypeFilter_StudentLogout:
+      allOf:
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - student_logout
+            example: student_logout
       - $ref: '#/components/schemas/StudentActionFilter'
+    Event_AdminDelete:
+      allOf:
+      - type: object
+        required:
+        - event
+        properties:
+          event:
+            type: string
+            enum:
+            - admin_delete
+            example: admin_delete
+      - $ref: '#/components/schemas/AdminDelete'
+    Event_AdminEdit:
+      allOf:
+      - type: object
+        required:
+        - event
+        properties:
+          event:
+            type: string
+            enum:
+            - admin_edit
+            example: admin_edit
+      - $ref: '#/components/schemas/AdminEdit'
     Event_AdminLogin:
       allOf:
       - type: object
@@ -1293,7 +2011,7 @@ components:
             - invite_use
             example: invite_use
       - $ref: '#/components/schemas/InviteUse'
-    Event_Onboard:
+    Event_PermissionEdit:
       allOf:
       - type: object
         required:
@@ -1302,9 +2020,9 @@ components:
           event:
             type: string
             enum:
-            - onboard
-            example: onboard
-      - $ref: '#/components/schemas/Onboard'
+            - permission_edit
+            example: permission_edit
+      - $ref: '#/components/schemas/PermissionEdit'
     Event_RecordAdd:
       allOf:
       - type: object
@@ -1511,14 +2229,6 @@ components:
           type: string
         b:
           type: string
-    Onboard:
-      type: object
-      title: Onboard
-      required:
-      - admin_id
-      properties:
-        admin_id:
-          type: string
     OnboardFinishRequest:
       type: object
       title: OnboardFinishRequest
@@ -1543,6 +2253,19 @@ components:
         v:
           type: string
         s:
+          type: string
+    PartialAdmin:
+      type: object
+      title: PartialAdmin
+      required:
+      - id
+      properties:
+        id:
+          type: string
+        sid_hashed:
+          type: string
+          nullable: true
+        username:
           type: string
     PartialRecord:
       type: object
@@ -1577,6 +2300,25 @@ components:
           type: string
         last:
           type: string
+    PermissionEdit:
+      type: object
+      title: PermissionEdit
+      required:
+      - admin_id
+      - target_id
+      - old
+      - new
+      properties:
+        admin_id:
+          type: string
+          description: Corresponds to the admin who performed the edit
+        target_id:
+          type: string
+          description: Corresponds to the admin whose permissions were edited
+        old:
+          $ref: '#/components/schemas/Permissions'
+        new:
+          $ref: '#/components/schemas/Permissions'
     Permissions:
       type: object
       title: Permissions
@@ -1592,6 +2334,7 @@ components:
       - hours_edit
       - roster
       - admin_edit
+      - admin_view
       properties:
         student_add:
           type: boolean
@@ -1614,6 +2357,8 @@ components:
         roster:
           type: boolean
         admin_edit:
+          type: boolean
+        admin_view:
           type: boolean
     PresentResponse:
       type: object
@@ -1758,6 +2503,54 @@ components:
       properties:
         k2:
           type: string
+    Replication_Admin:
+      type: object
+      anyOf:
+      - $ref: '#/components/schemas/Replication_Admin_Insert'
+      - $ref: '#/components/schemas/Replication_Admin_Update'
+      - $ref: '#/components/schemas/Replication_Admin_Delete'
+      discriminator:
+        propertyName: operation
+        mapping:
+          INSERT: '#/components/schemas/Replication_Admin_Insert'
+          UPDATE: '#/components/schemas/Replication_Admin_Update'
+          DELETE: '#/components/schemas/Replication_Admin_Delete'
+    Replication_Admin_Delete:
+      allOf:
+      - type: object
+        required:
+        - operation
+        properties:
+          operation:
+            type: string
+            enum:
+            - DELETE
+            example: DELETE
+      - $ref: '#/components/schemas/Deletion_Admin'
+    Replication_Admin_Insert:
+      allOf:
+      - type: object
+        required:
+        - operation
+        properties:
+          operation:
+            type: string
+            enum:
+            - INSERT
+            example: INSERT
+      - $ref: '#/components/schemas/Admin'
+    Replication_Admin_Update:
+      allOf:
+      - type: object
+        required:
+        - operation
+        properties:
+          operation:
+            type: string
+            enum:
+            - UPDATE
+            example: UPDATE
+      - $ref: '#/components/schemas/PartialAdmin'
     Replication_Record:
       type: object
       anyOf:
@@ -1890,9 +2683,9 @@ components:
       properties:
         entry_id:
           type: string
-    RosterGetMany:
+    RosterQueryMany:
       type: object
-      title: RosterGetMany
+      title: RosterQueryMany
       required:
       - records
       properties:
@@ -1900,17 +2693,17 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/Record'
-    RosterGetResponse:
+    RosterQueryResponse:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/RosterGetResponse_Many'
-      - $ref: '#/components/schemas/RosterGetResponse_One'
+      - $ref: '#/components/schemas/RosterQueryResponse_Many'
+      - $ref: '#/components/schemas/RosterQueryResponse_One'
       discriminator:
         propertyName: quantity
         mapping:
-          Many: '#/components/schemas/RosterGetResponse_Many'
-          One: '#/components/schemas/RosterGetResponse_One'
-    RosterGetResponse_Many:
+          Many: '#/components/schemas/RosterQueryResponse_Many'
+          One: '#/components/schemas/RosterQueryResponse_One'
+    RosterQueryResponse_Many:
       allOf:
       - type: object
         required:
@@ -1921,8 +2714,8 @@ components:
             enum:
             - Many
             example: Many
-      - $ref: '#/components/schemas/RosterGetMany'
-    RosterGetResponse_One:
+      - $ref: '#/components/schemas/RosterQueryMany'
+    RosterQueryResponse_One:
       allOf:
       - type: object
         required:
@@ -2211,10 +3004,6 @@ components:
     TelemetryQueryRequest:
       type: object
       title: TelemetryQueryRequest
-      required:
-      - count
-      - skip
-      - filters
       properties:
         count:
           type: integer
@@ -2223,15 +3012,14 @@ components:
             Number of telemetry events to retrieve.
 
             This will correspond to the events fetched from the database PRECEDING
-            ALL OTHER FILTERING. In other words are NOT guaranteed to receive
+            ALL OTHER FILTERING. In other words, you are NOT guaranteed to receive
             `count` events in the response, as the filtering is done after fetching.
 
             You will not recieve an empty response unless there are no events
             matching your filters.
 
-            Default: 10
             Maximum: 100
-          default: 10
+          default: 30
         skip:
           type: integer
           format: uint64

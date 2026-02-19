@@ -3,7 +3,7 @@ import type { Permissions } from "~/utils/api";
 
 const props = defineProps<{
     required: (keyof Permissions)[];
-    class: string | string[];
+    class?: string | string[];
 }>();
 
 const creds = useCreds();

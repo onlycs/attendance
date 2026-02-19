@@ -1,18 +1,19 @@
 use crate::{
-    dbstream::{PartialRecord, Record},
+    dbstream::{Admin, PartialAdmin},
     prelude::*,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, Object)]
 #[serde(from = "Migrator")]
-pub(crate) struct RecordEdit {
+pub(crate) struct AdminEdit {
+    /// Corresponds to the admin who performed the edit
     pub(crate) admin_id: String,
-    pub(crate) old: Record,
+    pub(crate) old: Admin,
     #[serde(flatten)]
     #[oai(flatten)]
-    pub(crate) updated: PartialRecord,
+    pub(crate) updated: PartialAdmin,
 }
 
 migrator! {
-    RecordEdit {}
+    AdminEdit {}
 }

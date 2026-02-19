@@ -1,8 +1,8 @@
-<script setup lang="ts" generic="K extends string | number">
+<script setup lang="ts" generic="K extends PropertyKey">
 import type { Input } from "#components";
 import { Fzf, type FzfResultItem } from "fzf";
 
-export interface ComboboxProps<Key extends string | number> {
+export interface ComboboxProps<Key extends PropertyKey> {
     kv: Record<Key, string>;
     compare?: (a: string, b: string) => number;
     placeholder?: string;

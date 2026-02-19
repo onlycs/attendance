@@ -5,14 +5,55 @@ export type ClientOptions = {
 };
 
 /**
+ * Admin
+ */
+export type Admin = {
+    id: string;
+    sid_hashed: string | null;
+    username: string;
+};
+
+/**
+ * AdminDelete
+ */
+export type AdminDelete = {
+    admin_id: string;
+    target: Admin;
+};
+
+/**
+ * AdminDeleteRequest
+ */
+export type AdminDeleteRequest = {
+    admin_id: string;
+};
+
+/**
+ * AdminEdit
+ */
+export type AdminEdit = {
+    /**
+     * Corresponds to the admin who performed the edit
+     */
+    admin_id: string;
+    old: Admin;
+    id: string;
+    sid_hashed?: string | null;
+    username?: string;
+};
+
+/**
  * AdminIdFilter
  */
 export type AdminIdFilter = {
     /**
      * List of admin IDs to filter by
      *
-     * This will correspond to the admin who performed, authorized, or is
-     * otherwise associated with the event.
+     * This will correspond to the admin who performed or otherwise authorized
+     * or triggered the event.
+     *
+     * This will NOT correspond to the admin that was acted upon, if any,
+     * unless, of course, it is the same as the acting admin.
      */
     admin_id: Array<string>;
 };
@@ -25,6 +66,29 @@ export type AdminLogin = {
 };
 
 /**
+ * AdminOperationFilter
+ */
+export type AdminOperationFilter = {
+    /**
+     * Corresponds to the admin who performed the operation
+     */
+    admin_id: Array<string>;
+    /**
+     * Corresponds to the admin acted upon.
+     */
+    target_id: Array<string>;
+};
+
+/**
+ * AdminQueryManyResponse
+ */
+export type AdminQueryManyResponse = {
+    admins: {
+        [key: string]: Admin;
+    };
+};
+
+/**
  * Claims
  */
 export type Claims = {
@@ -33,6 +97,13 @@ export type Claims = {
     perms: Permissions;
     k1e: string;
     username: string;
+};
+
+/**
+ * Deletion_Admin
+ */
+export type DeletionAdmin = {
+    pkey: string;
 };
 
 /**
@@ -54,14 +125,20 @@ export type Event =
         event?: "admin_login";
     } & EventAdminLogin)
     | ({
+        event?: "admin_delete";
+    } & EventAdminDelete)
+    | ({
+        event?: "admin_edit";
+    } & EventAdminEdit)
+    | ({
+        event?: "permission_edit";
+    } & EventPermissionEdit)
+    | ({
         event?: "invite_add";
     } & EventInviteAdd)
     | ({
         event?: "invite_use";
     } & EventInviteUse)
-    | ({
-        event?: "onboard";
-    } & EventOnboard)
     | ({
         event?: "student_add";
     } & EventStudentAdd)
@@ -87,7 +164,113 @@ export type Event =
         event?: "student_logout";
     } & EventStudentLogout);
 
-export type EventTypeFilter = AdminIdFilter | InviteUseFilter | StudentActionFilter;
+export type EventTypeFilter =
+    | ({
+        type?: "admin_delete";
+    } & EventTypeFilterAdminDelete)
+    | ({
+        type?: "admin_edit";
+    } & EventTypeFilterAdminEdit)
+    | ({
+        type?: "permission_edit";
+    } & EventTypeFilterPermissionEdit)
+    | ({
+        type?: "admin_login";
+    } & EventTypeFilterAdminLogin)
+    | ({
+        type?: "invite_add";
+    } & EventTypeFilterInviteAdd)
+    | ({
+        type?: "invite_use";
+    } & EventTypeFilterInviteUse)
+    | ({
+        type?: "record_add";
+    } & EventTypeFilterRecordAdd)
+    | ({
+        type?: "record_delete";
+    } & EventTypeFilterRecordDelete)
+    | ({
+        type?: "record_edit";
+    } & EventTypeFilterRecordEdit)
+    | ({
+        type?: "student_add";
+    } & EventTypeFilterStudentAdd)
+    | ({
+        type?: "student_delete";
+    } & EventTypeFilterStudentDelete)
+    | ({
+        type?: "student_edit";
+    } & EventTypeFilterStudentEdit)
+    | ({
+        type?: "student_login";
+    } & EventTypeFilterStudentLogin)
+    | ({
+        type?: "student_logout";
+    } & EventTypeFilterStudentLogout);
+
+export type EventTypeFilterAdminDelete = {
+    type: "admin_delete";
+} & AdminOperationFilter;
+
+export type EventTypeFilterAdminEdit = {
+    type: "admin_edit";
+} & AdminOperationFilter;
+
+export type EventTypeFilterAdminLogin = {
+    type: "admin_login";
+} & AdminIdFilter;
+
+export type EventTypeFilterInviteAdd = {
+    type: "invite_add";
+} & AdminIdFilter;
+
+export type EventTypeFilterInviteUse = {
+    type: "invite_use";
+} & InviteUseFilter;
+
+export type EventTypeFilterPermissionEdit = {
+    type: "permission_edit";
+} & AdminOperationFilter;
+
+export type EventTypeFilterRecordAdd = {
+    type: "record_add";
+} & AdminIdFilter;
+
+export type EventTypeFilterRecordDelete = {
+    type: "record_delete";
+} & AdminIdFilter;
+
+export type EventTypeFilterRecordEdit = {
+    type: "record_edit";
+} & AdminIdFilter;
+
+export type EventTypeFilterStudentAdd = {
+    type: "student_add";
+} & AdminIdFilter;
+
+export type EventTypeFilterStudentDelete = {
+    type: "student_delete";
+} & AdminIdFilter;
+
+export type EventTypeFilterStudentEdit = {
+    type: "student_edit";
+} & AdminIdFilter;
+
+export type EventTypeFilterStudentLogin = {
+    type: "student_login";
+} & StudentActionFilter;
+
+export type EventTypeFilterStudentLogout = {
+    type: "student_logout";
+} & StudentActionFilter;
+
+export type EventAdminDelete = {
+    event: "admin_delete";
+} & AdminDelete;
+
+export type EventAdminEdit = {
+    event: "admin_edit";
+} & AdminEdit;
 
 export type EventAdminLogin = {
     event: "admin_login";
@@ -101,9 +284,9 @@ export type EventInviteUse = {
     event: "invite_use";
 } & InviteUse;
 
-export type EventOnboard = {
-    event: "onboard";
-} & Onboard;
+export type EventPermissionEdit = {
+    event: "permission_edit";
+} & PermissionEdit;
 
 export type EventRecordAdd = {
     event: "record_add";
@@ -223,13 +406,6 @@ export type LoginStartResponse = {
 };
 
 /**
- * Onboard
- */
-export type Onboard = {
-    admin_id: string;
-};
-
-/**
  * OnboardFinishRequest
  */
 export type OnboardFinishRequest = {
@@ -239,6 +415,15 @@ export type OnboardFinishRequest = {
     username: string;
     v: string;
     s: string;
+};
+
+/**
+ * PartialAdmin
+ */
+export type PartialAdmin = {
+    id: string;
+    sid_hashed?: string | null;
+    username?: string;
 };
 
 /**
@@ -263,6 +448,22 @@ export type PartialStudent = {
 };
 
 /**
+ * PermissionEdit
+ */
+export type PermissionEdit = {
+    /**
+     * Corresponds to the admin who performed the edit
+     */
+    admin_id: string;
+    /**
+     * Corresponds to the admin whose permissions were edited
+     */
+    target_id: string;
+    old: Permissions;
+    new: Permissions;
+};
+
+/**
  * Permissions
  */
 export type Permissions = {
@@ -277,6 +478,7 @@ export type Permissions = {
     hours_edit: boolean;
     roster: boolean;
     admin_edit: boolean;
+    admin_view: boolean;
 };
 
 /**
@@ -353,6 +555,29 @@ export type RegisterStartResponse = {
     k2: string;
 };
 
+export type ReplicationAdmin =
+    | ({
+        operation?: "INSERT";
+    } & ReplicationAdminInsert)
+    | ({
+        operation?: "UPDATE";
+    } & ReplicationAdminUpdate)
+    | ({
+        operation?: "DELETE";
+    } & ReplicationAdminDelete);
+
+export type ReplicationAdminDelete = {
+    operation: "DELETE";
+} & DeletionAdmin;
+
+export type ReplicationAdminInsert = {
+    operation: "INSERT";
+} & Admin;
+
+export type ReplicationAdminUpdate = {
+    operation: "UPDATE";
+} & PartialAdmin;
+
 export type ReplicationRecord =
     | ({
         operation?: "INSERT";
@@ -427,27 +652,27 @@ export type RosterDeleteRequest = {
 };
 
 /**
- * RosterGetMany
+ * RosterQueryMany
  */
-export type RosterGetMany = {
+export type RosterQueryMany = {
     records: {
         [key: string]: Record;
     };
 };
 
-export type RosterGetResponse =
+export type RosterQueryResponse =
     | ({
         quantity?: "Many";
-    } & RosterGetResponseMany)
+    } & RosterQueryResponseMany)
     | ({
         quantity?: "One";
-    } & RosterGetResponseOne);
+    } & RosterQueryResponseOne);
 
-export type RosterGetResponseMany = {
+export type RosterQueryResponseMany = {
     quantity: "Many";
-} & RosterGetMany;
+} & RosterQueryMany;
 
-export type RosterGetResponseOne = {
+export type RosterQueryResponseOne = {
     quantity: "One";
 } & Record;
 
@@ -615,7 +840,11 @@ export type TelemetryFilter = {
     /**
      * Type of telemetry event to retrieve
      */
-    event_type?: (EventTypeFilter & unknown) | null;
+    event_type?:
+        | (EventTypeFilter & unknown & {
+            type?: "TelemetryFilter";
+        })
+        | null;
     /**
      * Start time for telemetry events
      */
@@ -634,30 +863,29 @@ export type TelemetryQueryRequest = {
      * Number of telemetry events to retrieve.
      *
      * This will correspond to the events fetched from the database PRECEDING
-     * ALL OTHER FILTERING. In other words are NOT guaranteed to receive
+     * ALL OTHER FILTERING. In other words, you are NOT guaranteed to receive
      * `count` events in the response, as the filtering is done after fetching.
      *
      * You will not recieve an empty response unless there are no events
      * matching your filters.
      *
-     * Default: 10
      * Maximum: 100
      */
-    count: number;
+    count?: number;
     /**
      * Number of telemetry events to skip. Will be sorted by timestamp
      * descending.
      *
      * Default: 0
      */
-    skip: number;
+    skip?: number;
     /**
      * Filters to apply to the telemetry events.
      *
      * All filters are applied after the initial `count` and `skip` are
      * applied to the database query.
      */
-    filters: TelemetryFilter & unknown;
+    filters?: TelemetryFilter & unknown;
 };
 
 /**
@@ -665,6 +893,181 @@ export type TelemetryQueryRequest = {
  */
 export type TelemetryResponse = {
     events: Array<TelemetryEvent>;
+};
+
+export type AdminDeleteData = {
+    body: AdminDeleteRequest;
+    path?: never;
+    query?: never;
+    url: "/admin";
+};
+
+export type AdminDeleteErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminDeleteError = AdminDeleteErrors[keyof AdminDeleteErrors];
+
+export type AdminDeleteResponses = {
+    200: Admin;
+};
+
+export type AdminDeleteResponse = AdminDeleteResponses[keyof AdminDeleteResponses];
+
+export type AdminQueryManyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: "/admin";
+};
+
+export type AdminQueryManyErrors = {
+    401: string;
+    403: string;
+    500: string;
+};
+
+export type AdminQueryManyError = AdminQueryManyErrors[keyof AdminQueryManyErrors];
+
+export type AdminQueryManyResponses = {
+    200: AdminQueryManyResponse;
+};
+
+export type AdminQueryManyResponse2 = AdminQueryManyResponses[keyof AdminQueryManyResponses];
+
+export type AdminUpdateData = {
+    body: PartialAdmin;
+    path?: never;
+    query?: never;
+    url: "/admin";
+};
+
+export type AdminUpdateErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminUpdateError = AdminUpdateErrors[keyof AdminUpdateErrors];
+
+export type AdminUpdateResponses = {
+    200: Admin;
+};
+
+export type AdminUpdateResponse = AdminUpdateResponses[keyof AdminUpdateResponses];
+
+export type AdminQueryOneData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: "/admin/{id}";
+};
+
+export type AdminQueryOneErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminQueryOneError = AdminQueryOneErrors[keyof AdminQueryOneErrors];
+
+export type AdminQueryOneResponses = {
+    200: Admin;
+};
+
+export type AdminQueryOneResponse = AdminQueryOneResponses[keyof AdminQueryOneResponses];
+
+export type AdminStreamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: "/admin/stream";
+};
+
+export type AdminStreamErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminStreamError = AdminStreamErrors[keyof AdminStreamErrors];
+
+export type AdminStreamResponses = {
+    200: Array<ReplicationAdmin>;
+};
+
+export type AdminStreamResponse = AdminStreamResponses[keyof AdminStreamResponses];
+
+export type AdminPermissionsQueryData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: "/admin/{id}/permissions";
+};
+
+export type AdminPermissionsQueryErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminPermissionsQueryError = AdminPermissionsQueryErrors[keyof AdminPermissionsQueryErrors];
+
+export type AdminPermissionsQueryResponses = {
+    200: Permissions;
+};
+
+export type AdminPermissionsQueryResponse = AdminPermissionsQueryResponses[keyof AdminPermissionsQueryResponses];
+
+export type AdminPermissionsUpdateData = {
+    body: Permissions;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: "/admin/{id}/permissions";
+};
+
+export type AdminPermissionsUpdateErrors = {
+    401: string;
+    403: string;
+    /**
+     * Admin with the given ID does not exist
+     */
+    404: string;
+    500: string;
+};
+
+export type AdminPermissionsUpdateError = AdminPermissionsUpdateErrors[keyof AdminPermissionsUpdateErrors];
+
+export type AdminPermissionsUpdateResponses = {
+    200: unknown;
 };
 
 export type AuthLoginStartData = {
@@ -986,7 +1389,7 @@ export type RosterRecordQueryErrors = {
 export type RosterRecordQueryError = RosterRecordQueryErrors[keyof RosterRecordQueryErrors];
 
 export type RosterRecordQueryResponses = {
-    200: RosterGetResponse;
+    200: RosterQueryResponse;
 };
 
 export type RosterRecordQueryResponse = RosterRecordQueryResponses[keyof RosterRecordQueryResponses];
@@ -1126,6 +1529,7 @@ export type StudentAddData = {
 export type StudentAddErrors = {
     401: string;
     403: string;
+    409: string;
     500: string;
 };
 
@@ -1263,27 +1667,94 @@ export type StudentHoursResponses = {
 
 export type StudentHoursResponse2 = StudentHoursResponses[keyof StudentHoursResponses];
 
-export type TelemetryGetData = {
+export type TelemetrySearchData = {
     body: TelemetryQueryRequest;
     path?: never;
     query?: never;
     url: "/telemetry/search";
 };
 
-export type TelemetryGetErrors = {
+export type TelemetrySearchErrors = {
     400: string;
     401: string;
     403: string;
     500: string;
 };
 
-export type TelemetryGetError = TelemetryGetErrors[keyof TelemetryGetErrors];
+export type TelemetrySearchError = TelemetrySearchErrors[keyof TelemetrySearchErrors];
 
-export type TelemetryGetResponses = {
+export type TelemetrySearchResponses = {
     200: TelemetryResponse;
 };
 
+export type TelemetrySearchResponse = TelemetrySearchResponses[keyof TelemetrySearchResponses];
+
+export type TelemetryGetData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: "/telemetry/{id}";
+};
+
+export type TelemetryGetErrors = {
+    401: string;
+    403: string;
+    404: string;
+    500: string;
+};
+
+export type TelemetryGetError = TelemetryGetErrors[keyof TelemetryGetErrors];
+
+export type TelemetryGetResponses = {
+    200: TelemetryEvent;
+};
+
 export type TelemetryGetResponse = TelemetryGetResponses[keyof TelemetryGetResponses];
+
+export type TelemetryFilterCreateData = {
+    body: TelemetryFilter;
+    path?: never;
+    query?: never;
+    url: "/telemetry/stream/filter";
+};
+
+export type TelemetryFilterCreateErrors = {
+    401: string;
+    403: string;
+    500: string;
+};
+
+export type TelemetryFilterCreateError = TelemetryFilterCreateErrors[keyof TelemetryFilterCreateErrors];
+
+export type TelemetryFilterCreateResponses = {
+    200: string;
+};
+
+export type TelemetryFilterCreateResponse = TelemetryFilterCreateResponses[keyof TelemetryFilterCreateResponses];
+
+export type TelemetryFilterUpdateData = {
+    body: TelemetryFilter;
+    path?: never;
+    query: {
+        id: string;
+    };
+    url: "/telemetry/stream/filter";
+};
+
+export type TelemetryFilterUpdateErrors = {
+    401: string;
+    403: string;
+    404: string;
+    500: string;
+};
+
+export type TelemetryFilterUpdateError = TelemetryFilterUpdateErrors[keyof TelemetryFilterUpdateErrors];
+
+export type TelemetryFilterUpdateResponses = {
+    200: unknown;
+};
 
 export type TelemetryStreamData = {
     body?: never;
@@ -1308,25 +1779,3 @@ export type TelemetryStreamResponses = {
 };
 
 export type TelemetryStreamResponse = TelemetryStreamResponses[keyof TelemetryStreamResponses];
-
-export type TelemetryCreateStreamData = {
-    body: TelemetryFilter;
-    path?: never;
-    query?: never;
-    url: "/telemetry/stream";
-};
-
-export type TelemetryCreateStreamErrors = {
-    400: string;
-    401: string;
-    403: string;
-    500: string;
-};
-
-export type TelemetryCreateStreamError = TelemetryCreateStreamErrors[keyof TelemetryCreateStreamErrors];
-
-export type TelemetryCreateStreamResponses = {
-    200: string;
-};
-
-export type TelemetryCreateStreamResponse = TelemetryCreateStreamResponses[keyof TelemetryCreateStreamResponses];

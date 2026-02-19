@@ -83,8 +83,19 @@ function computeErrors() {
             continue;
         }
 
-        if (!output) {
+        if (
+            !output
+            || (Array.isArray(output) && output.length === 0)
+        ) {
             errors[k]!.value = ["This field is required."];
+            continue;
+        }
+
+        if (
+            Array.isArray(output)
+            && output.some((o) => o === null || o === undefined || o === "")
+        ) {
+            errors[k]!.value = ["One or more items are empty."];
             continue;
         }
 
@@ -166,6 +177,7 @@ const renderkeys = computed(() => {
             ([k2, dep]) => {
                 const output = outputs[k2]!.value as string | null;
                 if (output === null || !dep) return false;
+                if (Array.isArray(dep)) return dep.includes(output);
                 return dep === output;
             },
         )
@@ -238,6 +250,12 @@ defineExpose({ ...actions });
                 v-else-if="$props.form[key]!.item === 'combobox'"
                 v-bind="$props.form[key]!"
                 v-model:selected="(outputs as any)[key].value"
+            />
+
+            <Many
+                v-else-if="$props.form[key]!.item === 'many'"
+                :item="$props.form[key]!.inner"
+                v-model:value="(outputs as any)[key].value"
             />
 
             <div class="w-2" v-if="showErrors">

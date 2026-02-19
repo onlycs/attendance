@@ -65,7 +65,7 @@ pub(crate) trait Row:
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Object)]
 #[serde(bound(deserialize = "R: Row", serialize = "R: Row"))]
-pub struct Deletion<R: Row> {
+pub(crate) struct Deletion<R: Row> {
     pkey: R::Key,
 }
 

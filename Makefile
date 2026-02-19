@@ -14,12 +14,14 @@ wasm:
 openapi:
 	@echo "=== Generating OpenAPI spec"
 	cd src-api && cargo run --bin openapi
+	@echo "=== Removing old API client"
+	rm -rf app/utils/api/hey
 	@echo "=== Generating API client"
 	bunx openapi-ts
 	@echo "=== Re-exporting API client"
 	python scripts/openapi.py
 	@echo "=== Formatting generated files"
-	dprint fmt app/utils/api/**/*
+	dprint fmt app/utils/api/**/* app/utils/api/*
 
 fmt:
 	@echo "=== Formatting code"

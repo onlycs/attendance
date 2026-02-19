@@ -15,7 +15,7 @@ useRouter().beforeEach(() => useCleanup().run());
         <slot />
     </div>
     <Footer />
-    <Toaster rich-colors theme="dark" position="top-right" />
+    <Toaster rich-colors theme="dark" position="bottom-right" />
 </template>
 
 <style scoped>

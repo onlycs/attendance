@@ -4,7 +4,7 @@ use attendance_api::oai;
 use sqlx::PgPool;
 use tokio::fs;
 
-pub async fn inner() -> Result<(), Box<dyn Error>> {
+async fn inner() -> Result<(), Box<dyn Error>> {
     let pool = PgPool::connect(dotenvy_macro::dotenv!("DATABASE_URL")).await?;
 
     fs::write(

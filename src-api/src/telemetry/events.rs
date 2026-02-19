@@ -53,14 +53,14 @@ struct RawTelemetryEvent {
     id: String,
     event: String,
     data: serde_json::Value,
-    timestamp: chrono::DateTime<chrono::Utc>,
+    timestamp: chrono::DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Object)]
 pub(crate) struct TelemetryEvent {
     pub id: String,
     pub event: Event,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub timestamp: chrono::DateTime<Utc>,
 }
 
 impl TryFrom<RawTelemetryEvent> for TelemetryEvent {

@@ -88,10 +88,10 @@ impl RosterService {
         &self,
         jwt: Jwt,
         id: Query<Option<String>>,
-    ) -> Result<Json<crud::GetResponse>, crud::GetError> {
+    ) -> Result<Json<crud::QueryResponse>, crud::GetError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
-        Ok(Json(crud::get(id.0, self.pg.clone()).await?))
+        Ok(Json(crud::query(id.0, self.pg.clone()).await?))
     }
 
     #[oai(path = "/stream", method = "get")]

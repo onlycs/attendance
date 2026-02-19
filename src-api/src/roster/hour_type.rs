@@ -17,13 +17,11 @@ use crate::prelude::*;
     VariantArray,
     Display,
     sqlx::Type,
-    async_graphql::Enum,
 )]
 #[oai(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "hour_type", rename_all = "lowercase")]
-#[graphql(rename_items = "lowercase")]
 pub(crate) enum HourType {
     Build,
     Learning,
@@ -75,7 +73,7 @@ impl HourType {
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub enum AllowedError {
+pub(crate) enum AllowedError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 

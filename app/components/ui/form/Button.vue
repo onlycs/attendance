@@ -3,6 +3,7 @@ export type ButtonVariant =
     | "primary"
     | "secondary"
     | "secondary-card"
+    | "secondary-drop"
     | "success"
     | "success-card"
     | "danger"
@@ -80,6 +81,10 @@ defineExpose({
 
     &.secondary-card {
         @apply bg-card-2 text-text;
+    }
+
+    &.secondary-drop {
+        @apply bg-background text-text;
     }
 
     &.danger {

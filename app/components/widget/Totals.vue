@@ -4,7 +4,9 @@ import api from "~/utils/api";
 
 const res = await api.roster.present.query();
 
-if (!res.data) api.error(res.error, res.response);
+if (!res.data) {
+    api.error(res.error, res.response, { handle: { [403]: () => {} } });
+}
 
 const present = ref(res.data?.present.length ?? 0);
 const absent = ref(res.data?.absent.length ?? 0);
@@ -23,10 +25,6 @@ const safepercent = computed(() => {
 });
 
 useSSE().add(api.roster.present.stream, update);
-
-// setInterval(() => {
-//     present.value += Math.floor(Math.random() * 3);
-// }, 500);
 </script>
 
 <template>

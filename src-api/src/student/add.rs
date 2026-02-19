@@ -1,6 +1,6 @@
 use crate::{dbstream::Student, prelude::*};
 
-pub type Request = Student;
+pub(super) type Request = Student;
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]

@@ -40,7 +40,7 @@ function serplaindate(d: Temporal.PlainDate): string {
 
 export interface ApiToastOptions {
     handle401?: "redirect" | { message: string; } | "api-message";
-    handle: Record<number, (err: string) => void>;
+    handle: Record<number, ((err: string) => void) | undefined>;
 }
 
 function error(

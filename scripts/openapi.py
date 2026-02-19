@@ -31,6 +31,16 @@ for export in export_list:
                 raise ValueError(f"Conflict in export names for {export}")
             current_level = current_level[part] # type: ignore
 
+# if there is an object with only one key, we can flatten it (make sure to join names with underscores to avoid conflicts)
+# only for shape {a: {b: c}} -> {a_b: c}
+def flatten(obj: dict[str, Exports]) -> dict[str, Exports]:
+    for k, v in list(obj.items()):
+        if isinstance(v, dict) and len(v) == 1:
+            k2, v2 = next(iter(v.items()))
+            obj[f"{k}_{k2}"] = v2
+            del obj[k]
+
+    return {k: flatten(v) if isinstance(v, dict) else v for k, v in obj.items()}
 
 def construct_obj(obj: dict[str, Exports]) -> str:
     result = "{"
@@ -46,7 +56,7 @@ def construct_obj(obj: dict[str, Exports]) -> str:
     result += "}"
     return result
 
-js_obj = construct_obj(exports)
+js_obj = construct_obj(flatten(exports))
 
 with open("app/utils/api/client.ts", "w+") as f:
     f.write(f'import {{ {','.join(export_list)} }} from "./hey/sdk.gen";\n\n')

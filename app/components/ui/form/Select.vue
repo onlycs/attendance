@@ -1,6 +1,6 @@
-<script setup lang="ts" generic="K extends string | number">
+<script setup lang="ts" generic="K extends PropertyKey">
 import type { Button } from "#components";
-export interface SelectProps<K extends string | number> {
+export interface SelectProps<K extends PropertyKey> {
     kv: Record<K, string>;
     class?: string | string[];
     "class:btn"?: string | string[];
@@ -37,17 +37,20 @@ function updateSliderPosition() {
     sliderY.value = btn.button.offsetTop - 8;
 }
 
+const container = ref<HTMLElement>();
+
 onMounted(() => {
     watch([nth, buttons], () => {
         updateSliderPosition();
     }, { immediate: true });
 
-    window.addEventListener("resize", updateSliderPosition);
+    new ResizeObserver(updateSliderPosition).observe(container.value!);
 });
 </script>
 
 <template>
     <div
+        ref="container"
         :class="cn('select', $props.class)"
         :style="{
             gridTemplateRows: `repeat(${rows}, 1fr)`,

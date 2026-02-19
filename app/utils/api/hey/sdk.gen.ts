@@ -3,6 +3,27 @@
 import type { Client, Options as Options2, TDataShape } from "./client";
 import { client } from "./client.gen";
 import type {
+    AdminDeleteData,
+    AdminDeleteErrors,
+    AdminDeleteResponses,
+    AdminPermissionsQueryData,
+    AdminPermissionsQueryErrors,
+    AdminPermissionsQueryResponses,
+    AdminPermissionsUpdateData,
+    AdminPermissionsUpdateErrors,
+    AdminPermissionsUpdateResponses,
+    AdminQueryManyData,
+    AdminQueryManyErrors,
+    AdminQueryManyResponses,
+    AdminQueryOneData,
+    AdminQueryOneErrors,
+    AdminQueryOneResponses,
+    AdminStreamData,
+    AdminStreamErrors,
+    AdminStreamResponses,
+    AdminUpdateData,
+    AdminUpdateErrors,
+    AdminUpdateResponses,
     AuthInviteData,
     AuthInviteErrors,
     AuthInviteResponses,
@@ -78,12 +99,18 @@ import type {
     StudentUpdateData,
     StudentUpdateErrors,
     StudentUpdateResponses,
-    TelemetryCreateStreamData,
-    TelemetryCreateStreamErrors,
-    TelemetryCreateStreamResponses,
+    TelemetryFilterCreateData,
+    TelemetryFilterCreateErrors,
+    TelemetryFilterCreateResponses,
+    TelemetryFilterUpdateData,
+    TelemetryFilterUpdateErrors,
+    TelemetryFilterUpdateResponses,
     TelemetryGetData,
     TelemetryGetErrors,
     TelemetryGetResponses,
+    TelemetrySearchData,
+    TelemetrySearchErrors,
+    TelemetrySearchResponses,
     TelemetryStreamData,
     TelemetryStreamErrors,
     TelemetryStreamResponses,
@@ -104,6 +131,92 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
          */
         meta?: Record<string, unknown>;
     };
+
+/**
+ * Delete
+ */
+export const adminDelete = <ThrowOnError extends boolean = false>(options: Options<AdminDeleteData, ThrowOnError>) =>
+    (options.client ?? client).delete<AdminDeleteResponses, AdminDeleteErrors, ThrowOnError>({
+        security: [{ scheme: "bearer", type: "http" }],
+        url: "/admin",
+        ...options,
+        headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...options.headers,
+        },
+    });
+
+/**
+ * QueryMany
+ */
+export const adminQueryMany = <ThrowOnError extends boolean = false>(
+    options?: Options<AdminQueryManyData, ThrowOnError>,
+) => (options?.client ?? client).get<AdminQueryManyResponses, AdminQueryManyErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/admin",
+    ...options,
+});
+
+/**
+ * Update
+ */
+export const adminUpdate = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateData, ThrowOnError>) =>
+    (options.client ?? client).patch<AdminUpdateResponses, AdminUpdateErrors, ThrowOnError>({
+        security: [{ scheme: "bearer", type: "http" }],
+        url: "/admin",
+        ...options,
+        headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...options.headers,
+        },
+    });
+
+/**
+ * QueryOne
+ */
+export const adminQueryOne = <ThrowOnError extends boolean = false>(
+    options: Options<AdminQueryOneData, ThrowOnError>,
+) => (options.client ?? client).get<AdminQueryOneResponses, AdminQueryOneErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/admin/{id}",
+    ...options,
+});
+
+/**
+ * Stream
+ */
+export const adminStream = <ThrowOnError extends boolean = false>(options?: Options<AdminStreamData, ThrowOnError>) =>
+    (options?.client ?? client).sse.get<AdminStreamResponses, AdminStreamErrors, ThrowOnError>({
+        security: [{ scheme: "bearer", type: "http" }],
+        url: "/admin/stream",
+        ...options,
+    });
+
+/**
+ * PermissionsQuery
+ */
+export const adminPermissionsQuery = <ThrowOnError extends boolean = false>(
+    options: Options<AdminPermissionsQueryData, ThrowOnError>,
+) => (options.client ?? client).get<AdminPermissionsQueryResponses, AdminPermissionsQueryErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/admin/{id}/permissions",
+    ...options,
+});
+
+/**
+ * PermissionsUpdate
+ */
+export const adminPermissionsUpdate = <ThrowOnError extends boolean = false>(
+    options: Options<AdminPermissionsUpdateData, ThrowOnError>,
+) => (options.client ?? client).put<AdminPermissionsUpdateResponses, AdminPermissionsUpdateErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/admin/{id}/permissions",
+    ...options,
+    headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...options.headers,
+    },
+});
 
 /**
  * LoginStart
@@ -409,18 +522,61 @@ export const studentHours = <ThrowOnError extends boolean = false>(options: Opti
     });
 
 /**
+ * Search
+ */
+export const telemetrySearch = <ThrowOnError extends boolean = false>(
+    options: Options<TelemetrySearchData, ThrowOnError>,
+) => (options.client ?? client).post<TelemetrySearchResponses, TelemetrySearchErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/telemetry/search",
+    ...options,
+    headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...options.headers,
+    },
+});
+
+/**
  * Get
  */
 export const telemetryGet = <ThrowOnError extends boolean = false>(options: Options<TelemetryGetData, ThrowOnError>) =>
-    (options.client ?? client).post<TelemetryGetResponses, TelemetryGetErrors, ThrowOnError>({
+    (options.client ?? client).get<TelemetryGetResponses, TelemetryGetErrors, ThrowOnError>({
         security: [{ scheme: "bearer", type: "http" }],
-        url: "/telemetry/search",
+        url: "/telemetry/{id}",
         ...options,
-        headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            ...options.headers,
-        },
     });
+
+/**
+ * FilterCreate
+ *
+ * Creates a new stream filter, returning an ID.
+ */
+export const telemetryFilterCreate = <ThrowOnError extends boolean = false>(
+    options: Options<TelemetryFilterCreateData, ThrowOnError>,
+) => (options.client ?? client).post<TelemetryFilterCreateResponses, TelemetryFilterCreateErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/telemetry/stream/filter",
+    ...options,
+    headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...options.headers,
+    },
+});
+
+/**
+ * FilterUpdate
+ */
+export const telemetryFilterUpdate = <ThrowOnError extends boolean = false>(
+    options: Options<TelemetryFilterUpdateData, ThrowOnError>,
+) => (options.client ?? client).put<TelemetryFilterUpdateResponses, TelemetryFilterUpdateErrors, ThrowOnError>({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/telemetry/stream/filter",
+    ...options,
+    headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...options.headers,
+    },
+});
 
 /**
  * Stream
@@ -431,19 +587,4 @@ export const telemetryStream = <ThrowOnError extends boolean = false>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/telemetry/stream",
     ...options,
-});
-
-/**
- * CreateStream
- */
-export const telemetryCreateStream = <ThrowOnError extends boolean = false>(
-    options: Options<TelemetryCreateStreamData, ThrowOnError>,
-) => (options.client ?? client).post<TelemetryCreateStreamResponses, TelemetryCreateStreamErrors, ThrowOnError>({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/telemetry/stream",
-    ...options,
-    headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        ...options.headers,
-    },
 });

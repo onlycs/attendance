@@ -26,15 +26,15 @@ pub(super) struct DeleteRequest {
 }
 
 #[derive(Object)]
-#[oai(rename = "RosterGetMany")]
-pub(super) struct GetManyResponse {
+#[oai(rename = "RosterQueryMany")]
+pub(super) struct QueryManyResponse {
     records: HashMap<<Record as Row>::Key, Record>,
 }
 
 #[derive(Union)]
-#[oai(rename = "RosterGetResponse", discriminator_name = "quantity")]
-pub(super) enum GetResponse {
-    Many(GetManyResponse),
+#[oai(rename = "RosterQueryResponse", discriminator_name = "quantity")]
+pub(super) enum QueryResponse {
+    Many(QueryManyResponse),
     One(Record),
 }
 
@@ -49,7 +49,7 @@ pub(super) type DeleteResponse = Record;
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub enum GetError {
+pub(super) enum GetError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
@@ -68,7 +68,7 @@ pub enum GetError {
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub enum CreateError {
+pub(super) enum CreateError {
     /// time_out is before or on a different day than time_in
     #[oai(status = 400)]
     #[construct(time_out, "time_out must be after and on the same day as time_in")]
@@ -87,7 +87,7 @@ pub enum CreateError {
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError, GetError)]
-pub enum UpdateError {
+pub(super) enum UpdateError {
     /// time_out is before or on a different day than time_in
     #[oai(status = 400)]
     #[construct(time_out, "time_out must be after and on the same day as time_in")]
@@ -111,7 +111,7 @@ pub enum UpdateError {
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub enum DeleteError {
+pub(super) enum DeleteError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
@@ -129,10 +129,10 @@ pub enum DeleteError {
 }
 
 #[tracing::instrument(skip(pg), err)]
-pub(super) async fn get(id: Option<String>, pg: PgPool) -> Result<GetResponse, GetError> {
+pub(super) async fn query(id: Option<String>, pg: PgPool) -> Result<QueryResponse, GetError> {
     let Some(id) = id else {
         let records = Record::select_all(&pg).await?;
-        return Ok(GetResponse::Many(GetManyResponse { records }));
+        return Ok(QueryResponse::Many(QueryManyResponse { records }));
     };
 
     let record = sqlx::query_as::<_, Record>(
@@ -147,7 +147,7 @@ pub(super) async fn get(id: Option<String>, pg: PgPool) -> Result<GetResponse, G
     .await?
     .ok_or(GetError::not_found())?;
 
-    Ok(GetResponse::One(record))
+    Ok(QueryResponse::One(record))
 }
 
 #[tracing::instrument(skip(pg), err)]

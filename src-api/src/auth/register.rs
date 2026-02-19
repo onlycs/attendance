@@ -97,7 +97,7 @@ pub(super) async fn finish(
         s,
     }: FinishRequest,
     pg: PgPool,
-) -> Result<String, FinishError> {
+) -> Result<(), FinishError> {
     let res = sqlx::query!(
         r#"
         SELECT sid_hashed, inviter_id, permissions FROM register_sessions
@@ -158,5 +158,5 @@ pub(super) async fn finish(
         .log();
     });
 
-    Ok(userid)
+    Ok(())
 }
