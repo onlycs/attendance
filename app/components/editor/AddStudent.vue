@@ -2,6 +2,7 @@
 import { toast } from "vue-sonner";
 import z from "zod";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
 
 const { user } = useAuth();
 const crypto = useCrypto();
@@ -16,46 +17,52 @@ watch(user, (user) => {
 const open = defineModel<boolean>("open", { required: true });
 const loading = ref(false);
 
-const { form, buttons, deps, submit, cancel, validate } = f.form(
+const form = f.form(
     {
-        id: f.studentId(),
-        first: f.input({
-            title: "First Name",
-            schema: z.string()
-                .min(2, "First name is required")
-                .regex(/^[A-Z]/, "Must start with a capital letter")
-                .regex(
-                    /^([A-Za-z]|-)+$/,
-                    "Must only contain letters or dashes",
-                ),
-            placeholder: "John",
-        }),
-        last: f.input({
-            title: "Last Name",
-            schema: z.string()
-                .min(2, "Last name is required")
-                .regex(/^[A-Z]/, "Must start with a capital letter")
-                .regex(
-                    /^([A-Za-z]|-)+$/,
-                    "Must only contain letters or dashes",
-                ),
-            placeholder: "Doe",
-        }),
-    },
-    [
-        {
-            form: "submit",
-            label: "Submit",
-            kind: "primary",
-            class: "submit",
+        items: {
+            id: f.studentId(),
+            first: f.input(
+                {
+                    title: "First Name",
+                    placeholder: "John",
+                },
+                z.string()
+                    .min(2, "First name is required")
+                    .regex(/^[A-Z]/, "Must start with a capital letter")
+                    .regex(
+                        /^([A-Za-z]|-)+$/,
+                        "Must only contain letters or dashes",
+                    ),
+            ),
+            last: f.input(
+                {
+                    title: "Last Name",
+                    placeholder: "Doe",
+                },
+                z.string()
+                    .min(2, "Last name is required")
+                    .regex(/^[A-Z]/, "Must start with a capital letter")
+                    .regex(
+                        /^([A-Za-z]|-)+$/,
+                        "Must only contain letters or dashes",
+                    ),
+            ),
         },
-        {
-            form: "cancel",
-            label: "Cancel",
-            kind: "secondary-card",
-        },
-    ],
-    {
+
+        buttons: [
+            {
+                form: "submit",
+                label: "Submit",
+                kind: "primary",
+                class: "submit",
+            },
+            {
+                form: "cancel",
+                label: "Cancel",
+                kind: "secondary-card",
+            },
+        ],
+
         async validate(submit) {
             const id_hashed = sha256(submit.id);
             const existing = await api.student.query({
@@ -127,18 +134,13 @@ const { form, buttons, deps, submit, cancel, validate } = f.form(
 );
 </script>
 <template>
-    <Drawer v-model:open="open" @close="cancel">
+    <Drawer v-model:open="open" @close="form.cancel">
         <span class="title">New Student</span>
 
         <div class="form">
             <Form
                 v-model:loading="loading"
                 :form
-                :buttons
-                :deps
-                :validate
-                @cancel="cancel"
-                @submit="submit"
             />
         </div>
     </Drawer>

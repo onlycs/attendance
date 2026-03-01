@@ -1,7 +1,6 @@
 use crate::{auth::jwt::Permissions, prelude::*};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Object)]
-#[serde(from = "Migrator")]
 pub(crate) struct PermissionEdit {
     /// Corresponds to the admin who performed the edit
     pub(crate) admin_id: String,

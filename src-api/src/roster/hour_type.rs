@@ -77,9 +77,6 @@ pub(crate) enum AllowedError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
-    #[oai(status = 403)]
-    Forbidden(PlainText<String>),
-
     #[oai(status = 500)]
     InternalServerError(PlainText<String>),
 }

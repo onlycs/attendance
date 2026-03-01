@@ -2,80 +2,92 @@
     setup
     lang="ts"
     generic="
-    F extends Form, // a
-    D extends Deps<F>,
-    B extends Array<FormButton>
+    I extends Items,
+    D extends Deps<I>,
+    B extends FormButton[]
 "
 >
 import type { WatchHandle } from "vue";
-import type { MaybePromise } from "~/utils/gymnastics";
+import type { Form } from "~/utils/form";
+import type { ButtonContext, FormButton } from "~/utils/form/button";
+import type { Deps } from "~/utils/form/deps";
+import type { Items } from "~/utils/form/item";
+import type { FormRefs } from "~/utils/form/output";
+import { type UndefParam, undefparam } from "~/utils/gymnastics";
 
-export interface Props<
-    F extends Form,
-    D extends Deps<F>,
-    B extends FormButton[]
-> {
-    form: F;
-    deps: D;
-    buttons: B;
-    defaults?: Partial<FormOutput<F, D>>;
-    validate?: (output: FormOutput<F, D>) => MaybePromise<FormError<F>[]>;
-    class?: string | string[];
+export interface FormControlInner<I extends Items, B extends FormButton[]> {
+    cancel: () => void;
+    submit: UndefParam<ButtonContext<B>>;
+    reset: () => void;
+    outputs: FormRefs<I>;
 }
 
-const props = defineProps<Props<F, D, B>>();
-const emit = defineEmits<
-    {
-        submit: [FormOutput<F, D>, ButtonContext<B>];
-        cancel: [];
-        "update:outputs": [outputs: FormTemporary<F>];
-    }
->();
+export type FormControl<F> = F extends Form<infer I, any, infer B>
+    ? FormControlInner<I, B>
+    : never;
+
+type F = Form<I, D, B>;
+
+const { form } = defineProps<{ form: F; class?: string | string[]; }>();
+const emit = defineEmits<{ "update:outputs": [outputs: FormRefs<I>]; }>();
 const loading = defineModel<boolean>("loading");
 const dirty = defineModel<boolean>("dirty", { default: false });
-const keys = Object.keys(props.form) as string[];
 
-function collectDefaults(): Record<string, Ref<unknown | null>> {
+const keys = Object.keys(form.items);
+const watchers = [] as WatchHandle[];
+
+onUnmounted(() => {
+    for (const unwatch of watchers) unwatch();
+    watchers.splice(0, watchers.length);
+});
+
+function collectDefaults(): FormRefs<I> {
+    if (watchers.length > 0) {
+        for (const unwatch of watchers) unwatch();
+        watchers.splice(0, watchers.length);
+    }
+
     const entries: [string, Ref<unknown | null>][] = [];
 
     for (const k of keys) {
-        const item = props.form[k]!;
-        const itemInit = item.item === "select" ? item.default : null;
-        const init = (props.defaults as any)?.[k] ?? itemInit;
+        const init = form.defaults[k] ?? null;
         const x = ref(init);
 
-        const unwatch = watch(x, () => {
+        watchers.push(watch(x, () => {
             dirty.value = true;
-            emit("update:outputs", outputs as FormTemporary<F>);
-        });
-        onUnmounted(() => unwatch());
+            emit("update:outputs", outputs);
+        }, { deep: form.items[k]?.isMany() ?? false }));
 
         entries.push([k, x]);
     }
 
-    return Object.fromEntries(entries);
+    return Object.fromEntries(entries) as FormRefs<I>;
 }
 
-function collectErrors(): Record<string, Ref<string[]>> {
-    const entries: [string, Ref<string[]>][] = [];
+function emptyErrors(): Record<string, Ref<string[]>> {
+    const entries: [keyof I, Ref<string[]>][] = [];
 
     for (const k of keys) {
-        entries.push([k, ref([] as string[])]);
+        entries.push([k as keyof I, ref([] as string[])]);
     }
 
-    return Object.fromEntries(entries);
+    return Object.fromEntries(entries) as Record<string, Ref<string[]>>;
 }
 
 const outputs = collectDefaults();
-const errors = collectErrors();
+const errors = emptyErrors();
 const showErrors = ref(false);
 
 function computeErrors() {
     if (!showErrors.value) return;
 
     for (const k of Object.keys(outputs)) {
-        const item = props.form[k]!;
-        const output = outputs[k]!.value;
+        const item = form.items[k]!;
+        const _output = outputs[k]!.value;
+
+        // cast item to null if empty
+        const isNull = ["", null, undefined].includes(_output as any);
+        const output = isNull ? null : _output;
 
         if (!renderkeys.value.includes(k)) {
             errors[k]!.value = [];
@@ -83,23 +95,12 @@ function computeErrors() {
             continue;
         }
 
-        if (
-            !output
-            || (Array.isArray(output) && output.length === 0)
-        ) {
+        if (!item.zod.safeParse(null).success && output === null) {
             errors[k]!.value = ["This field is required."];
             continue;
         }
 
-        if (
-            Array.isArray(output)
-            && output.some((o) => o === null || o === undefined || o === "")
-        ) {
-            errors[k]!.value = ["One or more items are empty."];
-            continue;
-        }
-
-        const result = item.schema.safeParse(output);
+        const result = item.zod.safeParse(output);
 
         if (!result.success) {
             const msgs = result.error.issues.map((issue) => issue.message);
@@ -129,38 +130,33 @@ async function submit(context: ButtonContext<B>) {
         output[k] = outputs[k]!.value;
     }
 
-    if (props.validate) {
-        loading.value = true;
-        const validationErrors = await props.validate(output);
+    loading.value = true;
+    const validationErrors = await form.validate(output);
 
-        await sleep(500); // submit() may mess with loading.value, so sleep the thread, rather than settimeout to avoid race condition
-        loading.value = false; // prevent flashing the spinner
+    await sleep(500); // submit() may mess with loading.value, so sleep the thread, rather than settimeout to avoid race condition
+    loading.value = false; // sleep then set false to avoid flashing the spinner.
 
-        if (validationErrors.length > 0) {
-            for (const err of validationErrors) {
-                errors[err.field]!.value.push(err.message);
-            }
-
-            showErrors.value = true;
-            return;
+    if (validationErrors.length > 0) {
+        for (const err of validationErrors) {
+            errors[err.field]!.value.push(err.message);
         }
+
+        showErrors.value = true;
+        return;
     }
 
     showErrors.value = false;
     dirty.value = false;
-    emit("submit", output, context);
+    form.submit(output, context);
 }
 
-const actions = {
-    cancel: () => emit("cancel"),
-    submit,
+const control: FormControl<F> = {
+    cancel: form.cancel,
+    submit: undefparam(submit),
     reset: () => {
         for (const k of keys) {
-            if (
-                props.form[k]!.item !== "select"
-                || (props.defaults as any)?.[k] !== undefined
-            ) {
-                outputs[k]!.value = (props.defaults as any)?.[k] ?? null;
+            if (!form.items[k]?.isSelect() || form.defaults[k] !== undefined) {
+                outputs[k]!.value = form.defaults[k] ?? null;
             }
 
             errors[k]!.value = [];
@@ -169,11 +165,12 @@ const actions = {
         showErrors.value = false;
         setTimeout(() => dirty.value = false, 50); // wait for outputs to update
     },
+    outputs,
 };
 
 const renderkeys = computed(() => {
     return keys.filter((key) =>
-        Object.entries(props.deps[key] ?? ({} as Record<string, string>)).every(
+        Object.entries(form.deps[key] ?? ({} as Record<string, string>)).every(
             ([k2, dep]) => {
                 const output = outputs[k2]!.value as string | null;
                 if (output === null || !dep) return false;
@@ -194,7 +191,7 @@ onUnmounted(() => {
     for (const hook of hooks) hook();
 });
 
-defineExpose({ ...actions });
+defineExpose(control);
 </script>
 
 <template>
@@ -203,58 +200,62 @@ defineExpose({ ...actions });
             v-for="key of renderkeys"
             :class="cn(
                 'item',
-                $props.form[key]?.['class:container'],
+                form.items[key]!.props['class:container'],
                 $props.class,
             )"
             :key
         >
             <label
                 :for="key as string"
-                class="label"
-                v-if="$props.form[key]!.title"
+                :class="cn(
+                    'label',
+                    showErrors && errors[key]!.value.length > 0
+                        && '!text-red-400',
+                )"
+                v-if="form.items[key]!.props.title"
             >
-                {{ $props.form[key]!.title }}
+                {{ form.items[key]!.props.title }}
             </label>
 
             <Select
-                v-if="$props.form[key]!.item === 'select'"
-                v-bind="$props.form[key]!"
+                v-if="form.items[key]!.isSelect()"
+                v-bind="form.items[key]!.props"
                 v-model:selected="(outputs as any)[key].value"
             />
 
             <Input
-                v-else-if="$props.form[key]!.item === 'input'"
-                v-bind="$props.form[key]!"
+                v-else-if="form.items[key]!.isInput()"
+                v-bind="form.items[key]!.props"
                 v-model="(outputs as any)[key].value"
             />
 
             <OTPField
-                v-else-if="$props.form[key]!.item === 'otp'"
-                v-bind="$props.form[key]!"
+                v-else-if="form.items[key]!.isOTP()"
+                v-bind="form.items[key]!.props"
                 v-model:otp="(outputs as any)[key].value"
             />
 
             <DatePicker
-                v-else-if="$props.form[key]!.item === 'date'"
-                v-bind="$props.form[key]!"
+                v-else-if="form.items[key]!.isDate()"
+                v-bind="form.items[key]!.props"
                 v-model:date="(outputs as any)[key].value"
             />
 
             <TimePicker
-                v-else-if="$props.form[key]!.item === 'time'"
-                v-bind="$props.form[key]!"
+                v-else-if="form.items[key]!.isTime()"
+                v-bind="form.items[key]!.props"
                 v-model:time="(outputs as any)[key].value"
             />
 
             <Combobox
-                v-else-if="$props.form[key]!.item === 'combobox'"
-                v-bind="$props.form[key]!"
+                v-else-if="form.items[key]!.isCombobox()"
+                v-bind="form.items[key]!.props"
                 v-model:selected="(outputs as any)[key].value"
             />
 
             <Many
-                v-else-if="$props.form[key]!.item === 'many'"
-                :item="$props.form[key]!.inner"
+                v-else-if="form.items[key]!.isMany()"
+                :item="form.items[key]!"
                 v-model:value="(outputs as any)[key].value"
             />
 
@@ -269,14 +270,14 @@ defineExpose({ ...actions });
         </div>
 
         <Button
-            v-for="button of $props.buttons"
+            v-for="button of form.buttons"
             :key="button.form"
             v-bind="button"
             @click.prevent="() => {
                 if (button.action) button.action();
                 else if (button.form === 'submit') {
                     submit(button.context as ButtonContext<B>);
-                } else actions[button.form]();
+                } else control[button.form]();
             }"
         >
             {{ button.label }}

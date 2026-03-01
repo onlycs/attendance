@@ -166,102 +166,102 @@ export type Event =
 
 export type EventTypeFilter =
     | ({
-        type?: "admin_delete";
+        event?: "admin_delete";
     } & EventTypeFilterAdminDelete)
     | ({
-        type?: "admin_edit";
+        event?: "admin_edit";
     } & EventTypeFilterAdminEdit)
     | ({
-        type?: "permission_edit";
+        event?: "permission_edit";
     } & EventTypeFilterPermissionEdit)
     | ({
-        type?: "admin_login";
+        event?: "admin_login";
     } & EventTypeFilterAdminLogin)
     | ({
-        type?: "invite_add";
+        event?: "invite_add";
     } & EventTypeFilterInviteAdd)
     | ({
-        type?: "invite_use";
+        event?: "invite_use";
     } & EventTypeFilterInviteUse)
     | ({
-        type?: "record_add";
+        event?: "record_add";
     } & EventTypeFilterRecordAdd)
     | ({
-        type?: "record_delete";
+        event?: "record_delete";
     } & EventTypeFilterRecordDelete)
     | ({
-        type?: "record_edit";
+        event?: "record_edit";
     } & EventTypeFilterRecordEdit)
     | ({
-        type?: "student_add";
+        event?: "student_add";
     } & EventTypeFilterStudentAdd)
     | ({
-        type?: "student_delete";
+        event?: "student_delete";
     } & EventTypeFilterStudentDelete)
     | ({
-        type?: "student_edit";
+        event?: "student_edit";
     } & EventTypeFilterStudentEdit)
     | ({
-        type?: "student_login";
+        event?: "student_login";
     } & EventTypeFilterStudentLogin)
     | ({
-        type?: "student_logout";
+        event?: "student_logout";
     } & EventTypeFilterStudentLogout);
 
 export type EventTypeFilterAdminDelete = {
-    type: "admin_delete";
+    event: "admin_delete";
 } & AdminOperationFilter;
 
 export type EventTypeFilterAdminEdit = {
-    type: "admin_edit";
+    event: "admin_edit";
 } & AdminOperationFilter;
 
 export type EventTypeFilterAdminLogin = {
-    type: "admin_login";
+    event: "admin_login";
 } & AdminIdFilter;
 
 export type EventTypeFilterInviteAdd = {
-    type: "invite_add";
+    event: "invite_add";
 } & AdminIdFilter;
 
 export type EventTypeFilterInviteUse = {
-    type: "invite_use";
+    event: "invite_use";
 } & InviteUseFilter;
 
 export type EventTypeFilterPermissionEdit = {
-    type: "permission_edit";
+    event: "permission_edit";
 } & AdminOperationFilter;
 
 export type EventTypeFilterRecordAdd = {
-    type: "record_add";
+    event: "record_add";
 } & AdminIdFilter;
 
 export type EventTypeFilterRecordDelete = {
-    type: "record_delete";
+    event: "record_delete";
 } & AdminIdFilter;
 
 export type EventTypeFilterRecordEdit = {
-    type: "record_edit";
+    event: "record_edit";
 } & AdminIdFilter;
 
 export type EventTypeFilterStudentAdd = {
-    type: "student_add";
+    event: "student_add";
 } & AdminIdFilter;
 
 export type EventTypeFilterStudentDelete = {
-    type: "student_delete";
+    event: "student_delete";
 } & AdminIdFilter;
 
 export type EventTypeFilterStudentEdit = {
-    type: "student_edit";
+    event: "student_edit";
 } & AdminIdFilter;
 
 export type EventTypeFilterStudentLogin = {
-    type: "student_login";
+    event: "student_login";
 } & StudentActionFilter;
 
 export type EventTypeFilterStudentLogout = {
-    type: "student_logout";
+    event: "student_logout";
 } & StudentActionFilter;
 
 export type EventAdminDelete = {
@@ -319,6 +319,49 @@ export type EventStudentLogin = {
 export type EventStudentLogout = {
     event: "student_logout";
 } & StudentLogout;
+
+/**
+ * FilterCounted
+ */
+export type FilterCounted = {
+    /**
+     * Number of telemetry events to retrieve.
+     *
+     * This will correspond to the events fetched from the database
+     * PRECEDING ALL OTHER FILTERING. In other words, you are NOT
+     * guaranteed to receive `count` events in the response, as the
+     * filtering is done after fetching.
+     *
+     * You will not recieve an empty response unless there are no events
+     * matching your filters.
+     *
+     * Maximum: 100
+     */
+    count?: number;
+    /**
+     * Number of telemetry events to skip. Will be sorted by timestamp
+     * descending.
+     *
+     * Default: 0
+     */
+    skip?: number;
+};
+
+/**
+ * FilterDateRange
+ */
+export type FilterDateRange = {
+    /**
+     * Start time for telemetry events
+     */
+    after: string;
+    /**
+     * End time for telemetry events
+     *
+     * Default: now
+     */
+    before?: string;
+};
 
 export type HourType = "build" | "learning" | "demo" | "offseason";
 
@@ -488,6 +531,22 @@ export type PresentResponse = {
     present: Array<string>;
     absent: Array<string>;
 };
+
+export type QueryFilter =
+    | ({
+        query_type?: "counted";
+    } & QueryFilterCounted)
+    | ({
+        query_type?: "date_range";
+    } & QueryFilterDateRange);
+
+export type QueryFilterCounted = {
+    query_type: "counted";
+} & FilterCounted;
+
+export type QueryFilterDateRange = {
+    query_type: "date_range";
+} & FilterDateRange;
 
 /**
  * Record
@@ -834,58 +893,11 @@ export type TelemetryEvent = {
 };
 
 /**
- * TelemetryFilter
- */
-export type TelemetryFilter = {
-    /**
-     * Type of telemetry event to retrieve
-     */
-    event_type?:
-        | (EventTypeFilter & unknown & {
-            type?: "TelemetryFilter";
-        })
-        | null;
-    /**
-     * Start time for telemetry events
-     */
-    after?: string | null;
-    /**
-     * End time for telemetry events
-     */
-    before?: string | null;
-};
-
-/**
  * TelemetryQueryRequest
  */
 export type TelemetryQueryRequest = {
-    /**
-     * Number of telemetry events to retrieve.
-     *
-     * This will correspond to the events fetched from the database PRECEDING
-     * ALL OTHER FILTERING. In other words, you are NOT guaranteed to receive
-     * `count` events in the response, as the filtering is done after fetching.
-     *
-     * You will not recieve an empty response unless there are no events
-     * matching your filters.
-     *
-     * Maximum: 100
-     */
-    count?: number;
-    /**
-     * Number of telemetry events to skip. Will be sorted by timestamp
-     * descending.
-     *
-     * Default: 0
-     */
-    skip?: number;
-    /**
-     * Filters to apply to the telemetry events.
-     *
-     * All filters are applied after the initial `count` and `skip` are
-     * applied to the database query.
-     */
-    filters?: TelemetryFilter & unknown;
+    event_type?: EventTypeFilter;
+    query: QueryFilter;
 };
 
 /**
@@ -1482,7 +1494,6 @@ export type RosterAllowedData = {
 
 export type RosterAllowedErrors = {
     401: string;
-    403: string;
     500: string;
 };
 
@@ -1714,7 +1725,7 @@ export type TelemetryGetResponses = {
 export type TelemetryGetResponse = TelemetryGetResponses[keyof TelemetryGetResponses];
 
 export type TelemetryFilterCreateData = {
-    body: TelemetryFilter;
+    body?: EventTypeFilter;
     path?: never;
     query?: never;
     url: "/telemetry/stream/filter";
@@ -1735,7 +1746,7 @@ export type TelemetryFilterCreateResponses = {
 export type TelemetryFilterCreateResponse = TelemetryFilterCreateResponses[keyof TelemetryFilterCreateResponses];
 
 export type TelemetryFilterUpdateData = {
-    body: TelemetryFilter;
+    body?: EventTypeFilter;
     path?: never;
     query: {
         id: string;

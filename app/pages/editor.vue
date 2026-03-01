@@ -20,7 +20,7 @@ const selected = ref<string[]>([]);
 
 const { connected, reconnect, data } = useTable();
 const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
-const ag = useTableAg(data);
+const ag = useAgStudents(data);
 
 watch(user, (user) => {
     if (user.role !== "admin") return;

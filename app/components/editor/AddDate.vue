@@ -3,49 +3,46 @@ import { Temporal } from "temporal-polyfill";
 import { zPlainDate, zPlainTime } from "temporal-zod";
 import { toast } from "vue-sonner";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
 
 const props = defineProps<{ students: { [id: string]: string; }; }>();
 const open = defineModel<boolean>("open", { required: true });
 const loading = ref(false);
 
-const { form, deps, buttons, validate, submit, cancel } = f.form(
+const form = f.form(
     {
-        student: f.combobox({
-            title: "Student",
-            schema: props.students,
-        }),
-        kind: f.hourtype(),
-        date: f.date({
-            schema: zPlainDate,
-            title: "Date",
-        }),
-        start: f.time({
-            schema: zPlainTime,
-            title: "Sign In",
-            color: "green",
-            icon: "hugeicons:login-02",
-        }),
-        end: f.time({
-            schema: zPlainTime,
-            title: "Sign Out",
-            color: "red",
-            icon: "hugeicons:logout-02",
-        }),
-    },
-    [
-        {
-            form: "submit",
-            label: "Submit",
-            kind: "primary",
-            class: "submit",
+        items: {
+            student: f.combobox(props.students, {
+                title: "Student",
+            }),
+            kind: f.hourtype.any(),
+            date: f.date({
+                title: "Date",
+            }),
+            start: f.time({
+                title: "Sign In",
+                color: "green",
+                icon: "hugeicons:login-02",
+            }),
+            end: f.time({
+                title: "Sign Out",
+                color: "red",
+                icon: "hugeicons:logout-02",
+            }),
         },
-        {
-            form: "cancel",
-            label: "Cancel",
-            kind: "secondary-card",
-        },
-    ],
-    {
+        buttons: [
+            {
+                form: "submit",
+                label: "Submit",
+                kind: "primary",
+                class: "submit",
+            },
+            {
+                form: "cancel",
+                label: "Cancel",
+                kind: "secondary-card",
+            },
+        ],
         async validate(submission) {
             const start = submission.date.toPlainDateTime(submission.start);
             const end = submission.date.toPlainDateTime(submission.end);
@@ -98,18 +95,13 @@ const { form, deps, buttons, validate, submit, cancel } = f.form(
 </script>
 
 <template>
-    <Drawer v-model:open="open" @close="cancel">
+    <Drawer v-model:open="open" @close="form.cancel">
         <div class="title">Custom Entry</div>
 
         <div class="form">
             <Form
                 v-model:loading="loading"
                 :form
-                :deps
-                :buttons
-                :validate
-                @cancel="cancel"
-                @submit="submit"
             />
         </div>
     </Drawer>

@@ -84,7 +84,7 @@ impl Permissions {
 
     pub(crate) fn assert_all(
         &self,
-        permissions: impl Iterator<Item = impl AsRef<Permission>>,
+        permissions: impl IntoIterator<Item = impl AsRef<Permission>>,
     ) -> Result<(), PermissionDeniedError> {
         for permission in permissions {
             self.assert(permission)?;
@@ -95,7 +95,7 @@ impl Permissions {
 
     pub(crate) fn assert_any(
         &self,
-        permissions: impl Iterator<Item = impl AsRef<Permission>>,
+        permissions: impl IntoIterator<Item = impl AsRef<Permission>>,
     ) -> Result<(), PermissionDeniedError> {
         for permission in permissions {
             if self[*permission.as_ref()] {

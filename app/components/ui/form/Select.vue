@@ -10,7 +10,10 @@ export interface SelectProps<K extends PropertyKey> {
 const props = withDefaults(defineProps<SelectProps<K>>(), {
     rows: 1,
 });
-const selected = defineModel<K>("selected", { required: true });
+const selected = defineModel<K | null>("selected", {
+    required: true,
+    default: null,
+});
 const nth = computed(() => {
     const sel = selected.value ?? Object.keys(props.kv)[0]!;
     return Object.keys(props.kv).indexOf(String(sel));
@@ -46,6 +49,13 @@ onMounted(() => {
 
     new ResizeObserver(updateSliderPosition).observe(container.value!);
 });
+
+watch(selected, () => {
+    if (selected.value === null) {
+        const firstKey = Object.keys(props.kv)[0] as K;
+        selected.value = firstKey;
+    }
+}, { immediate: true });
 </script>
 
 <template>

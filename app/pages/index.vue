@@ -1,40 +1,41 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
+import { f } from "~/utils/form";
 
 const { auth } = useAuth();
 const router = useRouter();
 const loading = ref(false);
+const mobile = useMobile();
 
-const { form, buttons, deps, submit } = f.form(
+const form = f.form(
     {
-        who: f.select({
-            schema: {
-                student: "Student",
-                admin: "Admin",
-            },
-            default: "admin",
-            "class:container": "select",
-        }),
-        username: f.username({
-            "class:container": "username",
-        }),
-        password: f.password.current({
-            "class:container": "password",
-        }),
-        studentid: f.studentId({
-            size: "lg",
-            "class:container": "studentid",
-        }),
-    },
-    [
-        {
-            form: "submit",
-            label: "Continue",
-            class: "submit",
-            kind: "primary",
+        items: {
+            who: f.select(
+                {
+                    student: "Student",
+                    admin: "Admin",
+                },
+                { "class:container": "select" },
+            ),
+            username: f.username({
+                "class:container": "username",
+            }),
+            password: f.password.current({
+                "class:container": "password",
+            }),
+            studentid: f.studentId({
+                size: "lg",
+                "class:container": "studentid",
+            }),
         },
-    ],
-    {
+        buttons: [
+            {
+                form: "submit",
+                label: "Continue",
+                class: "submit",
+                kind: "primary",
+            },
+        ],
         deps: {
             username: {
                 who: "admin",
@@ -62,7 +63,8 @@ const { form, buttons, deps, submit } = f.form(
                 );
 
                 if (!ok) return end();
-                router.push("/dashboard");
+                if (!mobile.value) router.push("/dashboard");
+                else router.push("/attendance");
             } else {
                 toast.warning("Student login is not implemented yet.");
             }
@@ -80,10 +82,7 @@ const { form, buttons, deps, submit } = f.form(
     <div :class="cn('content', loading && 'justify-center')">
         <Form
             :form
-            :buttons
-            :deps
             v-model:loading="loading"
-            @submit="submit"
             class="item"
         />
     </div>

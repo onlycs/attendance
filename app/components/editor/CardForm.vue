@@ -2,41 +2,25 @@
 import { Temporal } from "temporal-polyfill";
 import { zPlainTime } from "temporal-zod";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
 import { Math2 } from "~/utils/math";
+import type { FormControl } from "../ui/form/Form.vue";
 
-const props = defineProps<{ entry: AttendanceRecord; }>();
-const dirty = ref(false);
-const reset = ref(() => {});
-const loading = ref(false);
-const formSubmit = ref(() => {});
-const defaults = computed(() => {
-    const entry = props.entry;
-
-    return {
-        kind: entry.hour_type,
-        sign_in: entry.sign_in.toPlainTime(),
-        sign_out: entry.sign_out?.toPlainTime() ?? undefined,
-    };
-});
-
-const { form, deps, buttons, validate } = f.form(
+const form = f.form(
     {
-        kind: f.hourtype(),
-        sign_in: f.time({
-            title: "Sign In",
-            icon: "hugeicons:login-02",
-            color: "green",
-            schema: zPlainTime,
-        }),
-        sign_out: f.time({
-            title: "Sign Out",
-            icon: "hugeicons:logout-02",
-            color: "red",
-            schema: zPlainTime,
-        }),
-    },
-    [],
-    {
+        items: {
+            kind: f.hourtype.any(),
+            sign_in: f.time({
+                title: "Sign In",
+                icon: "hugeicons:login-02",
+                color: "green",
+            }),
+            sign_out: f.time({
+                title: "Sign Out",
+                icon: "hugeicons:logout-02",
+                color: "red",
+            }),
+        },
         validate(submission) {
             const { sign_in, sign_out } = submission;
             const dt = sign_in.until(sign_out);
@@ -50,8 +34,69 @@ const { form, deps, buttons, validate } = f.form(
 
             return [];
         },
+        async submit(submission) {
+            const entry = props.entry;
+
+            const end = (ok: boolean) => {
+                dirty.value = !ok;
+                setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+            };
+
+            const toLocal = (dt: Temporal.ZonedDateTime) => {
+                return dt.withTimeZone(Temporal.Now.timeZoneId());
+            };
+
+            const toUTC = (dt: Temporal.ZonedDateTime) => {
+                return dt.withTimeZone("UTC");
+            };
+
+            const assign = (
+                dt: Temporal.ZonedDateTime,
+                tod: Temporal.PlainTime,
+            ) => {
+                return api.datetime.ser(toUTC(toLocal(dt).withPlainTime(tod)));
+            };
+
+            const patched = {
+                id: entry.id,
+                hour_type: submission.kind,
+                sign_in: assign(entry.sign_in, submission.sign_in),
+                sign_out: entry.sign_out
+                    ? assign(entry.sign_out, submission.sign_out)
+                    : assign(entry.sign_in, submission.sign_out),
+            };
+
+            loading.value = true;
+
+            const res = await api.roster.record.update({
+                body: patched,
+            });
+
+            if (!res.data) {
+                api.error(res.error, res.response);
+                end(false);
+                return;
+            }
+
+            end(true);
+        },
     },
 );
+
+const props = defineProps<{ entry: AttendanceRecord; }>();
+const dirty = ref(false);
+const control = ref<FormControl<typeof form>>();
+const loading = ref(false);
+const formSubmit = ref(() => {});
+const defaults = computed(() => {
+    const entry = props.entry;
+
+    return {
+        kind: entry.hour_type,
+        sign_in: entry.sign_in.toPlainTime(),
+        sign_out: entry.sign_out?.toPlainTime() ?? undefined,
+    };
+});
 
 function entryLabel(entry: AttendanceRecord) {
     if (!entry.sign_out) return "Ongoing";
@@ -69,50 +114,6 @@ async function del(id: string) {
         api.error(res.error, res.response);
         return;
     }
-}
-
-async function onSubmit(submission: FormOutput<typeof form, typeof deps>) {
-    const entry = props.entry;
-
-    const end = (ok: boolean) => {
-        dirty.value = !ok;
-        setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
-    };
-
-    const toLocal = (dt: Temporal.ZonedDateTime) => {
-        return dt.withTimeZone(Temporal.Now.timeZoneId());
-    };
-
-    const toUTC = (dt: Temporal.ZonedDateTime) => {
-        return dt.withTimeZone("UTC");
-    };
-
-    const assign = (dt: Temporal.ZonedDateTime, tod: Temporal.PlainTime) => {
-        return api.datetime.ser(toUTC(toLocal(dt).withPlainTime(tod)));
-    };
-
-    const patched = {
-        id: entry.id,
-        hour_type: submission.kind,
-        sign_in: assign(entry.sign_in, submission.sign_in),
-        sign_out: entry.sign_out
-            ? assign(entry.sign_out, submission.sign_out)
-            : assign(entry.sign_in, submission.sign_out),
-    };
-
-    loading.value = true;
-
-    const res = await api.roster.record.update({
-        body: patched,
-    });
-
-    if (!res.data) {
-        api.error(res.error, res.response);
-        end(false);
-        return;
-    }
-
-    end(true);
 }
 </script>
 
@@ -134,7 +135,7 @@ async function onSubmit(submission: FormOutput<typeof form, typeof deps>) {
                 class="button"
                 class:content="gap-2 text-sm"
                 v-if="dirty"
-                @click="reset()"
+                @click="control?.reset()"
             >
                 <Icon name="hugeicons:arrow-turn-backward" size="20" />
                 Reset
@@ -169,23 +170,11 @@ async function onSubmit(submission: FormOutput<typeof form, typeof deps>) {
     <Form
         v-model:dirty="dirty"
         v-model:loading="loading"
-        :ref="(el) => {
-            if (el) {
-                // from defineExpose
-                const e = el as unknown as {
-                    submit: () => void;
-                    reset: () => void;
-                };
-                formSubmit = e.submit;
-                reset = e.reset;
-            }
+        ref="control"
+        :form="{
+            ...form,
+            defaults,
         }"
-        :form
-        :deps
-        :buttons
-        :validate
-        :defaults
-        @submit="onSubmit"
     />
 </template>
 

@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Object)]
-#[serde(from = "Migrator")]
 pub(crate) struct StudentLogin {
     pub(crate) sid_hashed: String,
     pub(crate) record_id: String,

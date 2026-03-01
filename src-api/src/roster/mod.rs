@@ -151,8 +151,7 @@ impl RosterService {
 
     #[oai(path = "/allowed", method = "get")]
     async fn allowed(&self, jwt: Jwt) -> Result<Json<Vec<HourType>>, hour_type::AllowedError> {
-        let claims = jwt.verify()?;
-        claims.perms.assert(Permission::HoursView)?;
+        jwt.verify()?;
         Ok(Json(hour_type::allowed()))
     }
 }

@@ -20,7 +20,7 @@ const SLOTS = 5; // AM/PM
 type DIGITS = typeof DIGITS;
 type SLOTS = typeof SLOTS;
 
-const ptime = defineModel<Temporal.PlainTime>("time");
+const ptime = defineModel<Temporal.PlainTime | null>("time", { default: null });
 const ttime = ref(ptime.value ?? Temporal.PlainTime.from("00:00:00"));
 const vis = ref(ptime.value ? SLOTS : 0);
 

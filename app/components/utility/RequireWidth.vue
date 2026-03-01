@@ -23,10 +23,19 @@ onBeforeUnmount(() => {
 <template>
     <div
         ref="root"
-        :class="cn(ok ? 'root' : 'middle group/middle', ok && $props.class)"
+        :class="cn(ok ? 'root' : 'middle group/middle')"
     >
-        <slot v-if="ok" />
-        <template v-else>
+        <div
+            :class="cn(
+                'w-full h-full',
+                $props.class,
+            )"
+            v-show="ok"
+            v-bind="$attrs"
+        >
+            <slot />
+        </div>
+        <template v-if="!ok">
             <Icon name="hugeicons:maximize-screen" class="icon" />
             <span class="desc">
                 Window too narrow. Please widen or

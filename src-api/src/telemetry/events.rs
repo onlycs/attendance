@@ -39,6 +39,14 @@ macro_rules! migrator {
                 data
             }
         }
+
+        pub(super) fn __deserialize<'de, D>(dser: D) -> Result<$latest, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let migrator = Migrator::deserialize(dser)?;
+            Ok(migrator.into())
+        }
     };
 }
 
@@ -48,15 +56,16 @@ pub(crate) trait EventSerializable {
     fn sql_pair(&self) -> Result<(EventType, serde_json::Value), serde_json::Error>;
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow, Deserialize)]
 struct RawTelemetryEvent {
     id: String,
-    event: String,
+    event: EventType,
     data: serde_json::Value,
     timestamp: chrono::DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Object)]
+#[derive(Deserialize, Debug, Clone, Object)]
+#[serde(try_from = "RawTelemetryEvent")]
 pub(crate) struct TelemetryEvent {
     pub id: String,
     pub event: Event,

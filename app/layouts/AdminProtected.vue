@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AuthData } from "~/plugins/auth";
+import { f } from "~/utils/form";
 import DefaultLayout from "./Default.vue";
 
 const { auth, user } = useAuth();
@@ -72,29 +73,30 @@ onMounted(() => {
     });
 });
 
-const form = {
-    password: f.password.current({
-        title: "Password",
-        "class:container": "password",
-    }),
-};
-
-const buttons = computed(() => {
-    return [
-        {
-            form: "submit",
-            label: "Continue",
-            kind: "primary",
+const form = computed(() => {
+    return f.form({
+        items: {
+            password: f.password.current({
+                title: "Password",
+                "class:container": "password",
+            }),
         },
-        {
-            form: "cancel",
-            label: `Not ${creds.value?.claims?.username ?? "you"}?`,
-            kind: "secondary-card",
-        },
-    ] satisfies FormButton[];
+        buttons: [
+            {
+                form: "submit",
+                label: "Continue",
+                kind: "primary",
+            },
+            {
+                form: "cancel",
+                label: `Not ${creds.value?.claims?.username ?? "you"}?`,
+                kind: "secondary-card",
+            },
+        ],
+        submit: (submission) => submit(submission.password),
+        cancel: () => exit(),
+    });
 });
-
-const deps = {};
 </script>
 
 <template>
@@ -115,11 +117,7 @@ const deps = {};
             <div class="form">
                 <Form
                     :form
-                    :buttons
-                    :deps
                     v-model:loading="loading"
-                    @submit="submit($event.password)"
-                    @cancel="exit"
                 />
             </div>
         </Drawer>

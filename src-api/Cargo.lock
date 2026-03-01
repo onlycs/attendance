@@ -91,6 +91,7 @@ dependencies = [
  "dotenvy",
  "dotenvy_macro",
  "futures-util",
+ "heck",
  "hex",
  "itertools",
  "jsonwebtoken",

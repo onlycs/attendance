@@ -1,25 +1,31 @@
-<script setup lang="ts" generic="I extends Item">
-export interface Props<I extends Item> {
+<script setup lang="ts" generic="I extends ItemMany">
+import type { ModelRef } from "vue";
+import type { ItemMany } from "~/utils/form/item";
+import type { ItemOutput } from "~/utils/form/output";
+
+export interface Props<I extends ItemMany> {
     item: I;
 }
 
-type Output = (ItemOutput<I> | null)[];
+type Output = ItemOutput<I["base"]>[];
 const props = defineProps<Props<I>>();
-const ret = defineModel<Output>("value", { default: [] });
-const output_unt = ret as Ref<any[]>;
+const ret: ModelRef<any[], string, any[], any[]> = defineModel<Output>(
+    "value",
+    { default: [] },
+);
 
 onMounted(() => {
-    if (!ret.value) ret.value = [];
+    if (!ret.value) ret.value = [] as Output;
 });
 </script>
 
 <template>
     <div class="root">
-        <div class="wrapper" v-for="(output, i) of output_unt">
+        <div class="wrapper" v-for="(output, i) of ret">
             <Button
                 kind="danger"
                 class="trash"
-                @click="output_unt.splice(i, 1)"
+                @click="ret.splice(i, 1)"
             >
                 <Icon
                     name="hugeicons:delete-02"
@@ -28,46 +34,56 @@ onMounted(() => {
             </Button>
 
             <Select
-                v-if="$props.item.item === 'select'"
-                v-bind="$props.item"
+                v-if="$props.item.base.isSelect()"
+                v-bind="$props.item.base.props"
                 :selected="output"
-                @update:selected="output_unt[i] = $event ?? null"
+                @update:selected="ret[i] = $event ?? null"
             />
 
             <Input
-                v-else-if="$props.item.item === 'input'"
-                v-bind="$props.item"
+                v-else-if="$props.item.base.isInput()"
+                v-bind="$props.item.base.props"
                 :selected="output"
-                @update:selected="output_unt[i] = $event ?? null"
+                @update:selected="ret[i] = $event ?? null"
             />
 
             <OTPField
-                v-else-if="$props.item.item === 'otp'"
-                v-bind="$props.item"
+                v-else-if="$props.item.base.isOTP()"
+                v-bind="$props.item.base.props"
                 :otp="output"
-                @update:otp="output_unt[i] = $event ?? null"
+                @update:otp="ret[i] = $event ?? null"
             />
 
             <DatePicker
-                v-else-if="$props.item.item === 'date'"
-                v-bind="$props.item"
+                v-else-if="$props.item.base.isDate()"
+                v-bind="$props.item.base.props"
                 :date="output"
-                @update:date="output_unt[i] = $event ?? null"
+                @update:date="ret[i] = $event ?? null"
             />
 
             <TimePicker
-                v-else-if="$props.item.item === 'time'"
-                v-bind="$props.item"
+                v-else-if="$props.item.base.isTime()"
+                v-bind="$props.item.base.props"
                 :time="output"
-                @update:time="output_unt[i] = $event ?? null"
+                @update:time="ret[i] = $event ?? null"
             />
 
             <Combobox
-                v-else-if="$props.item.item === 'combobox'"
-                v-bind="$props.item"
+                v-else-if="$props.item.base.isCombobox()"
+                v-bind="$props.item.base.props"
                 :selected="output"
-                @update:selected="output_unt[i] = $event ?? null"
+                @update:selected="ret[i] = $event ?? null"
             />
+
+            <!--
+            I don't actually believe the following will work correctly,
+            but who the fuck is actually going to need this
+            -->
+            <!-- <Many
+                v-else-if="$props.item.base.isMany()"
+                :item="$props.item.base"
+                v-model:value="output"
+            /> -->
         </div>
 
         <Button
@@ -92,11 +108,11 @@ onMounted(() => {
 }
 
 .wrapper {
-    @apply grid grid-rows-1 gap-1;
+    @apply grid grid-rows-1 gap-2;
     grid-template-columns: auto 1fr;
 
     .trash {
-        @apply h-full w-full;
+        @apply h-full aspect-square;
     }
 }
 </style>

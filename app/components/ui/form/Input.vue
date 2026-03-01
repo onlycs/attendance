@@ -1,6 +1,6 @@
 <script setup lang="ts">
 export type InputProps = Partial<HTMLInputElement>;
-const value = defineModel<string>();
+const value = defineModel<string | null>({ default: null });
 const focused = defineModel<boolean>("focused", { default: false });
 </script>
 

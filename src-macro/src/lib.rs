@@ -424,6 +424,11 @@ async fn declare_event_modules_impl() -> proc_macro2::TokenStream {
         })
         .collect_vec();
 
+    let deserialize_with = snake_strs
+        .iter()
+        .map(|snake| format!("{snake}::__deserialize"))
+        .collect_vec();
+
     quote! {
         #( mod #snake_idents; )*
         #( pub(crate) use #snake_idents::#camel_idents; )*
@@ -438,12 +443,16 @@ async fn declare_event_modules_impl() -> proc_macro2::TokenStream {
         )]
         #[oai(discriminator_name = "event", rename_all = "snake_case")]
         #[serde(tag = "event", content = "data", rename_all = "snake_case")]
-        #[strum_discriminants(derive(::poem_openapi::Enum, ::sqlx::Type))]
+        #[strum_discriminants(derive(::poem_openapi::Enum, ::sqlx::Type, ::serde::Serialize, ::serde::Deserialize))]
         #[strum_discriminants(name(EventType))]
         #[strum_discriminants(sqlx(type_name = "event_type", rename_all = "snake_case"))]
         #[strum_discriminants(oai(rename_all = "snake_case"))]
+        #[strum_discriminants(serde(rename_all = "snake_case"))]
         pub(crate) enum Event {
-            #( #camel_idents(#camel_idents), )*
+            #( #camel_idents(
+                #[serde(deserialize_with = #deserialize_with)]
+                #camel_idents
+            ), )*
         }
 
         #(

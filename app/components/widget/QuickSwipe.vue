@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
+import type { FormControl } from "../ui/form/Form.vue";
 
-const ht = await f.hourtype_available({
+const ht = await f.hourtype.available({
     title: undefined,
     class: "select",
 });
@@ -13,35 +15,34 @@ const crypto = useCrypto();
 const names = studentNames(students);
 
 const loading = ref(false);
-const ctl = ref<{ reset: () => void; }>();
+const ctl = ref<FormControl<any>>();
 
 const form = computed(() => {
     return f.form(
         {
-            hour_type: ht,
-            id_hashed: f.combobox({
-                schema: names.value,
-                placeholder: "Choose a student...",
-                compare: sortNames,
-            }),
-        },
-        [
-            {
-                form: "submit",
-                label: "Sign In",
-                kind: "success",
-                class: "submit mt-2",
-                context: "login",
+            items: {
+                hour_type: ht,
+                id_hashed: f.combobox(names.value, {
+                    placeholder: "Choose a student...",
+                    compare: sortNames,
+                }),
             },
-            {
-                form: "submit",
-                label: "Sign Out",
-                kind: "danger",
-                class: "submit",
-                context: "logout",
-            },
-        ],
-        {
+            buttons: [
+                {
+                    form: "submit",
+                    label: "Sign In",
+                    kind: "success",
+                    class: "submit mt-2",
+                    context: "login",
+                },
+                {
+                    form: "submit",
+                    label: "Sign Out",
+                    kind: "danger",
+                    class: "submit",
+                    context: "logout",
+                },
+            ],
             async submit(output, ctx) {
                 loading.value = true;
 
@@ -107,13 +108,8 @@ const form = computed(() => {
 <template>
     <WidgetRoot class="widget" :required="['roster', 'student_view']">
         <Form
-            :form="form.form"
-            :buttons="unref(form.buttons)"
-            :deps="form.deps"
-            :ref="(el) => {
-                ctl = el as any;
-            }"
-            @submit="form.submit"
+            :form
+            ref="ctl"
             v-model:loading="loading"
         />
     </WidgetRoot>

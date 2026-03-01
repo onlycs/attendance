@@ -38,7 +38,6 @@ impl StudentService {
         claims.perms.assert(Permission::StudentView)?;
 
         let stream = dbstream::stream::<dbstream::Student>().await;
-
         Ok(EventStream::new(Box::pin(
             stream.filter_map(|repl| async move { repl.ok() }),
         )))
@@ -47,7 +46,10 @@ impl StudentService {
     #[oai(path = "/", method = "post")]
     async fn add(&self, request: Json<add::Request>, jwt: Jwt) -> Result<(), add::Error> {
         let claims = jwt.verify()?;
-        claims.perms.assert(Permission::StudentAdd)?;
+        claims
+            .perms
+            .assert_any([Permission::StudentAdd, Permission::Roster])?;
+
         add::route(request.0, claims, self.pg.clone()).await
     }
 

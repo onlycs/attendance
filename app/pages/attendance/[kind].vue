@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import api, { type HourType } from "~/utils/api";
+import { f } from "~/utils/form";
 
 definePageMeta({ layout: "admin-protected" });
 
@@ -84,7 +85,8 @@ async function roster(id?: string, force = false) {
 
 watch(currentId, (currentId, last) => {
     if (
-        currentId.length == studentId.length && last.length < studentId.length
+        currentId.length == studentId.props.length
+        && last.length < studentId.props.length
     ) {
         roster();
     }
@@ -107,7 +109,7 @@ useCleanup().add(auth.clearsession);
                     Student ID
                 </label>
                 <OTPField
-                    v-bind="studentId"
+                    v-bind="studentId.props"
                     v-model:otp="currentId"
                 />
             </div>

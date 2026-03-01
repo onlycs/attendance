@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use poem_openapi::Union;
 
 use crate::{dbstream::Admin, prelude::*, telemetry::TelemetryEvent};
@@ -6,7 +7,7 @@ const MAX_COUNT: usize = 100;
 const DEFAULT_COUNT: usize = 30;
 
 #[derive(Serialize, Deserialize, Object, Clone, Debug)]
-struct AdminIdFilter {
+pub(super) struct AdminIdFilter {
     /// List of admin IDs to filter by
     ///
     /// This will correspond to the admin who performed or otherwise authorized
@@ -24,7 +25,7 @@ impl AdminIdFilter {
 }
 
 #[derive(Serialize, Deserialize, Object, Clone, Debug)]
-struct AdminOperationFilter {
+pub(super) struct AdminOperationFilter {
     /// Corresponds to the admin who performed the operation
     admin_id: Vec<String>,
 
@@ -46,7 +47,7 @@ impl AdminOperationFilter {
 }
 
 #[derive(Serialize, Deserialize, Object, Clone, Debug)]
-struct InviteUseFilter {
+pub(super) struct InviteUseFilter {
     /// List of inviter IDs to filter by
     inviter_id: Vec<String>,
 
@@ -66,7 +67,7 @@ impl InviteUseFilter {
 }
 
 #[derive(Serialize, Deserialize, Object, Clone, Debug)]
-struct StudentActionFilter {
+pub(super) struct StudentActionFilter {
     /// List of admin IDs to filter by
     admin_id: Vec<String>,
 
@@ -86,10 +87,10 @@ impl StudentActionFilter {
 #[derive(Serialize, Deserialize, Union, Clone, Debug)]
 #[oai(
     rename = "EventTypeFilter",
-    discriminator_name = "type",
+    discriminator_name = "event",
     rename_all = "snake_case"
 )]
-enum EventTypeFilter {
+pub(super) enum EventTypeFilter {
     AdminDelete(AdminOperationFilter),
     AdminEdit(AdminOperationFilter),
     PermissionEdit(AdminOperationFilter),
@@ -107,7 +108,7 @@ enum EventTypeFilter {
 }
 
 impl EventTypeFilter {
-    fn matches(&self, event: &TelemetryEvent) -> bool {
+    pub(super) fn matches(&self, event: &TelemetryEvent) -> bool {
         macro_rules! filter_match {
             (@use $f:ident,, $($field:ident),*) => {
                 $f.matches( $( $field ),* )
@@ -146,99 +147,112 @@ impl EventTypeFilter {
             StudentLogout { admin_id, sid_hashed };
         )
     }
-}
 
-#[derive(Serialize, Deserialize, Object, Clone, Debug)]
-#[oai(rename = "TelemetryFilter")]
-#[oai(default)]
-pub(super) struct Filter {
-    /// Type of telemetry event to retrieve
-    event_type: Option<EventTypeFilter>,
+    fn into_sql(&self) -> String {
+        macro_rules! to_sql {
+            (@condition $variant:ident $field:ident) => {
+                to_sql!(@condition $variant $field $field)
+            };
 
-    /// Start time for telemetry events
-    after: Option<chrono::DateTime<Utc>>,
+            (@condition $variant:ident $field:ident $sql_field:ident) => {
+                $variant.$field
+                    .iter()
+                    .map(|val| {
+                        let escape = val.replace('\'', "''");
+                        format!("data->>'{}' = '{}'", stringify!($sql_field), escape)
+                    })
+                    .join(" OR ")
+            };
 
-    /// End time for telemetry events
-    before: Option<chrono::DateTime<Utc>>,
-}
+            (@condition $variant:ident $field:ident $sql_field:ident $sql_subfield:ident) => {
+                $variant.$field
+                    .iter()
+                    .map(|val| {
+                        let escape = val.replace('\'', "''"); // xkcd 327
+                        format!("data->'{}'->>'{}' = '{}'", stringify!($sql_field), stringify!($sql_subfield), escape)
+                    })
+                    .join(" OR ")
+            };
 
-impl Filter {
-    pub(super) fn matches(&self, event: &TelemetryEvent) -> bool {
-        if let Some(after) = self.after
-            && event.timestamp < after
-        {
-            return false;
+            ($($variant:ident { $($field:ident $(as $sql_field:ident $(. $sql_subfield:ident)?)?),* $(,)? });* $(;)?) => {
+                match self {
+                    $(
+                        EventTypeFilter::$variant(etf) => {
+                            let conditions = vec![
+                                format!("event = '{}'", ::heck::ToSnakeCase::to_snake_case(stringify!($variant))),
+                                $(to_sql!(@condition etf $field $($sql_field $($sql_subfield)?)?)),*
+                            ];
+
+                            conditions.into_iter().filter(|s| !s.trim().is_empty()).join(" AND ")
+                        }
+                    )*
+                }
+            };
         }
 
-        if let Some(before) = self.before
-            && event.timestamp > before
-        {
-            return false;
-        }
-
-        if let Some(event_type) = &self.event_type
-            && !event_type.matches(event)
-        {
-            return false;
-        }
-
-        true
+        to_sql!(
+            AdminDelete { admin_id, target_id as target.id };
+            AdminEdit { admin_id, target_id as old.id };
+            AdminLogin { admin_id as id };
+            InviteAdd { admin_id };
+            InviteUse { inviter_id, invitee_id };
+            PermissionEdit { admin_id, target_id };
+            RecordAdd { admin_id };
+            RecordDelete { admin_id };
+            RecordEdit { admin_id };
+            StudentAdd { admin_id };
+            StudentDelete { admin_id };
+            StudentEdit { admin_id };
+            StudentLogin { admin_id, sid_hashed };
+            StudentLogout { admin_id, sid_hashed };
+        )
     }
 }
 
-impl Default for Filter {
-    fn default() -> Self {
-        Self {
-            event_type: None,
-            after: None,
-            before: None,
-        }
-    }
-}
-
-fn _default_count() -> usize {
-    DEFAULT_COUNT
-}
-
-#[derive(Object)]
-#[oai(rename = "TelemetryQueryRequest")]
-pub(super) struct Request {
+#[derive(Object, Clone, Debug)]
+pub(super) struct FilterCounted {
     /// Number of telemetry events to retrieve.
-    ///
-    /// This will correspond to the events fetched from the database PRECEDING
-    /// ALL OTHER FILTERING. In other words, you are NOT guaranteed to receive
-    /// `count` events in the response, as the filtering is done after fetching.
-    ///
-    /// You will not recieve an empty response unless there are no events
-    /// matching your filters.
     ///
     /// Maximum: 100
     #[oai(default = "_default_count")]
-    pub count: usize,
+    count: usize,
 
     /// Number of telemetry events to skip. Will be sorted by timestamp
     /// descending.
     ///
     /// Default: 0
     #[oai(default)]
-    pub skip: usize,
-
-    /// Filters to apply to the telemetry events.
-    ///
-    /// All filters are applied after the initial `count` and `skip` are
-    /// applied to the database query.
-    #[oai(default)]
-    pub filters: Filter,
+    skip: usize,
 }
 
-impl Default for Request {
-    fn default() -> Self {
-        Self {
-            count: DEFAULT_COUNT,
-            skip: 0,
-            filters: Filter::default(),
-        }
-    }
+#[derive(Object, Clone, Debug)]
+pub(super) struct FilterDateRange {
+    /// Start time for telemetry events
+    after: chrono::DateTime<Utc>,
+
+    /// End time for telemetry events
+    ///
+    /// Default: now
+    #[oai(default = "chrono::Utc::now")]
+    before: chrono::DateTime<Utc>,
+}
+
+#[derive(Union, Clone, Debug)]
+#[oai(discriminator_name = "query_type", rename_all = "snake_case")]
+pub(super) enum QueryFilter {
+    Counted(FilterCounted),
+    DateRange(FilterDateRange),
+}
+
+fn _default_count() -> usize {
+    DEFAULT_COUNT
+}
+
+#[derive(Object, Clone, Debug)]
+#[oai(rename = "TelemetryQueryRequest")]
+pub(super) struct Request {
+    event_type: Option<EventTypeFilter>,
+    query: QueryFilter,
 }
 
 #[derive(Object)]
@@ -253,6 +267,7 @@ pub(super) enum Error {
     #[doc = concat!("Too much telemetry queried (>", stringify!(MAX_COUNT), ")")]
     #[oai(status = 400)]
     #[construct(high_count, "Too much telemetry queried (>{MAX_COUNT})")]
+    #[construct(date_range, "Invalid date range (`after` must be before `before`)")]
     BadRequest(PlainText<String>),
 
     #[oai(status = 401)]
@@ -286,45 +301,61 @@ pub(super) enum ByIdError {
 
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn route(
-    Request {
-        count,
-        skip,
-        filters,
-    }: Request,
+    Request { event_type, query }: Request,
     pg: PgPool,
 ) -> Result<Response, Error> {
+    if let QueryFilter::DateRange(FilterDateRange { after, before }) = &query {
+        if after > before {
+            return Err(Error::date_range());
+        }
+
+        let records = sqlx::query_as::<_, TelemetryEvent>(
+            r#"
+            SELECT * FROM telemetry
+            WHERE timestamp >= $1 AND timestamp <= $2
+            ORDER BY timestamp DESC
+            "#,
+        )
+        .bind(*after)
+        .bind(*before)
+        .fetch_all(&pg)
+        .await?;
+
+        let events: Vec<TelemetryEvent> = records
+            .into_iter()
+            .filter(|evt| event_type.as_ref().is_none_or(|f| f.matches(evt)))
+            .collect();
+
+        return Ok(Response { events });
+    }
+
+    let QueryFilter::Counted(FilterCounted { count, skip }) = query else {
+        unreachable!()
+    };
+
     if count > MAX_COUNT {
         return Err(Error::high_count());
     }
 
-    let records = sqlx::query_as::<_, TelemetryEvent>(
-        "SELECT * FROM telemetry ORDER BY timestamp LIMIT $1 OFFSET $2",
+    let events = sqlx::query_as::<_, TelemetryEvent>(
+        format!(
+            r#"
+            SELECT * FROM telemetry
+            {}
+            ORDER BY timestamp DESC
+            OFFSET $2
+            LIMIT $1
+            "#,
+            event_type
+                .as_ref()
+                .map_or_else(|| "".to_string(), |f| format!("WHERE {}", f.into_sql()))
+        )
+        .as_str(),
     )
     .bind(count as i32)
     .bind(skip as i64)
     .fetch_all(&pg)
     .await?;
-
-    if records.is_empty() {
-        return Ok(Response { events: vec![] });
-    }
-
-    let events: Vec<TelemetryEvent> = records
-        .into_iter()
-        .filter(|evt| filters.matches(evt))
-        .collect();
-
-    if events.is_empty() {
-        return Box::pin(route(
-            Request {
-                count,
-                skip: skip + count,
-                filters,
-            },
-            pg,
-        ))
-        .await;
-    }
 
     Ok(Response { events })
 }

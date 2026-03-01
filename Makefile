@@ -1,3 +1,5 @@
+SHELL := bash
+
 .PHONY: all wasm openapi fmt typegen postinstall
 
 all: build
@@ -22,6 +24,8 @@ openapi:
 	python scripts/openapi.py
 	@echo "=== Formatting generated files"
 	dprint fmt app/utils/api/**/* app/utils/api/*
+	@echo "=== Patching"
+	perl -i -0777 -pe 's/event_type\?:.*?;.*?;/event_type?: EventTypeFilter;/gs' app/utils/api/hey/types.gen.ts
 
 fmt:
 	@echo "=== Formatting code"

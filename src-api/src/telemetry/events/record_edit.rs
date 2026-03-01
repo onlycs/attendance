@@ -4,7 +4,6 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, Object)]
-#[serde(from = "Migrator")]
 pub(crate) struct RecordEdit {
     pub(crate) admin_id: String,
     pub(crate) old: Record,

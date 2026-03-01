@@ -1,16 +1,27 @@
 import type { ShallowRef } from "vue";
 import { toast } from "vue-sonner";
-import type { Admin, ReplicationAdmin, ReplicationStudent, Student } from "~/utils/api";
+import type { ApiToastOptions } from "~/plugins/api";
+import type {
+    Admin,
+    Event,
+    EventTypeFilter,
+    QueryFilter,
+    ReplicationAdmin,
+    ReplicationStudent,
+    Student,
+    TelemetryEvent,
+} from "~/utils/api";
 import api from "~/utils/api";
 import { useCreds } from "./useAuth";
 import { useSSE } from "./useSSE";
 
-export interface StudentDataOptions {
+export interface UseDataOptions {
     onDenied?: () => void;
     onInit?: () => void;
+    fetch?: Partial<ApiToastOptions>;
 }
 
-export function useStudentData({ onDenied, onInit }: StudentDataOptions = {}) {
+export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDataOptions = {}) {
     const creds = useCreds();
     const crypto = useCrypto();
 
@@ -19,7 +30,7 @@ export function useStudentData({ onDenied, onInit }: StudentDataOptions = {}) {
 
     async function fetch(): Promise<unknown> {
         const res = await api.student.list();
-        if (!res.data) return api.error(res.error, res.response);
+        if (!res.data) return api.error(res.error, res.response, fetchOptions);
 
         const data = res.data.students;
         const ifle = data.flatMap(s => [s.id, s.first, s.last]);
@@ -126,7 +137,7 @@ export function studentNames(students: ShallowRef<Map<string, Student>>) {
     });
 }
 
-export function useAdminData({ onDenied, onInit }: StudentDataOptions = {}) {
+export function useAdminData({ onDenied, onInit, fetch: fetchOptions }: UseDataOptions = {}) {
     const creds = useCreds();
 
     const admins = shallowRef(new Map<string, Admin>());
@@ -134,7 +145,7 @@ export function useAdminData({ onDenied, onInit }: StudentDataOptions = {}) {
 
     async function fetch(): Promise<unknown> {
         const res = await api.admin.query.many();
-        if (!res.data) return api.error(res.error, res.response, { handle: { [401]: onDenied } });
+        if (!res.data) return api.error(res.error, res.response, fetchOptions);
 
         const data = Object.values(res.data.admins);
         admins.value.clear();
@@ -198,4 +209,90 @@ export function adminUsernames(admins: ShallowRef<Map<string, Admin>>) {
 
         return names;
     });
+}
+
+export interface UseTelemetryOptions extends UseDataOptions {
+    init: QueryFilter;
+    event?: EventTypeFilter;
+}
+
+export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, event }: UseTelemetryOptions) {
+    const creds = useCreds();
+    const events = shallowRef([] as TelemetryEvent[]);
+    const filter = ref("");
+
+    async function fetch(): Promise<string | void> {
+        const search = await api.telemetry.search({
+            body: {
+                query: init,
+                event_type: event,
+            },
+        });
+
+        if (!search.data) return api.error(search.error, search.response, fetchOptions);
+
+        const data = Object.values(search.data.events);
+        events.value = [];
+
+        for (const evt of data) {
+            events.value.push(evt);
+        }
+
+        if (!filter.value) {
+            const res = await api.telemetry.filter.create({
+                body: event ?? null as any,
+            });
+
+            if (res.data === undefined) return api.error(res.error, res.response, fetchOptions);
+            filter.value = res.data;
+        }
+
+        triggerRef(events);
+
+        return filter.value;
+    }
+
+    function add(repl: TelemetryEvent) {
+        events.value.push(repl);
+        triggerRef(events);
+    }
+
+    watch(creds, async (creds) => {
+        if (!creds) return;
+        if (!creds.claims.perms.telemetry) return onDenied?.();
+        if (events.value.length !== 0) return;
+
+        const id = await fetch();
+
+        if (!id) return;
+
+        useSSE().add(
+            () => {
+                return api.telemetry.stream({
+                    query: { id },
+                });
+            },
+            add,
+        );
+        onInit?.();
+    }, { immediate: true });
+
+    return {
+        events: events,
+        reload: fetch,
+        update: async (nf: EventTypeFilter | undefined) => {
+            event = nf;
+
+            if (filter.value) {
+                const res = await api.telemetry.filter.update({
+                    query: { id: filter.value },
+                    body: nf ?? null as any,
+                });
+
+                if (res.error) return api.error(res.error, res.response, fetchOptions);
+            }
+
+            await fetch();
+        },
+    };
 }

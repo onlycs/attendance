@@ -2,188 +2,197 @@
 import { toast } from "vue-sonner";
 import z from "zod";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
 
 const loading = ref(false);
 const crypto = useCrypto();
 
-const form = {
-    type: f.select({
-        schema: {
-            brandnew: "New Install",
-            migrate: "Migrate",
-        },
-        default: "brandnew",
-        "class:container": "select",
-    }),
-    token: f.input({
-        title: "Setup Token",
-        placeholder: "From your server console",
-        schema: z.cuid2("Not a valid setup token."),
-        type: "password",
-        "class:container": "input",
-    }),
-    username: f.username({
-        title: "Initial Username",
-        placeholder: "admin",
-        "class:container": "input",
-    }),
-    password: f.password.new({
-        title: "Initial Password",
-        "class:container": "input",
-    }),
-    oldpassword: f.otp({
-        title: "Previous Password",
-        schema: z.string().length(8),
-        type: "text",
-        size: "md",
-        password: true,
-        "class:container": "otp",
-    }),
-};
-
-const buttons = [
-    {
-        form: "submit",
-        label: "Continue",
-        class: "submit",
-        kind: "primary",
+const form = f.form({
+    items: {
+        type: f.select(
+            {
+                brandnew: "New Install",
+                migrate: "Migrate",
+            },
+            { "class:container": "select" },
+        ),
+        token: f.input(
+            {
+                title: "Setup Token",
+                placeholder: "From your server console",
+                type: "password",
+                "class:container": "input",
+            },
+            z.cuid2("Not a valid setup token."),
+        ),
+        username: f.username({
+            title: "Initial Username",
+            placeholder: "admin",
+            "class:container": "input",
+        }),
+        password: f.password.new({
+            title: "Initial Password",
+            "class:container": "input",
+        }),
+        oldpassword: f.otp(
+            {
+                title: "Previous Password",
+                type: "text",
+                size: "md",
+                password: true,
+                "class:container": "otp",
+            },
+            z.string().length(8),
+        ),
     },
-    {
-        action: async () => {
-            const res = await api.auth.onboard.token();
-
-            if (res.error) {
-                api.error(res.error, res.response, {
-                    handle401: "api-message",
-                });
-                return;
-            }
-
-            toast.success(
-                "Check your server's console for the new setup token",
-            );
-        },
-        label: "Get a new setup token",
-        class: "link",
-        kind: "secondary-card",
+    deps: {
+        oldpassword: { type: "migrate" },
     },
-] satisfies FormButton[];
+    buttons: [
+        {
+            form: "submit",
+            label: "Continue",
+            class: "submit",
+            kind: "primary",
+        },
+        {
+            action: async () => {
+                const res = await api.auth.onboard.token();
 
-const deps = narrow({
-    oldpassword: { type: "migrate" },
-});
+                if (res.error) {
+                    api.error(res.error, res.response, {
+                        handle401: "api-message",
+                    });
+                    return;
+                }
 
-function end() {
-    setTimeout(() => {
-        loading.value = false;
-    }, 500); // prevent flashing the spinner
-}
+                toast.success(
+                    "Check your server's console for the new setup token",
+                );
+            },
+            label: "Get a new setup token",
+            class: "link",
+            kind: "secondary-card",
+        },
+    ],
+    async submit(output) {
+        loading.value = true;
 
-async function submit(output: FormOutput<typeof form, typeof deps>) {
-    loading.value = true;
+        const end = () => {
+            setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+        };
 
-    const oldstudents = await api.auth.onboard.start({
-        headers: { "x-token": output.token },
-    });
-
-    if (!oldstudents.data) {
-        api.error(oldstudents.error, oldstudents.response, {
-            handle401: "api-message",
+        const oldstudents = await api.auth.onboard.start({
+            headers: { "x-token": output.token },
         });
-        return end();
-    }
 
-    if ((oldstudents.data.length !== 0) !== (output.type === "migrate")) {
-        const not = output.type === "migrate" ? "" : " not";
-        const act = output.type === "migrate" ? "set up" : "migrate";
-        toast.error(`This is${not} a new installation. Please ${act}!`);
-        return end();
-    }
-
-    // holy shit guys it's time
-    const k1 = await crypto.random_bytes(32);
-
-    let newstudents: {
-        id_hashed: string;
-        first: string;
-        last: string;
-        id: string;
-    }[] = [];
-
-    if (output.type === "migrate") {
-        toast.info("Decrypting all student data...");
-
-        const decrypted = await Promise.all(
-            oldstudents.data.map(async (s) => {
-                return {
-                    id: await OldCrypto.decrypt(s.id, output.oldpassword),
-                    first: await OldCrypto.decrypt(s.first, output.oldpassword),
-                    last: await OldCrypto.decrypt(s.last, output.oldpassword),
-                };
-            }),
-        );
-
-        toast.info("Done! Encrypting with new format...");
-
-        const stream = decrypted.flatMap((s) => [s.id, s.first, s.last]);
-        const encrypted = await crypto.encrypt(stream, k1);
-
-        if (!encrypted) {
-            toast.error("Encryption failed");
+        if (!oldstudents.data) {
+            api.error(oldstudents.error, oldstudents.response, {
+                handle401: "api-message",
+            });
             return end();
         }
 
-        toast.info("Done! Finalizing...");
-
-        for (let i = 0; i < encrypted.length; i += 3) {
-            newstudents.push({
-                id_hashed: oldstudents.data[i / 3]!.id_hashed,
-                id: encrypted[i]!,
-                first: encrypted[i + 1]!,
-                last: encrypted[i + 2]!,
-            });
+        if ((oldstudents.data.length !== 0) !== (output.type === "migrate")) {
+            const not = output.type === "migrate" ? "" : " not";
+            const act = output.type === "migrate" ? "set up" : "migrate";
+            toast.error(`This is${not} a new installation. Please ${act}!`);
+            return end();
         }
-    }
 
-    const k1e = await crypto.k1.encrypt(k1, output.password);
+        // holy shit guys it's time
+        const k1 = await crypto.random_bytes(32);
 
-    if (!k1e) {
-        toast.error("Could not encrypt master key.");
-        return end();
-    }
+        if (!k1) {
+            toast.error("Failed to generate the master key. Please try again");
+            return end();
+        }
 
-    const { v, s } = await srp.register(output.username, output.password);
+        let newstudents: {
+            id_hashed: string;
+            first: string;
+            last: string;
+            id: string;
+        }[] = [];
 
-    const obfinish = await api.auth.onboard.finish({
-        body: {
-            students: newstudents,
-            k1e,
-            username: output.username,
-            v: hex.from(v),
-            s: hex.from(s),
-            token: output.token,
-        },
-    });
+        if (output.type === "migrate") {
+            toast.info("Decrypting all student data...");
 
-    if (obfinish.error) {
-        api.error(obfinish.error, obfinish.response, {
-            handle401: "api-message",
+            const decrypted = await Promise.all(
+                oldstudents.data.map(async (s) => {
+                    return {
+                        id: await OldCrypto.decrypt(s.id, output.oldpassword),
+                        first: await OldCrypto.decrypt(
+                            s.first,
+                            output.oldpassword,
+                        ),
+                        last: await OldCrypto.decrypt(
+                            s.last,
+                            output.oldpassword,
+                        ),
+                    };
+                }),
+            );
+
+            toast.info("Done! Encrypting with new format...");
+
+            const stream = decrypted.flatMap((s) => [s.id, s.first, s.last]);
+            const encrypted = await crypto.encrypt(stream, k1);
+
+            if (!encrypted) {
+                toast.error("Encryption failed");
+                return end();
+            }
+
+            toast.info("Done! Finalizing...");
+
+            for (let i = 0; i < encrypted.length; i += 3) {
+                newstudents.push({
+                    id_hashed: oldstudents.data[i / 3]!.id_hashed,
+                    id: encrypted[i]!,
+                    first: encrypted[i + 1]!,
+                    last: encrypted[i + 2]!,
+                });
+            }
+        }
+
+        const k1e = await crypto.k1.encrypt(k1, output.password);
+
+        if (!k1e) {
+            toast.error("Could not encrypt master key.");
+            return end();
+        }
+
+        const { v, s } = await srp.register(output.username, output.password);
+
+        const obfinish = await api.auth.onboard.finish({
+            body: {
+                students: newstudents,
+                k1e,
+                username: output.username,
+                v: hex.from(v),
+                s: hex.from(s),
+                token: output.token,
+            },
         });
-        return end();
-    }
 
-    useRouter().push(redirect.build("/", "onboard"));
-}
+        if (obfinish.error) {
+            api.error(obfinish.error, obfinish.response, {
+                handle401: "api-message",
+            });
+            return end();
+        }
+
+        useRouter().push(redirect.build("/", "onboard"));
+    },
+});
 </script>
 <template>
     <div :class="cn('content', loading && 'justify-center')">
         <Form
             v-if="!loading"
             :form
-            :buttons
-            :deps
             class="item"
-            @submit="submit"
         />
         <Spinner v-else class="spinner" />
     </div>

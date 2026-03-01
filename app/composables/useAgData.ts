@@ -1,7 +1,8 @@
 import { type ColDef, type ColGroupDef, themeQuartz, type ValueFormatterParams } from "ag-grid-community";
 import { Temporal } from "temporal-polyfill";
 import type { ShallowRef } from "vue";
-import type { HourType } from "~/utils/api";
+import type { HourType, TelemetryEvent } from "~/utils/api";
+import api from "~/utils/api";
 import { Math2 } from "~/utils/math";
 import type { Row } from "./useTable";
 
@@ -47,7 +48,7 @@ function hourFormat(hours: ValueFormatterParams): string {
     return Math2.formatHours(hours.value as number);
 }
 
-export function useTableAg(data: ShallowRef<Map<string, Row>>) {
+export function useAgStudents(data: ShallowRef<Map<string, Row>>) {
     const ag = computedWithControl(data, () => {
         const students = data.value;
         if (students.size === 0) {
@@ -205,6 +206,52 @@ export function useTableAg(data: ShallowRef<Map<string, Row>>) {
         rows: computed(() => ag.value.rows),
     };
 }
+
+export const EventTypeDisplay = {
+    invite_add: "New Invite",
+    invite_use: "Invite Used",
+    student_login: "Student Login",
+    student_logout: "Student Logout",
+    admin_login: "Admin Login",
+    permission_edit: "Permissions",
+    admin_edit: "Admin Edited",
+    admin_delete: "Admin Removed",
+    record_add: "New Record",
+    record_edit: "Record Edited",
+    record_delete: "Record Removed",
+    student_add: "New Student",
+    student_edit: "Student Edited",
+    student_delete: "Student Removed",
+} as const satisfies Record<TelemetryEvent["event"]["event"], string>;
+
+export type EventType = keyof typeof EventTypeDisplay;
+
+export const AgTelemetryCols: ColDef<TelemetryEvent>[] = [
+    {
+        field: "event.event",
+        headerName: "Event Type",
+        valueFormatter: (params: { value: EventType; }) => EventTypeDisplay[params.value] ?? params.value,
+    },
+    {
+        field: "timestamp",
+        headerName: "Timestamp",
+        valueFormatter: (params: { value: string; }) => {
+            const date = api.datetime.parse(params.value);
+            return date.toLocaleString("en", {
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        },
+    },
+    {
+        field: "event",
+        cellRenderer: "EventInfo",
+        cellDataType: "object",
+        pinned: "right",
+    },
+];
 
 export const Theme = themeQuartz.withParams({
     accentColor: "#d7d7d7",

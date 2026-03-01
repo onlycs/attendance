@@ -49,7 +49,7 @@ impl TelemetryService {
     #[oai(path = "/stream/filter", method = "post")]
     async fn filter_create(
         &self,
-        request: Json<query::Filter>,
+        request: Json<Option<query::EventTypeFilter>>,
         jwt: Jwt,
     ) -> Result<PlainText<String>, stream::CreateError> {
         let claims = jwt.verify()?;
@@ -89,7 +89,7 @@ impl TelemetryService {
     async fn filter_update(
         &self,
         id: Query<String>,
-        request: Json<query::Filter>,
+        request: Json<Option<query::EventTypeFilter>>,
         jwt: Jwt,
     ) -> Result<(), stream::UpdateError> {
         let claims = jwt.verify()?;
@@ -126,7 +126,7 @@ impl TelemetryService {
             r#"
             SELECT id, filter
             FROM telemetry_streams
-            WHERE id = $1
+            WHERE id = COALESCE($1, id)
             "#,
             id.0,
         )
@@ -151,15 +151,24 @@ impl TelemetryService {
                     )
                     .fetch_optional(&pg)
                     .await
-                    .ok()??;
+                    .ok()?; // throw if query fails, not if record DNE
 
-                    serde_json::from_value(rec.filter).ok()?
+                    // typeof rec after deser is:
+                    // option<option<filter>>
+                    // - None if record DNE
+                    // - Some(None) if record exists but filter is None
+                    // - Some(Some(filter)) if record exists and filter is not None
+                    rec.and_then(|r| serde_json::from_value(r.filter).ok())
                 } else {
-                    query::Filter::default()
-                };
+                    // above branch still returns option<option<filter>>
+                    None::<Option<query::EventTypeFilter>>
+                }
+                .flatten();
 
                 let evt = match repl {
-                    Ok(dbstream::Replication::Insert(event)) if filter.matches(&event) => {
+                    Ok(dbstream::Replication::Insert(event))
+                        if filter.is_none_or(|f| f.matches(&event)) =>
+                    {
                         Some(event)
                     }
                     _ => None,

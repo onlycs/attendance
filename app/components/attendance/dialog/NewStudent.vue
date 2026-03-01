@@ -2,6 +2,7 @@
 import { toast } from "vue-sonner";
 import z from "zod";
 import api from "~/utils/api";
+import { f } from "~/utils/form";
 
 const { user } = useAuth();
 const crypto = useCrypto();
@@ -18,32 +19,36 @@ const open = defineModel<boolean>("open", { required: true });
 const loading = ref(false);
 const emit = defineEmits<{ retry: []; }>();
 
-const { form, buttons, deps, submit, cancel } = f.form(
-    {
-        first: f.input({
-            title: "First Name",
-            schema: z.string()
+const form = f.form({
+    items: {
+        first: f.input(
+            {
+                title: "First Name",
+                placeholder: "John",
+            },
+            z.string()
                 .min(2, "First name is required")
                 .regex(/^[A-Z]/, "Must start with a capital letter")
                 .regex(
                     /^([A-Za-z]|-)+$/,
                     "Must only contain letters or dashes",
                 ),
-            placeholder: "John",
-        }),
-        last: f.input({
-            title: "Last Name",
-            schema: z.string()
+        ),
+        last: f.input(
+            {
+                title: "Last Name",
+                placeholder: "Doe",
+            },
+            z.string()
                 .min(2, "Last name is required")
                 .regex(/^[A-Z]/, "Must start with a capital letter")
                 .regex(
                     /^([A-Za-z]|-)+$/,
                     "Must only contain letters or dashes",
                 ),
-            placeholder: "Doe",
-        }),
+        ),
     },
-    [
+    buttons: [
         {
             form: "submit",
             label: "Submit",
@@ -56,66 +61,64 @@ const { form, buttons, deps, submit, cancel } = f.form(
             kind: "secondary-card",
         },
     ],
-    {
-        async submit(submit) {
-            const end = () => {
-                open.value = false;
-                setTimeout(() => loading.value = false, 500); // after drawer close animation
-            };
+    async submit(submit, _) {
+        const end = () => {
+            open.value = false;
+            setTimeout(() => loading.value = false, 500); // after drawer close animation
+        };
 
-            loading.value = true;
+        loading.value = true;
 
-            if (!k1.value) {
-                useRouter().push(
-                    redirect.build("/dashboard", "session-expired"),
-                );
-
-                return;
-            }
-
-            const data = await crypto.encrypt(
-                [
-                    props.currentId,
-                    submit.first,
-                    submit.last,
-                ],
-                hex.asbytes(k1.value),
+        if (!k1.value) {
+            useRouter().push(
+                redirect.build("/dashboard", "session-expired"),
             );
 
-            if (!data || data.length !== 3) {
-                toast.error("Encryption failed. You were not signed in.");
-                return end();
-            }
+            return;
+        }
 
-            const [id, first, last] = data as [string, string, string];
-            const res = await api.student.add({
-                body: {
-                    id,
-                    id_hashed: sha256(props.currentId),
-                    first,
-                    last,
-                },
-            });
+        const data = await crypto.encrypt(
+            [
+                props.currentId,
+                submit.first,
+                submit.last,
+            ],
+            hex.asbytes(k1.value),
+        );
 
-            end();
+        if (!data || data.length !== 3) {
+            toast.error("Encryption failed. You were not signed in.");
+            return end();
+        }
 
-            if (res.error) {
-                return api.error(res.error, res.response);
-            }
+        const [id, first, last] = data as [string, string, string];
+        const res = await api.student.add({
+            body: {
+                id,
+                id_hashed: sha256(props.currentId),
+                first,
+                last,
+            },
+        });
 
-            emit("retry");
-        },
-        cancel() {
-            toast.warning("Cancelled. You were not signed in.");
-            open.value = false;
-        },
+        end();
+
+        if (res.error) {
+            return api.error(res.error, res.response);
+        }
+
+        emit("retry");
     },
-);
+    cancel() {
+        toast.warning("Cancelled. You were not signed in.");
+        open.value = false;
+    },
+});
 </script>
 <template>
     <Drawer
         v-model:open="open"
-        @close="cancel"
+        @close="form.cancel"
     >
         <span class="title">New Student</span>
 
@@ -123,10 +126,6 @@ const { form, buttons, deps, submit, cancel } = f.form(
             <Form
                 v-model:loading="loading"
                 :form
-                :buttons
-                :deps
-                @cancel="cancel"
-                @submit="submit"
             />
         </div>
     </Drawer>

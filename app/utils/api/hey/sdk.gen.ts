@@ -552,14 +552,14 @@ export const telemetryGet = <ThrowOnError extends boolean = false>(options: Opti
  * Creates a new stream filter, returning an ID.
  */
 export const telemetryFilterCreate = <ThrowOnError extends boolean = false>(
-    options: Options<TelemetryFilterCreateData, ThrowOnError>,
-) => (options.client ?? client).post<TelemetryFilterCreateResponses, TelemetryFilterCreateErrors, ThrowOnError>({
+    options?: Options<TelemetryFilterCreateData, ThrowOnError>,
+) => (options?.client ?? client).post<TelemetryFilterCreateResponses, TelemetryFilterCreateErrors, ThrowOnError>({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/telemetry/stream/filter",
     ...options,
     headers: {
         "Content-Type": "application/json; charset=utf-8",
-        ...options.headers,
+        ...options?.headers,
     },
 });
 

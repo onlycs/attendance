@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import api, { type HourType, type SwipeAction } from "~/utils/api";
+import { f } from "~/utils/form";
 
 const route = useRoute();
 const expired = ref(false);
@@ -41,8 +42,8 @@ watch(user, (user) => {
 }, { immediate: true });
 
 watch(currentId, (current, last) => {
-    const len = current.length === form.length;
-    const oldlen = last.length < form.length;
+    const len = current.length === form.props.length;
+    const oldlen = last.length < form.props.length;
     if (len && oldlen) auth.student(current);
 });
 
@@ -107,7 +108,7 @@ async function roster(via: SwipeAction, id?: string, force = false) {
         <div>
             <span class="sub">Student ID</span>
             <OTPField
-                v-bind="form"
+                v-bind="form.props"
                 v-model:otp="currentId"
                 v-if="!studentId"
             />

@@ -64,6 +64,8 @@ export type NoneToNull<T> = T extends null | undefined ? null : T;
 export type MaybeNone<T> = T | null | undefined;
 export type MaybePromise<T> = T | Promise<T>;
 
+export type NeverIfUndefined<T> = T extends undefined ? never : T;
+
 /**
  * `as const` minus the `readonly`. works best with literals.
  * ```ts
@@ -163,3 +165,9 @@ export function ornull<T, K>(f: (a: T) => K): (a: T | null | undefined) => K | n
         return f(a);
     };
 }
+
+export function undefparam<T>(f: (a: T) => void): T extends undefined ? (a?: T) => void : (a: T) => void {
+    return ((a: T) => f(a)) as any;
+}
+
+export type UndefParam<T> = ReturnType<typeof undefparam<T>>;
