@@ -11,6 +11,7 @@ const { events, update } = useTelemetry({
 });
 
 const open = ref(false);
+const heightOk = ref(true);
 const event = ref<Event | null>(null);
 
 provide("open", (data: TelemetryEvent) => {
@@ -20,6 +21,17 @@ provide("open", (data: TelemetryEvent) => {
 
 definePageMeta({ layout: "admin-protected" });
 defineExpose({ EventInfo: TelemetryDataCell });
+
+onMounted(() => {
+    const update = () => {
+        heightOk.value = window?.innerHeight >= 1025;
+    };
+
+    window.addEventListener("resize", update);
+    update();
+
+    useCleanup().add(() => window.removeEventListener("resize", update));
+});
 </script>
 
 <template>
@@ -52,7 +64,7 @@ defineExpose({ EventInfo: TelemetryDataCell });
         </div>
 
         <div class="column w-fit">
-            <WidgetQuickSwipe />
+            <WidgetQuickSwipe v-show="heightOk" />
             <WidgetTotals />
             <WidgetChart />
             <WidgetStudentHours />

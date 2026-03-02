@@ -57,7 +57,7 @@ watch(selected, async (sid_hashed) => {
             <span class="title">Offseason</span>
             <span class="value">{{ Math2.formatHours(data.offseason) }}</span>
         </div>
-        <HiddenText icon="hugeicons:information-circle" v-else>
+        <HiddenText icon="hugeicons:view" v-else>
             Select a student to
             <br /> view their hours
         </HiddenText>

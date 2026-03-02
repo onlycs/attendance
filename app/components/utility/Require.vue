@@ -5,11 +5,13 @@ const props = defineProps<{
 }>();
 
 onMounted(() => {
-    for (const [url, matches] of Object.entries(props.redirects)) {
-        if (!matches()) continue;
-        router.push(url);
-        break;
-    }
+    setTimeout(() => {
+        for (const [url, matches] of Object.entries(props.redirects)) {
+            if (!matches()) continue;
+            router.push(url);
+            break;
+        }
+    }, 150);
 });
 </script>
 

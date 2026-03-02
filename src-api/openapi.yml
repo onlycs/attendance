@@ -4,353 +4,353 @@ info:
   version: http://localhost:8080
 servers: []
 tags:
-- name: Admin
-- name: Auth
-- name: Roster
-- name: Student
-- name: Telemetry
+  - name: Admin
+  - name: Auth
+  - name: Roster
+  - name: Student
+  - name: Telemetry
 paths:
   /admin:
     get:
       tags:
-      - Admin
+        - Admin
       summary: |
         QueryMany
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/AdminQueryManyResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/AdminQueryManyResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_query_many
     patch:
       tags:
-      - Admin
+        - Admin
       summary: |
         Update
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/PartialAdmin'
+              $ref: "#/components/schemas/PartialAdmin"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Admin'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_update
     delete:
       tags:
-      - Admin
+        - Admin
       summary: |
         Delete
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/AdminDeleteRequest'
+              $ref: "#/components/schemas/AdminDeleteRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Admin'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_delete
   /admin/{id}:
     get:
       tags:
-      - Admin
+        - Admin
       summary: |
         QueryOne
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Admin'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_query_one
   /admin/stream:
     get:
       tags:
-      - Admin
+        - Admin
       summary: |
         Stream
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/event-stream:
               schema:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/Replication_Admin'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/Replication_Admin"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_stream
   /admin/{id}/permissions:
     get:
       tags:
-      - Admin
+        - Admin
       summary: |
         PermissionsQuery
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Permissions'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Permissions"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_permissions_query
     put:
       tags:
-      - Admin
+        - Admin
       summary: |
         PermissionsUpdate
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/Permissions'
+              $ref: "#/components/schemas/Permissions"
         required: true
       responses:
-        '200':
-          description: ''
-        '401':
-          description: ''
+        "200":
+          description: ""
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Admin with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: admin_permissions_update
   /auth/login:
     get:
       tags:
-      - Auth
+        - Auth
       summary: |
         LoginStart
       parameters:
-      - name: username
-        schema:
-          type: string
-        in: query
-        required: true
-        deprecated: false
-        explode: true
+        - name: username
+          schema:
+            type: string
+          in: query
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/LoginStartResponse'
-        '404':
-          description: ''
+                $ref: "#/components/schemas/LoginStartResponse"
+        "404":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -358,36 +358,36 @@ paths:
       operationId: auth_login_start
     post:
       tags:
-      - Auth
+        - Auth
       summary: |
         LoginFinish
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/LoginFinishRequest'
+              $ref: "#/components/schemas/LoginFinishRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/LoginFinishResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/LoginFinishResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '400':
+        "400":
           description: Invalid hex encoding for `a` or `m1`
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -396,72 +396,72 @@ paths:
   /auth/invite:
     post:
       tags:
-      - Auth
+        - Auth
       summary: |
         Invite
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/InviteRequest'
+              $ref: "#/components/schemas/InviteRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/InviteResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/InviteResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: auth_invite
   /auth/register:
     get:
       tags:
-      - Auth
+        - Auth
       summary: |
         RegisterStart
       parameters:
-      - name: key
-        schema:
-          type: string
-        in: query
-        required: true
-        deprecated: false
-        explode: true
+        - name: key
+          schema:
+            type: string
+          in: query
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/RegisterStartResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/RegisterStartResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -469,32 +469,32 @@ paths:
       operationId: auth_register_start
     post:
       tags:
-      - Auth
+        - Auth
       summary: |
         RegisterFinish
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/RegisterFinishRequest'
+              $ref: "#/components/schemas/RegisterFinishRequest"
         required: true
       responses:
-        '200':
-          description: ''
-        '400':
+        "200":
+          description: ""
+        "400":
           description: Invalid hex encoding for `v` or `s`
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -503,20 +503,20 @@ paths:
   /auth/onboard/token:
     post:
       tags:
-      - Auth
+        - Auth
       summary: |
         OnboardToken
       responses:
-        '200':
-          description: ''
-        '401':
-          description: ''
+        "200":
+          description: ""
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -525,35 +525,35 @@ paths:
   /auth/onboard:
     get:
       tags:
-      - Auth
+        - Auth
       summary: |
         OnboardStart
       parameters:
-      - name: x-token
-        schema:
-          type: string
-        in: header
-        description: The setup token obtained from /auth/onboard/token
-        required: true
-        deprecated: false
-        explode: true
+        - name: x-token
+          schema:
+            type: string
+          in: header
+          description: The setup token obtained from /auth/onboard/token
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Student'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -561,32 +561,32 @@ paths:
       operationId: auth_onboard_start
     post:
       tags:
-      - Auth
+        - Auth
       summary: |
         OnboardFinish
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/OnboardFinishRequest'
+              $ref: "#/components/schemas/OnboardFinishRequest"
         required: true
       responses:
-        '200':
-          description: ''
-        '400':
+        "200":
+          description: ""
+        "400":
           description: The provided list of students does not match the existing list
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -595,48 +595,48 @@ paths:
   /roster/swipe:
     post:
       tags:
-      - Roster
+        - Roster
       summary: |
         Swipe
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/SwipeRequest'
+              $ref: "#/components/schemas/SwipeRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/SwipeResponse'
-        '400':
+                $ref: "#/components/schemas/SwipeResponse"
+        "400":
           description: The given hour type is not allowed at this time. See `/roster/allowed`.
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
+        "401":
           description: The provided TOTP is invalid
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -645,677 +645,677 @@ paths:
   /roster/totp:
     post:
       tags:
-      - Roster
+        - Roster
       summary: |
         Totp
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/TOTPRequest'
+              $ref: "#/components/schemas/TOTPRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/TOTPResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/TOTPResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_totp
   /roster/present:
     get:
       tags:
-      - Roster
+        - Roster
       summary: |
         PresentQuery
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/PresentResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/PresentResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_present_query
   /roster/present/stream:
     get:
       tags:
-      - Roster
+        - Roster
       summary: |
         PresentStream
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/event-stream:
               schema:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/PresentResponse'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/PresentResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_present_stream
   /roster:
     get:
       tags:
-      - Roster
+        - Roster
       summary: |
         RecordQuery
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: query
-        required: false
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: query
+          required: false
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/RosterQueryResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/RosterQueryResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Record with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_record_query
     post:
       tags:
-      - Roster
+        - Roster
       summary: |
         RecordAdd
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/RosterCreateRequest'
+              $ref: "#/components/schemas/RosterCreateRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/RosterCreateResponse'
-        '400':
+                $ref: "#/components/schemas/RosterCreateResponse"
+        "400":
           description: time_out is before or on a different day than time_in
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_record_add
     patch:
       tags:
-      - Roster
+        - Roster
       summary: |
         RecordUpdate
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/PartialRecord'
+              $ref: "#/components/schemas/PartialRecord"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Record'
-        '400':
+                $ref: "#/components/schemas/Record"
+        "400":
           description: time_out is before or on a different day than time_in
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Record with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_record_update
     delete:
       tags:
-      - Roster
+        - Roster
       summary: |
         RecordDelete
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/RosterDeleteRequest'
+              $ref: "#/components/schemas/RosterDeleteRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Record'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Record"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Record with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_record_delete
   /roster/stream:
     get:
       tags:
-      - Roster
+        - Roster
       summary: |
         RecordStream
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/event-stream:
               schema:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/Replication_Record'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/Replication_Record"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: Record with the given ID does not exist
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_record_stream
   /roster/allowed:
     get:
       tags:
-      - Roster
+        - Roster
       summary: |
         Allowed
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/HourType'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/HourType"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: roster_allowed
   /student:
     get:
       tags:
-      - Student
+        - Student
       summary: |
         List
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/StudentListResponse'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/StudentListResponse"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_list
     post:
       tags:
-      - Student
+        - Student
       summary: |
         Add
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/Student'
+              $ref: "#/components/schemas/Student"
         required: true
       responses:
-        '200':
-          description: ''
-        '401':
-          description: ''
+        "200":
+          description: ""
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '409':
-          description: ''
+        "409":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_add
   /student/stream:
     get:
       tags:
-      - Student
+        - Student
       summary: |
         Stream
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/event-stream:
               schema:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/Replication_Student'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/Replication_Student"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_stream
   /student/{id_hashed}:
     get:
       tags:
-      - Student
+        - Student
       summary: |
         Query
       parameters:
-      - name: id_hashed
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Student'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_query
     patch:
       tags:
-      - Student
+        - Student
       summary: |
         Update
       parameters:
-      - name: id_hashed
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/StudentUpdateRequest'
+              $ref: "#/components/schemas/StudentUpdateRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Student'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_update
     delete:
       tags:
-      - Student
+        - Student
       summary: |
         Delete
       parameters:
-      - name: id_hashed
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/Student'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/Student"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
+        "404":
           description: No student with the given ID exists
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: student_delete
   /student/{id_hashed}/hours:
     get:
       tags:
-      - Student
+        - Student
       summary: |
         Hours
       parameters:
-      - name: id_hashed
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id_hashed
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/StudentHoursResponse'
-        '404':
-          description: ''
+                $ref: "#/components/schemas/StudentHoursResponse"
+        "404":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
@@ -1324,236 +1324,236 @@ paths:
   /telemetry/search:
     post:
       tags:
-      - Telemetry
+        - Telemetry
       summary: |
         Search
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/TelemetryQueryRequest'
+              $ref: "#/components/schemas/TelemetryQueryRequest"
         required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
-        '400':
-          description: ''
+                $ref: "#/components/schemas/TelemetryResponse"
+        "400":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: telemetry_search
   /telemetry/{id}:
     get:
       tags:
-      - Telemetry
+        - Telemetry
       summary: |
         Get
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: path
-        required: true
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: path
+          required: true
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json; charset=utf-8:
               schema:
-                $ref: '#/components/schemas/TelemetryEvent'
-        '401':
-          description: ''
+                $ref: "#/components/schemas/TelemetryEvent"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
-          description: ''
+        "404":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: telemetry_get
   /telemetry/stream/filter:
     post:
       tags:
-      - Telemetry
+        - Telemetry
       summary: FilterCreate
       description: Creates a new stream filter, returning an ID.
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/EventTypeFilter'
+              $ref: "#/components/schemas/EventTypeFilter"
         required: false
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '401':
-          description: ''
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: telemetry_filter_create
     put:
       tags:
-      - Telemetry
+        - Telemetry
       summary: |
         FilterUpdate
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: query
-        required: true
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: query
+          required: true
+          deprecated: false
+          explode: true
       requestBody:
         content:
           application/json; charset=utf-8:
             schema:
-              $ref: '#/components/schemas/EventTypeFilter'
+              $ref: "#/components/schemas/EventTypeFilter"
         required: false
       responses:
-        '200':
-          description: ''
-        '401':
-          description: ''
+        "200":
+          description: ""
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
-          description: ''
+        "404":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: telemetry_filter_update
   /telemetry/stream:
     get:
       tags:
-      - Telemetry
+        - Telemetry
       summary: |
         Stream
       parameters:
-      - name: id
-        schema:
-          type: string
-        in: query
-        required: false
-        deprecated: false
-        explode: true
+        - name: id
+          schema:
+            type: string
+          in: query
+          required: false
+          deprecated: false
+          explode: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             text/event-stream:
               schema:
                 type: array
                 format: event-stream
                 items:
-                  $ref: '#/components/schemas/TelemetryEvent'
-        '401':
-          description: ''
+                  $ref: "#/components/schemas/TelemetryEvent"
+        "401":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '403':
-          description: ''
+        "403":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '404':
-          description: ''
+        "404":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
-        '500':
-          description: ''
+        "500":
+          description: ""
           content:
             text/plain; charset=utf-8:
               schema:
                 type: string
       security:
-      - Jwt: []
+        - Jwt: []
       operationId: telemetry_stream
 components:
   schemas:
@@ -1561,9 +1561,9 @@ components:
       type: object
       title: Admin
       required:
-      - id
-      - sid_hashed
-      - username
+        - id
+        - sid_hashed
+        - username
       properties:
         id:
           type: string
@@ -1576,18 +1576,18 @@ components:
       type: object
       title: AdminDelete
       required:
-      - admin_id
-      - target
+        - admin_id
+        - target
       properties:
         admin_id:
           type: string
         target:
-          $ref: '#/components/schemas/Admin'
+          $ref: "#/components/schemas/Admin"
     AdminDeleteRequest:
       type: object
       title: AdminDeleteRequest
       required:
-      - admin_id
+        - admin_id
       properties:
         admin_id:
           type: string
@@ -1595,15 +1595,15 @@ components:
       type: object
       title: AdminEdit
       required:
-      - admin_id
-      - old
-      - id
+        - admin_id
+        - old
+        - id
       properties:
         admin_id:
           type: string
           description: Corresponds to the admin who performed the edit
         old:
-          $ref: '#/components/schemas/Admin'
+          $ref: "#/components/schemas/Admin"
         id:
           type: string
         sid_hashed:
@@ -1615,7 +1615,7 @@ components:
       type: object
       title: AdminIdFilter
       required:
-      - admin_id
+        - admin_id
       properties:
         admin_id:
           type: array
@@ -1633,7 +1633,7 @@ components:
       type: object
       title: AdminLogin
       required:
-      - id
+        - id
       properties:
         id:
           type: string
@@ -1641,8 +1641,8 @@ components:
       type: object
       title: AdminOperationFilter
       required:
-      - admin_id
-      - target_id
+        - admin_id
+        - target_id
       properties:
         admin_id:
           type: array
@@ -1658,21 +1658,21 @@ components:
       type: object
       title: AdminQueryManyResponse
       required:
-      - admins
+        - admins
       properties:
         admins:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/Admin'
+            $ref: "#/components/schemas/Admin"
     Claims:
       type: object
       title: Claims
       required:
-      - sub
-      - exp
-      - perms
-      - k1e
-      - username
+        - sub
+        - exp
+        - perms
+        - k1e
+        - username
       properties:
         sub:
           type: string
@@ -1680,7 +1680,7 @@ components:
           type: integer
           format: int64
         perms:
-          $ref: '#/components/schemas/Permissions'
+          $ref: "#/components/schemas/Permissions"
         k1e:
           type: string
         username:
@@ -1689,7 +1689,7 @@ components:
       type: object
       title: Deletion_Admin
       required:
-      - pkey
+        - pkey
       properties:
         pkey:
           type: string
@@ -1697,7 +1697,7 @@ components:
       type: object
       title: Deletion_Record
       required:
-      - pkey
+        - pkey
       properties:
         pkey:
           type: string
@@ -1705,414 +1705,414 @@ components:
       type: object
       title: Deletion_Student
       required:
-      - pkey
+        - pkey
       properties:
         pkey:
           type: string
     Event:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/Event_AdminLogin'
-      - $ref: '#/components/schemas/Event_AdminDelete'
-      - $ref: '#/components/schemas/Event_AdminEdit'
-      - $ref: '#/components/schemas/Event_PermissionEdit'
-      - $ref: '#/components/schemas/Event_InviteAdd'
-      - $ref: '#/components/schemas/Event_InviteUse'
-      - $ref: '#/components/schemas/Event_StudentAdd'
-      - $ref: '#/components/schemas/Event_StudentDelete'
-      - $ref: '#/components/schemas/Event_StudentEdit'
-      - $ref: '#/components/schemas/Event_RecordAdd'
-      - $ref: '#/components/schemas/Event_RecordDelete'
-      - $ref: '#/components/schemas/Event_RecordEdit'
-      - $ref: '#/components/schemas/Event_StudentLogin'
-      - $ref: '#/components/schemas/Event_StudentLogout'
+        - $ref: "#/components/schemas/Event_AdminLogin"
+        - $ref: "#/components/schemas/Event_AdminDelete"
+        - $ref: "#/components/schemas/Event_AdminEdit"
+        - $ref: "#/components/schemas/Event_PermissionEdit"
+        - $ref: "#/components/schemas/Event_InviteAdd"
+        - $ref: "#/components/schemas/Event_InviteUse"
+        - $ref: "#/components/schemas/Event_StudentAdd"
+        - $ref: "#/components/schemas/Event_StudentDelete"
+        - $ref: "#/components/schemas/Event_StudentEdit"
+        - $ref: "#/components/schemas/Event_RecordAdd"
+        - $ref: "#/components/schemas/Event_RecordDelete"
+        - $ref: "#/components/schemas/Event_RecordEdit"
+        - $ref: "#/components/schemas/Event_StudentLogin"
+        - $ref: "#/components/schemas/Event_StudentLogout"
       discriminator:
         propertyName: event
         mapping:
-          admin_login: '#/components/schemas/Event_AdminLogin'
-          admin_delete: '#/components/schemas/Event_AdminDelete'
-          admin_edit: '#/components/schemas/Event_AdminEdit'
-          permission_edit: '#/components/schemas/Event_PermissionEdit'
-          invite_add: '#/components/schemas/Event_InviteAdd'
-          invite_use: '#/components/schemas/Event_InviteUse'
-          student_add: '#/components/schemas/Event_StudentAdd'
-          student_delete: '#/components/schemas/Event_StudentDelete'
-          student_edit: '#/components/schemas/Event_StudentEdit'
-          record_add: '#/components/schemas/Event_RecordAdd'
-          record_delete: '#/components/schemas/Event_RecordDelete'
-          record_edit: '#/components/schemas/Event_RecordEdit'
-          student_login: '#/components/schemas/Event_StudentLogin'
-          student_logout: '#/components/schemas/Event_StudentLogout'
+          admin_login: "#/components/schemas/Event_AdminLogin"
+          admin_delete: "#/components/schemas/Event_AdminDelete"
+          admin_edit: "#/components/schemas/Event_AdminEdit"
+          permission_edit: "#/components/schemas/Event_PermissionEdit"
+          invite_add: "#/components/schemas/Event_InviteAdd"
+          invite_use: "#/components/schemas/Event_InviteUse"
+          student_add: "#/components/schemas/Event_StudentAdd"
+          student_delete: "#/components/schemas/Event_StudentDelete"
+          student_edit: "#/components/schemas/Event_StudentEdit"
+          record_add: "#/components/schemas/Event_RecordAdd"
+          record_delete: "#/components/schemas/Event_RecordDelete"
+          record_edit: "#/components/schemas/Event_RecordEdit"
+          student_login: "#/components/schemas/Event_StudentLogin"
+          student_logout: "#/components/schemas/Event_StudentLogout"
     EventTypeFilter:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/EventTypeFilter_AdminDelete'
-      - $ref: '#/components/schemas/EventTypeFilter_AdminEdit'
-      - $ref: '#/components/schemas/EventTypeFilter_PermissionEdit'
-      - $ref: '#/components/schemas/EventTypeFilter_AdminLogin'
-      - $ref: '#/components/schemas/EventTypeFilter_InviteAdd'
-      - $ref: '#/components/schemas/EventTypeFilter_InviteUse'
-      - $ref: '#/components/schemas/EventTypeFilter_RecordAdd'
-      - $ref: '#/components/schemas/EventTypeFilter_RecordDelete'
-      - $ref: '#/components/schemas/EventTypeFilter_RecordEdit'
-      - $ref: '#/components/schemas/EventTypeFilter_StudentAdd'
-      - $ref: '#/components/schemas/EventTypeFilter_StudentDelete'
-      - $ref: '#/components/schemas/EventTypeFilter_StudentEdit'
-      - $ref: '#/components/schemas/EventTypeFilter_StudentLogin'
-      - $ref: '#/components/schemas/EventTypeFilter_StudentLogout'
+        - $ref: "#/components/schemas/EventTypeFilter_AdminDelete"
+        - $ref: "#/components/schemas/EventTypeFilter_AdminEdit"
+        - $ref: "#/components/schemas/EventTypeFilter_PermissionEdit"
+        - $ref: "#/components/schemas/EventTypeFilter_AdminLogin"
+        - $ref: "#/components/schemas/EventTypeFilter_InviteAdd"
+        - $ref: "#/components/schemas/EventTypeFilter_InviteUse"
+        - $ref: "#/components/schemas/EventTypeFilter_RecordAdd"
+        - $ref: "#/components/schemas/EventTypeFilter_RecordDelete"
+        - $ref: "#/components/schemas/EventTypeFilter_RecordEdit"
+        - $ref: "#/components/schemas/EventTypeFilter_StudentAdd"
+        - $ref: "#/components/schemas/EventTypeFilter_StudentDelete"
+        - $ref: "#/components/schemas/EventTypeFilter_StudentEdit"
+        - $ref: "#/components/schemas/EventTypeFilter_StudentLogin"
+        - $ref: "#/components/schemas/EventTypeFilter_StudentLogout"
       discriminator:
         propertyName: event
         mapping:
-          admin_delete: '#/components/schemas/EventTypeFilter_AdminDelete'
-          admin_edit: '#/components/schemas/EventTypeFilter_AdminEdit'
-          permission_edit: '#/components/schemas/EventTypeFilter_PermissionEdit'
-          admin_login: '#/components/schemas/EventTypeFilter_AdminLogin'
-          invite_add: '#/components/schemas/EventTypeFilter_InviteAdd'
-          invite_use: '#/components/schemas/EventTypeFilter_InviteUse'
-          record_add: '#/components/schemas/EventTypeFilter_RecordAdd'
-          record_delete: '#/components/schemas/EventTypeFilter_RecordDelete'
-          record_edit: '#/components/schemas/EventTypeFilter_RecordEdit'
-          student_add: '#/components/schemas/EventTypeFilter_StudentAdd'
-          student_delete: '#/components/schemas/EventTypeFilter_StudentDelete'
-          student_edit: '#/components/schemas/EventTypeFilter_StudentEdit'
-          student_login: '#/components/schemas/EventTypeFilter_StudentLogin'
-          student_logout: '#/components/schemas/EventTypeFilter_StudentLogout'
+          admin_delete: "#/components/schemas/EventTypeFilter_AdminDelete"
+          admin_edit: "#/components/schemas/EventTypeFilter_AdminEdit"
+          permission_edit: "#/components/schemas/EventTypeFilter_PermissionEdit"
+          admin_login: "#/components/schemas/EventTypeFilter_AdminLogin"
+          invite_add: "#/components/schemas/EventTypeFilter_InviteAdd"
+          invite_use: "#/components/schemas/EventTypeFilter_InviteUse"
+          record_add: "#/components/schemas/EventTypeFilter_RecordAdd"
+          record_delete: "#/components/schemas/EventTypeFilter_RecordDelete"
+          record_edit: "#/components/schemas/EventTypeFilter_RecordEdit"
+          student_add: "#/components/schemas/EventTypeFilter_StudentAdd"
+          student_delete: "#/components/schemas/EventTypeFilter_StudentDelete"
+          student_edit: "#/components/schemas/EventTypeFilter_StudentEdit"
+          student_login: "#/components/schemas/EventTypeFilter_StudentLogin"
+          student_logout: "#/components/schemas/EventTypeFilter_StudentLogout"
     EventTypeFilter_AdminDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_delete
-            example: admin_delete
-      - $ref: '#/components/schemas/AdminOperationFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_delete
+              example: admin_delete
+        - $ref: "#/components/schemas/AdminOperationFilter"
     EventTypeFilter_AdminEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_edit
-            example: admin_edit
-      - $ref: '#/components/schemas/AdminOperationFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_edit
+              example: admin_edit
+        - $ref: "#/components/schemas/AdminOperationFilter"
     EventTypeFilter_AdminLogin:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_login
-            example: admin_login
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_login
+              example: admin_login
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_InviteAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - invite_add
-            example: invite_add
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - invite_add
+              example: invite_add
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_InviteUse:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - invite_use
-            example: invite_use
-      - $ref: '#/components/schemas/InviteUseFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - invite_use
+              example: invite_use
+        - $ref: "#/components/schemas/InviteUseFilter"
     EventTypeFilter_PermissionEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - permission_edit
-            example: permission_edit
-      - $ref: '#/components/schemas/AdminOperationFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - permission_edit
+              example: permission_edit
+        - $ref: "#/components/schemas/AdminOperationFilter"
     EventTypeFilter_RecordAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_add
-            example: record_add
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_add
+              example: record_add
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_RecordDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_delete
-            example: record_delete
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_delete
+              example: record_delete
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_RecordEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_edit
-            example: record_edit
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_edit
+              example: record_edit
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_StudentAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_add
-            example: student_add
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_add
+              example: student_add
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_StudentDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_delete
-            example: student_delete
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_delete
+              example: student_delete
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_StudentEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_edit
-            example: student_edit
-      - $ref: '#/components/schemas/AdminIdFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_edit
+              example: student_edit
+        - $ref: "#/components/schemas/AdminIdFilter"
     EventTypeFilter_StudentLogin:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_login
-            example: student_login
-      - $ref: '#/components/schemas/StudentActionFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_login
+              example: student_login
+        - $ref: "#/components/schemas/StudentActionFilter"
     EventTypeFilter_StudentLogout:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_logout
-            example: student_logout
-      - $ref: '#/components/schemas/StudentActionFilter'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_logout
+              example: student_logout
+        - $ref: "#/components/schemas/StudentActionFilter"
     Event_AdminDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_delete
-            example: admin_delete
-      - $ref: '#/components/schemas/AdminDelete'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_delete
+              example: admin_delete
+        - $ref: "#/components/schemas/AdminDelete"
     Event_AdminEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_edit
-            example: admin_edit
-      - $ref: '#/components/schemas/AdminEdit'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_edit
+              example: admin_edit
+        - $ref: "#/components/schemas/AdminEdit"
     Event_AdminLogin:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - admin_login
-            example: admin_login
-      - $ref: '#/components/schemas/AdminLogin'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - admin_login
+              example: admin_login
+        - $ref: "#/components/schemas/AdminLogin"
     Event_InviteAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - invite_add
-            example: invite_add
-      - $ref: '#/components/schemas/InviteAdd'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - invite_add
+              example: invite_add
+        - $ref: "#/components/schemas/InviteAdd"
     Event_InviteUse:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - invite_use
-            example: invite_use
-      - $ref: '#/components/schemas/InviteUse'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - invite_use
+              example: invite_use
+        - $ref: "#/components/schemas/InviteUse"
     Event_PermissionEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - permission_edit
-            example: permission_edit
-      - $ref: '#/components/schemas/PermissionEdit'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - permission_edit
+              example: permission_edit
+        - $ref: "#/components/schemas/PermissionEdit"
     Event_RecordAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_add
-            example: record_add
-      - $ref: '#/components/schemas/RecordAdd'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_add
+              example: record_add
+        - $ref: "#/components/schemas/RecordAdd"
     Event_RecordDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_delete
-            example: record_delete
-      - $ref: '#/components/schemas/RecordDelete'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_delete
+              example: record_delete
+        - $ref: "#/components/schemas/RecordDelete"
     Event_RecordEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - record_edit
-            example: record_edit
-      - $ref: '#/components/schemas/RecordEdit'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - record_edit
+              example: record_edit
+        - $ref: "#/components/schemas/RecordEdit"
     Event_StudentAdd:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_add
-            example: student_add
-      - $ref: '#/components/schemas/StudentAdd'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_add
+              example: student_add
+        - $ref: "#/components/schemas/StudentAdd"
     Event_StudentDelete:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_delete
-            example: student_delete
-      - $ref: '#/components/schemas/StudentDelete'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_delete
+              example: student_delete
+        - $ref: "#/components/schemas/StudentDelete"
     Event_StudentEdit:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_edit
-            example: student_edit
-      - $ref: '#/components/schemas/StudentEdit'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_edit
+              example: student_edit
+        - $ref: "#/components/schemas/StudentEdit"
     Event_StudentLogin:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_login
-            example: student_login
-      - $ref: '#/components/schemas/StudentLogin'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_login
+              example: student_login
+        - $ref: "#/components/schemas/StudentLogin"
     Event_StudentLogout:
       allOf:
-      - type: object
-        required:
-        - event
-        properties:
-          event:
-            type: string
-            enum:
-            - student_logout
-            example: student_logout
-      - $ref: '#/components/schemas/StudentLogout'
+        - type: object
+          required:
+            - event
+          properties:
+            event:
+              type: string
+              enum:
+                - student_logout
+              example: student_logout
+        - $ref: "#/components/schemas/StudentLogout"
     FilterCounted:
       type: object
       title: FilterCounted
@@ -2138,7 +2138,7 @@ components:
       type: object
       title: FilterDateRange
       required:
-      - after
+        - after
       properties:
         after:
           type: string
@@ -2151,19 +2151,19 @@ components:
             End time for telemetry events
 
             Default: now
-          default: 2026-03-01T21:56:23.717691214+00:00
+          default: 2026-03-02T04:47:40.848366116+00:00
     HourType:
       type: string
       enum:
-      - build
-      - learning
-      - demo
-      - offseason
+        - build
+        - learning
+        - demo
+        - offseason
     InviteAdd:
       type: object
       title: InviteAdd
       required:
-      - admin_id
+        - admin_id
       properties:
         admin_id:
           type: string
@@ -2171,7 +2171,7 @@ components:
       type: object
       title: InviteRequest
       required:
-      - permissions
+        - permissions
       properties:
         sid_hashed:
           type: string
@@ -2180,14 +2180,14 @@ components:
         permissions:
           description: Initial permissions to grant the user
           allOf:
-          - $ref: '#/components/schemas/Permissions'
-          - description: Initial permissions to grant the user
+            - $ref: "#/components/schemas/Permissions"
+            - description: Initial permissions to grant the user
     InviteResponse:
       type: object
       title: InviteResponse
       required:
-      - k2
-      - token
+        - k2
+        - token
       properties:
         k2:
           type: string
@@ -2199,8 +2199,8 @@ components:
       type: object
       title: InviteUse
       required:
-      - inviter_id
-      - invitee_id
+        - inviter_id
+        - invitee_id
       properties:
         inviter_id:
           type: string
@@ -2210,8 +2210,8 @@ components:
       type: object
       title: InviteUseFilter
       required:
-      - inviter_id
-      - invitee_id
+        - inviter_id
+        - invitee_id
       properties:
         inviter_id:
           type: array
@@ -2227,9 +2227,9 @@ components:
       type: object
       title: LoginFinishRequest
       required:
-      - session
-      - a
-      - m1
+        - session
+        - a
+        - m1
       properties:
         session:
           type: string
@@ -2241,20 +2241,20 @@ components:
       type: object
       title: LoginFinishResponse
       required:
-      - jwt
-      - claims
+        - jwt
+        - claims
       properties:
         jwt:
           type: string
         claims:
-          $ref: '#/components/schemas/Claims'
+          $ref: "#/components/schemas/Claims"
     LoginStartResponse:
       type: object
       title: LoginStartResponse
       required:
-      - session
-      - salt
-      - b
+        - session
+        - salt
+        - b
       properties:
         session:
           type: string
@@ -2266,17 +2266,17 @@ components:
       type: object
       title: OnboardFinishRequest
       required:
-      - students
-      - token
-      - k1e
-      - username
-      - v
-      - s
+        - students
+        - token
+        - k1e
+        - username
+        - v
+        - s
       properties:
         students:
           type: array
           items:
-            $ref: '#/components/schemas/Student'
+            $ref: "#/components/schemas/Student"
         token:
           type: string
         k1e:
@@ -2291,7 +2291,7 @@ components:
       type: object
       title: PartialAdmin
       required:
-      - id
+        - id
       properties:
         id:
           type: string
@@ -2304,14 +2304,14 @@ components:
       type: object
       title: PartialRecord
       required:
-      - id
+        - id
       properties:
         id:
           type: string
         sid_hashed:
           type: string
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         sign_in:
           type: string
           format: date-time
@@ -2323,7 +2323,7 @@ components:
       type: object
       title: PartialStudent
       required:
-      - id_hashed
+        - id_hashed
       properties:
         id_hashed:
           type: string
@@ -2337,10 +2337,10 @@ components:
       type: object
       title: PermissionEdit
       required:
-      - admin_id
-      - target_id
-      - old
-      - new
+        - admin_id
+        - target_id
+        - old
+        - new
       properties:
         admin_id:
           type: string
@@ -2349,25 +2349,25 @@ components:
           type: string
           description: Corresponds to the admin whose permissions were edited
         old:
-          $ref: '#/components/schemas/Permissions'
+          $ref: "#/components/schemas/Permissions"
         new:
-          $ref: '#/components/schemas/Permissions'
+          $ref: "#/components/schemas/Permissions"
     Permissions:
       type: object
       title: Permissions
       required:
-      - student_add
-      - student_view
-      - student_edit
-      - student_delete
-      - admin_invite
-      - admin_delete
-      - telemetry
-      - hours_view
-      - hours_edit
-      - roster
-      - admin_edit
-      - admin_view
+        - student_add
+        - student_view
+        - student_edit
+        - student_delete
+        - admin_invite
+        - admin_delete
+        - telemetry
+        - hours_view
+        - hours_edit
+        - roster
+        - admin_edit
+        - admin_view
       properties:
         student_add:
           type: boolean
@@ -2397,8 +2397,8 @@ components:
       type: object
       title: PresentResponse
       required:
-      - present
-      - absent
+        - present
+        - absent
       properties:
         present:
           type: array
@@ -2411,53 +2411,53 @@ components:
     QueryFilter:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/QueryFilter_Counted'
-      - $ref: '#/components/schemas/QueryFilter_DateRange'
+        - $ref: "#/components/schemas/QueryFilter_Counted"
+        - $ref: "#/components/schemas/QueryFilter_DateRange"
       discriminator:
         propertyName: query_type
         mapping:
-          counted: '#/components/schemas/QueryFilter_Counted'
-          date_range: '#/components/schemas/QueryFilter_DateRange'
+          counted: "#/components/schemas/QueryFilter_Counted"
+          date_range: "#/components/schemas/QueryFilter_DateRange"
     QueryFilter_Counted:
       allOf:
-      - type: object
-        required:
-        - query_type
-        properties:
-          query_type:
-            type: string
-            enum:
-            - counted
-            example: counted
-      - $ref: '#/components/schemas/FilterCounted'
+        - type: object
+          required:
+            - query_type
+          properties:
+            query_type:
+              type: string
+              enum:
+                - counted
+              example: counted
+        - $ref: "#/components/schemas/FilterCounted"
     QueryFilter_DateRange:
       allOf:
-      - type: object
-        required:
-        - query_type
-        properties:
-          query_type:
-            type: string
-            enum:
-            - date_range
-            example: date_range
-      - $ref: '#/components/schemas/FilterDateRange'
+        - type: object
+          required:
+            - query_type
+          properties:
+            query_type:
+              type: string
+              enum:
+                - date_range
+              example: date_range
+        - $ref: "#/components/schemas/FilterDateRange"
     Record:
       type: object
       title: Record
       required:
-      - id
-      - sid_hashed
-      - hour_type
-      - sign_in
-      - sign_out
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+        - sign_out
       properties:
         id:
           type: string
         sid_hashed:
           type: string
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         sign_in:
           type: string
           format: date-time
@@ -2469,12 +2469,12 @@ components:
       type: object
       title: RecordAdd
       required:
-      - admin_id
-      - id
-      - sid_hashed
-      - hour_type
-      - sign_in
-      - sign_out
+        - admin_id
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+        - sign_out
       properties:
         admin_id:
           type: string
@@ -2483,7 +2483,7 @@ components:
         sid_hashed:
           type: string
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         sign_in:
           type: string
           format: date-time
@@ -2495,12 +2495,12 @@ components:
       type: object
       title: RecordDelete
       required:
-      - admin_id
-      - id
-      - sid_hashed
-      - hour_type
-      - sign_in
-      - sign_out
+        - admin_id
+        - id
+        - sid_hashed
+        - hour_type
+        - sign_in
+        - sign_out
       properties:
         admin_id:
           type: string
@@ -2509,7 +2509,7 @@ components:
         sid_hashed:
           type: string
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         sign_in:
           type: string
           format: date-time
@@ -2521,20 +2521,20 @@ components:
       type: object
       title: RecordEdit
       required:
-      - admin_id
-      - old
-      - id
+        - admin_id
+        - old
+        - id
       properties:
         admin_id:
           type: string
         old:
-          $ref: '#/components/schemas/Record'
+          $ref: "#/components/schemas/Record"
         id:
           type: string
         sid_hashed:
           type: string
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         sign_in:
           type: string
           format: date-time
@@ -2546,11 +2546,11 @@ components:
       type: object
       title: RegisterFinishRequest
       required:
-      - token
-      - k1e
-      - username
-      - v
-      - s
+        - token
+        - k1e
+        - username
+        - v
+        - s
       properties:
         token:
           type: string
@@ -2566,166 +2566,166 @@ components:
       type: object
       title: RegisterStartResponse
       required:
-      - k2
+        - k2
       properties:
         k2:
           type: string
     Replication_Admin:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/Replication_Admin_Insert'
-      - $ref: '#/components/schemas/Replication_Admin_Update'
-      - $ref: '#/components/schemas/Replication_Admin_Delete'
+        - $ref: "#/components/schemas/Replication_Admin_Insert"
+        - $ref: "#/components/schemas/Replication_Admin_Update"
+        - $ref: "#/components/schemas/Replication_Admin_Delete"
       discriminator:
         propertyName: operation
         mapping:
-          INSERT: '#/components/schemas/Replication_Admin_Insert'
-          UPDATE: '#/components/schemas/Replication_Admin_Update'
-          DELETE: '#/components/schemas/Replication_Admin_Delete'
+          INSERT: "#/components/schemas/Replication_Admin_Insert"
+          UPDATE: "#/components/schemas/Replication_Admin_Update"
+          DELETE: "#/components/schemas/Replication_Admin_Delete"
     Replication_Admin_Delete:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - DELETE
-            example: DELETE
-      - $ref: '#/components/schemas/Deletion_Admin'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - DELETE
+              example: DELETE
+        - $ref: "#/components/schemas/Deletion_Admin"
     Replication_Admin_Insert:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - INSERT
-            example: INSERT
-      - $ref: '#/components/schemas/Admin'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - INSERT
+              example: INSERT
+        - $ref: "#/components/schemas/Admin"
     Replication_Admin_Update:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - UPDATE
-            example: UPDATE
-      - $ref: '#/components/schemas/PartialAdmin'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - UPDATE
+              example: UPDATE
+        - $ref: "#/components/schemas/PartialAdmin"
     Replication_Record:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/Replication_Record_Insert'
-      - $ref: '#/components/schemas/Replication_Record_Update'
-      - $ref: '#/components/schemas/Replication_Record_Delete'
+        - $ref: "#/components/schemas/Replication_Record_Insert"
+        - $ref: "#/components/schemas/Replication_Record_Update"
+        - $ref: "#/components/schemas/Replication_Record_Delete"
       discriminator:
         propertyName: operation
         mapping:
-          INSERT: '#/components/schemas/Replication_Record_Insert'
-          UPDATE: '#/components/schemas/Replication_Record_Update'
-          DELETE: '#/components/schemas/Replication_Record_Delete'
+          INSERT: "#/components/schemas/Replication_Record_Insert"
+          UPDATE: "#/components/schemas/Replication_Record_Update"
+          DELETE: "#/components/schemas/Replication_Record_Delete"
     Replication_Record_Delete:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - DELETE
-            example: DELETE
-      - $ref: '#/components/schemas/Deletion_Record'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - DELETE
+              example: DELETE
+        - $ref: "#/components/schemas/Deletion_Record"
     Replication_Record_Insert:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - INSERT
-            example: INSERT
-      - $ref: '#/components/schemas/Record'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - INSERT
+              example: INSERT
+        - $ref: "#/components/schemas/Record"
     Replication_Record_Update:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - UPDATE
-            example: UPDATE
-      - $ref: '#/components/schemas/PartialRecord'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - UPDATE
+              example: UPDATE
+        - $ref: "#/components/schemas/PartialRecord"
     Replication_Student:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/Replication_Student_Insert'
-      - $ref: '#/components/schemas/Replication_Student_Update'
-      - $ref: '#/components/schemas/Replication_Student_Delete'
+        - $ref: "#/components/schemas/Replication_Student_Insert"
+        - $ref: "#/components/schemas/Replication_Student_Update"
+        - $ref: "#/components/schemas/Replication_Student_Delete"
       discriminator:
         propertyName: operation
         mapping:
-          INSERT: '#/components/schemas/Replication_Student_Insert'
-          UPDATE: '#/components/schemas/Replication_Student_Update'
-          DELETE: '#/components/schemas/Replication_Student_Delete'
+          INSERT: "#/components/schemas/Replication_Student_Insert"
+          UPDATE: "#/components/schemas/Replication_Student_Update"
+          DELETE: "#/components/schemas/Replication_Student_Delete"
     Replication_Student_Delete:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - DELETE
-            example: DELETE
-      - $ref: '#/components/schemas/Deletion_Student'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - DELETE
+              example: DELETE
+        - $ref: "#/components/schemas/Deletion_Student"
     Replication_Student_Insert:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - INSERT
-            example: INSERT
-      - $ref: '#/components/schemas/Student'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - INSERT
+              example: INSERT
+        - $ref: "#/components/schemas/Student"
     Replication_Student_Update:
       allOf:
-      - type: object
-        required:
-        - operation
-        properties:
-          operation:
-            type: string
-            enum:
-            - UPDATE
-            example: UPDATE
-      - $ref: '#/components/schemas/PartialStudent'
+        - type: object
+          required:
+            - operation
+          properties:
+            operation:
+              type: string
+              enum:
+                - UPDATE
+              example: UPDATE
+        - $ref: "#/components/schemas/PartialStudent"
     RosterCreateRequest:
       type: object
       title: RosterCreateRequest
       required:
-      - sid_hashed
-      - kind
-      - time_in
+        - sid_hashed
+        - kind
+        - time_in
       properties:
         sid_hashed:
           type: string
         kind:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         time_in:
           type: string
           format: date-time
@@ -2738,7 +2738,7 @@ components:
       type: object
       title: RosterCreateResponse
       required:
-      - entry_id
+        - entry_id
       properties:
         entry_id:
           type: string
@@ -2746,7 +2746,7 @@ components:
       type: object
       title: RosterDeleteRequest
       required:
-      - entry_id
+        - entry_id
       properties:
         entry_id:
           type: string
@@ -2754,54 +2754,54 @@ components:
       type: object
       title: RosterQueryMany
       required:
-      - records
+        - records
       properties:
         records:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/Record'
+            $ref: "#/components/schemas/Record"
     RosterQueryResponse:
       type: object
       anyOf:
-      - $ref: '#/components/schemas/RosterQueryResponse_Many'
-      - $ref: '#/components/schemas/RosterQueryResponse_One'
+        - $ref: "#/components/schemas/RosterQueryResponse_Many"
+        - $ref: "#/components/schemas/RosterQueryResponse_One"
       discriminator:
         propertyName: quantity
         mapping:
-          Many: '#/components/schemas/RosterQueryResponse_Many'
-          One: '#/components/schemas/RosterQueryResponse_One'
+          Many: "#/components/schemas/RosterQueryResponse_Many"
+          One: "#/components/schemas/RosterQueryResponse_One"
     RosterQueryResponse_Many:
       allOf:
-      - type: object
-        required:
-        - quantity
-        properties:
-          quantity:
-            type: string
-            enum:
-            - Many
-            example: Many
-      - $ref: '#/components/schemas/RosterQueryMany'
+        - type: object
+          required:
+            - quantity
+          properties:
+            quantity:
+              type: string
+              enum:
+                - Many
+              example: Many
+        - $ref: "#/components/schemas/RosterQueryMany"
     RosterQueryResponse_One:
       allOf:
-      - type: object
-        required:
-        - quantity
-        properties:
-          quantity:
-            type: string
-            enum:
-            - One
-            example: One
-      - $ref: '#/components/schemas/Record'
+        - type: object
+          required:
+            - quantity
+          properties:
+            quantity:
+              type: string
+              enum:
+                - One
+              example: One
+        - $ref: "#/components/schemas/Record"
     Student:
       type: object
       title: Student
       required:
-      - id
-      - first
-      - last
-      - id_hashed
+        - id
+        - first
+        - last
+        - id_hashed
       properties:
         id:
           type: string
@@ -2815,8 +2815,8 @@ components:
       type: object
       title: StudentActionFilter
       required:
-      - admin_id
-      - sid_hashed
+        - admin_id
+        - sid_hashed
       properties:
         admin_id:
           type: array
@@ -2832,11 +2832,11 @@ components:
       type: object
       title: StudentAdd
       required:
-      - admin_id
-      - id
-      - first
-      - last
-      - id_hashed
+        - admin_id
+        - id
+        - first
+        - last
+        - id_hashed
       properties:
         admin_id:
           type: string
@@ -2852,11 +2852,11 @@ components:
       type: object
       title: StudentDelete
       required:
-      - admin_id
-      - id
-      - first
-      - last
-      - id_hashed
+        - admin_id
+        - id
+        - first
+        - last
+        - id_hashed
       properties:
         admin_id:
           type: string
@@ -2872,14 +2872,14 @@ components:
       type: object
       title: StudentEdit
       required:
-      - admin_id
-      - old
-      - id_hashed
+        - admin_id
+        - old
+        - id_hashed
       properties:
         admin_id:
           type: string
         old:
-          $ref: '#/components/schemas/Student'
+          $ref: "#/components/schemas/Student"
         id_hashed:
           type: string
         id:
@@ -2892,10 +2892,10 @@ components:
       type: object
       title: StudentHoursResponse
       required:
-      - build
-      - learning
-      - demo
-      - offseason
+        - build
+        - learning
+        - demo
+        - offseason
       properties:
         build:
           type: number
@@ -2913,19 +2913,19 @@ components:
       type: object
       title: StudentListResponse
       required:
-      - students
+        - students
       properties:
         students:
           type: array
           items:
-            $ref: '#/components/schemas/Student'
+            $ref: "#/components/schemas/Student"
     StudentLogin:
       type: object
       title: StudentLogin
       required:
-      - sid_hashed
-      - record_id
-      - admin_id
+        - sid_hashed
+        - record_id
+        - admin_id
       properties:
         sid_hashed:
           type: string
@@ -2937,9 +2937,9 @@ components:
       type: object
       title: StudentLogout
       required:
-      - sid_hashed
-      - record_id
-      - admin_id
+        - sid_hashed
+        - record_id
+        - admin_id
       properties:
         sid_hashed:
           type: string
@@ -2963,21 +2963,21 @@ components:
     SwipeAction:
       type: string
       enum:
-      - login
-      - logout
+        - login
+        - logout
     SwipeFallthrough:
       type: string
       enum:
-      - denied
-      - ignored
+        - denied
+        - ignored
     SwipeRequest:
       type: object
       title: SwipeRequest
       required:
-      - issuer
-      - totp
-      - sid_hashed
-      - kind
+        - issuer
+        - totp
+        - sid_hashed
+        - kind
       properties:
         issuer:
           type: string
@@ -2987,7 +2987,7 @@ components:
         sid_hashed:
           type: string
         kind:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
         force:
           type: boolean
           default: false
@@ -2995,22 +2995,22 @@ components:
           default: null
           nullable: true
           allOf:
-          - $ref: '#/components/schemas/SwipeAction'
-          - default: null
-            nullable: true
+            - $ref: "#/components/schemas/SwipeAction"
+            - default: null
+              nullable: true
     SwipeResponse:
       type: string
       anyOf:
-      - $ref: '#/components/schemas/SwipeAction'
-      - $ref: '#/components/schemas/SwipeFallthrough'
+        - $ref: "#/components/schemas/SwipeAction"
+        - $ref: "#/components/schemas/SwipeFallthrough"
     TOTPRequest:
       type: object
       title: TOTPRequest
       required:
-      - hour_type
+        - hour_type
       properties:
         hour_type:
-          $ref: '#/components/schemas/HourType'
+          $ref: "#/components/schemas/HourType"
     TOTPResponse:
       type: object
       title: TOTPResponse
@@ -3023,7 +3023,7 @@ components:
         * Step: 30 seconds
         * Skew: 1 interval
       required:
-      - secret
+        - secret
       properties:
         secret:
           type: string
@@ -3032,14 +3032,14 @@ components:
       type: object
       title: TelemetryEvent
       required:
-      - id
-      - event
-      - timestamp
+        - id
+        - event
+        - timestamp
       properties:
         id:
           type: string
         event:
-          $ref: '#/components/schemas/Event'
+          $ref: "#/components/schemas/Event"
         timestamp:
           type: string
           format: date-time
@@ -3047,25 +3047,25 @@ components:
       type: object
       title: TelemetryQueryRequest
       required:
-      - query
+        - query
       properties:
         event_type:
           nullable: true
           allOf:
-          - $ref: '#/components/schemas/EventTypeFilter'
-          - nullable: true
+            - $ref: "#/components/schemas/EventTypeFilter"
+            - nullable: true
         query:
-          $ref: '#/components/schemas/QueryFilter'
+          $ref: "#/components/schemas/QueryFilter"
     TelemetryResponse:
       type: object
       title: TelemetryResponse
       required:
-      - events
+        - events
       properties:
         events:
           type: array
           items:
-            $ref: '#/components/schemas/TelemetryEvent'
+            $ref: "#/components/schemas/TelemetryEvent"
   securitySchemes:
     Jwt:
       type: http

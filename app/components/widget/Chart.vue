@@ -70,7 +70,7 @@ const xLabels = computed(() =>
                     {
                         label: 'Daily Logins',
                         data: counts,
-                        fill: true,
+                        fill: false,
                         borderColor: '#fff',
                         backgroundColor: '#fff',
                     },

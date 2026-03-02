@@ -19,10 +19,10 @@ const form = computed(() => {
     return f.form({
         items: {
             event: f.select({
-                all: "All Events",
+                all: "All Telemetry",
                 ...EventTypeTitles,
             }, {
-                title: "Event Type",
+                title: "Telemetry Filter",
                 rows: 5,
                 "class:container": "ftype",
             }),
@@ -159,10 +159,6 @@ const control = ref<FormControl<typeof form["value"]>>(null!);
 
 .filter:has(> :nth-child(2)) > :deep(.ftype) {
     @apply mb-4.5;
-}
-
-.filter:not(:has(> :nth-child(3))) > :nth-child(2) {
-    @apply col-span-2;
 }
 
 .submit {
