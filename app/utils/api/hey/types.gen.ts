@@ -327,14 +327,6 @@ export type FilterCounted = {
     /**
      * Number of telemetry events to retrieve.
      *
-     * This will correspond to the events fetched from the database
-     * PRECEDING ALL OTHER FILTERING. In other words, you are NOT
-     * guaranteed to receive `count` events in the response, as the
-     * filtering is done after fetching.
-     *
-     * You will not recieve an empty response unless there are no events
-     * matching your filters.
-     *
      * Maximum: 100
      */
     count?: number;

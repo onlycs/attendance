@@ -138,7 +138,7 @@ const control = ref<FormControl<typeof form["value"]>>(null!);
 .filter {
     @apply relative;
     @apply bg-drop p-4 rounded-lg;
-    @apply w-full h-[41.125rem];
+    @apply w-full h-[34rem];
     @apply overflow-y-scroll;
 }
 

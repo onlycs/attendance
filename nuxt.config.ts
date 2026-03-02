@@ -23,6 +23,7 @@ export default defineNuxtConfig({
         { path: "~/components/attendance", prefix: "Attendance" },
         { path: "~/components/attendance/dialog", prefix: "Attendance" },
         { path: "~/components/widget", prefix: "Widget" },
+        { path: "~/components/telemetry", prefix: "Telemetry" },
         { path: "~/components", pathPrefix: false },
     ],
     nitro: {

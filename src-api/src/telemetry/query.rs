@@ -309,22 +309,23 @@ pub(super) async fn route(
             return Err(Error::date_range());
         }
 
-        let records = sqlx::query_as::<_, TelemetryEvent>(
-            r#"
-            SELECT * FROM telemetry
-            WHERE timestamp >= $1 AND timestamp <= $2
-            ORDER BY timestamp DESC
-            "#,
+        let events = sqlx::query_as::<_, TelemetryEvent>(
+            format!(
+                r#"
+                SELECT * FROM telemetry
+                WHERE timestamp >= $1 AND timestamp <= $2 {}
+                ORDER BY timestamp DESC
+                "#,
+                event_type
+                    .as_ref()
+                    .map_or_else(|| "".to_string(), |f| format!("AND {}", f.into_sql()))
+            )
+            .as_str(),
         )
         .bind(*after)
         .bind(*before)
         .fetch_all(&pg)
         .await?;
-
-        let events: Vec<TelemetryEvent> = records
-            .into_iter()
-            .filter(|evt| event_type.as_ref().is_none_or(|f| f.matches(evt)))
-            .collect();
 
         return Ok(Response { events });
     }
