@@ -13,7 +13,7 @@ const creds = computed<typeof user["value"] & { role: "admin"; }>(() => {
 
 const open = ref(false);
 const loading = ref(false);
-const promise = ref((_a: AuthData & { role: "admin"; ok: true; }) => {});
+const promise = ref((_a: AdminCreds) => {});
 const route = useRoute();
 
 function exit(
@@ -58,7 +58,7 @@ async function submit(password: string) {
     const res = await auth.admin(creds.value.claims.username, password);
 
     if (res.ok) {
-        promise.value(user.value as AuthData & { role: "admin"; ok: true; });
+        promise.value(user.value as AdminCreds);
         promise.value = () => {};
         open.value = false;
         return;

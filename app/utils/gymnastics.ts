@@ -35,10 +35,17 @@ export type FixedArray<
 
 export type CountKeys<T> = UnionToTuple<keyof T>["length"];
 
+export type FilteredKeys<T, V> = {
+    [K in keyof T]: T[K] extends V ? K : never;
+}[keyof T];
+
+export type DisplayKeys<T> = FilteredKeys<T, string | boolean | number | null | undefined>;
+
 export type Optionalize<T, K extends keyof T> =
     & Omit<T, K>
     & Partial<Pick<T, K>>;
 
+export type SemiPartial<T, K extends keyof T> = Partial<Pick<T, K>>;
 export type UndefinedIfOptional<T> = RequiredKeys<T> extends never ? undefined : T;
 export type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
 
@@ -162,6 +169,13 @@ export function null2undefined(a: any): any {
 export function ornull<T, K>(f: (a: T) => K): (a: T | null | undefined) => K | null {
     return (a: T | null | undefined) => {
         if (a === null || a === undefined) return null;
+        return f(a);
+    };
+}
+
+export function ornullable<T, K>(f: (a: T) => K): <A extends T | null | undefined>(a: A) => NullPassthrough<A, K> {
+    return (a: any) => {
+        if (a === null || a === undefined) return a;
         return f(a);
     };
 }

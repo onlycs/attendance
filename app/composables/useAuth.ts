@@ -5,9 +5,11 @@ export function useAuth() {
     return { auth: $auth, user: $user };
 }
 
-export function useCreds(): Ref<AuthData & { role: "admin"; ok: true; } | null> {
+export type AdminCreds = AuthData & { role: "admin"; ok: true; };
+
+export function useCreds(): Ref<AdminCreds | null> {
     const { user } = useAuth();
-    const creds = ref<typeof user["value"] & { role: "admin"; ok: true; } | null>(null);
+    const creds = ref<AdminCreds | null>(null);
 
     watch(user, (user) => {
         if (user.role !== "admin") return;

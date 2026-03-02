@@ -19,7 +19,7 @@ const crypto = useCrypto();
 const selected = ref<string[]>([]);
 
 const { connected, reconnect, data } = useTable();
-const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
+const creds = ref<AdminCreds>(null!);
 const ag = useAgStudents(data);
 
 watch(user, (user) => {

@@ -3,7 +3,7 @@ import type { InputProps } from "~/components/ui/form/Input.vue";
 import type { OTPFieldProps } from "~/components/ui/form/otp/Field.vue";
 import type { SelectProps } from "~/components/ui/form/Select.vue";
 import type { HourType } from "../api";
-import api from "../api";
+import api, { HourTypeTitles } from "../api";
 import type { ButtonContext, FormButton } from "./button";
 import type { DepMerge, Deps } from "./deps";
 import {
@@ -103,12 +103,7 @@ export const f = {
     // project-specific items
     hourtype: {
         any: (props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {}) => {
-            return f.select<Record<HourType, string>>({
-                "build": "Build",
-                "learning": "Learning",
-                "demo": "Outreach",
-                "offseason": "Offseason",
-            }, {
+            return f.select<Record<HourType, string>>(HourTypeTitles, {
                 title: "Hour Type",
                 ...props,
             });

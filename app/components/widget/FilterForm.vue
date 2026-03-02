@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EventTypeFilter } from "~/utils/api";
+import { type EventTypeFilter, EventTypeTitles } from "~/utils/api";
 import { f } from "~/utils/form";
 import type { FormControl } from "../ui/form/Form.vue";
 
@@ -20,7 +20,7 @@ const form = computed(() => {
         items: {
             event: f.select({
                 all: "All Events",
-                ...EventTypeDisplay,
+                ...EventTypeTitles,
             }, {
                 title: "Event Type",
                 rows: 5,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TelemetryDataCell } from "#components";
 import { AgGridVue } from "ag-grid-vue3";
-import type { Event, TelemetryEvent } from "~/utils/api";
+import { type Event, EventTypeTitles, type TelemetryEvent } from "~/utils/api";
 
 const { events, update } = useTelemetry({
     init: {
@@ -27,7 +27,7 @@ defineExpose({ EventInfo: TelemetryDataCell });
         <Dialog v-model:open="open">
             <template #title>
                 {{
-                    EventTypeDisplay[
+                    EventTypeTitles[
                         event?.event ?? "admin_delete"
                     ]
                 }} Event

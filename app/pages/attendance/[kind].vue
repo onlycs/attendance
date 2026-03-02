@@ -26,7 +26,7 @@ if (error) {
     throw new Error("Redirecting...");
 }
 
-const creds = ref<typeof user["value"] & { role: "admin"; ok: true; }>(null!);
+const creds = ref<AdminCreds>(null!);
 
 watch(user, user => {
     if (user.role !== "admin") return;
