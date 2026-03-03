@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<DialogProps>(), {
     escape: true,
     overlayClick: true,
 });
-const emit = defineEmits<{ close: []; }>();
+const emit = defineEmits<{ close: [] }>();
 
 onMounted(() => {
     const onKeydown = (e: KeyboardEvent) => {

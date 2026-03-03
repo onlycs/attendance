@@ -3,7 +3,9 @@ import type { ItemOutput } from "./output";
 
 export type Deps<I extends Items> = {
     [K in keyof I]?: {
-        [K2 in keyof I]?: ItemOutput<I[K2]> extends string ? string | string[] : never;
+        [K2 in keyof I]?: ItemOutput<I[K2]> extends string
+            ? string | string[]
+            : never;
     };
 };
 
@@ -14,13 +16,9 @@ export type DepMerge<
     D extends Deps<I>,
     KI extends keyof I,
     K2I extends keyof I,
-    V extends string | string[]
-> =
-    & D
-    & {
-        [K in KI]:
-            & D[K]
-            & {
-                [K2 in K2I]: V;
-            };
+    V extends string | string[],
+> = D & {
+    [K in KI]: D[K] & {
+        [K2 in K2I]: V;
     };
+};

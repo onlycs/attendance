@@ -37,7 +37,9 @@ export default defineNuxtConfig({
             },
         },
         prerender: {
-            routes: Object.keys(HourTypeTitles).map(type => `/attendance/${type}`),
+            routes: Object.keys(HourTypeTitles).map(
+                (type) => `/attendance/${type}`,
+            ),
         },
     },
     devtools: { enabled: false },
@@ -63,8 +65,14 @@ export default defineNuxtConfig({
                 name: "headers",
                 configureServer(server) {
                     server.middlewares.use((req, res, next) => {
-                        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-                        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                        res.setHeader(
+                            "Cross-Origin-Embedder-Policy",
+                            "require-corp",
+                        );
+                        res.setHeader(
+                            "Cross-Origin-Opener-Policy",
+                            "same-origin",
+                        );
                         next();
                     });
                 },

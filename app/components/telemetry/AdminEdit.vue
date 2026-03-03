@@ -1,7 +1,7 @@
-E<script setup lang="ts">
+<script setup lang="ts">
 import type { EventAdminEdit } from "~/utils/api";
 
-const props = defineProps<{ event: EventAdminEdit; }>();
+const props = defineProps<{ event: EventAdminEdit }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);
@@ -22,10 +22,12 @@ const newStudent = decryptedStudent(
 
 const admin = await telemetryAdmin(props.event.admin_id, denied);
 
-const fields = [{
-    title: "Edited By",
-    data: admin!.username,
-}];
+const fields = [
+    {
+        title: "Edited By",
+        data: admin!.username,
+    },
+];
 
 const table = computed(() => {
     return [
@@ -37,9 +39,10 @@ const table = computed(() => {
         {
             title: "Student",
             data: studentName(oldStudent.value) ?? "Unknown",
-            update: props.event.sid_hashed === null
-                ? "Removed"
-                : studentName(newStudent.value),
+            update:
+                props.event.sid_hashed === null
+                    ? "Removed"
+                    : studentName(newStudent.value),
         },
     ];
 });

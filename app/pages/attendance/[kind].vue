@@ -11,7 +11,7 @@ const { user, auth } = useAuth();
 
 const kind = route.params.kind as HourType; // note: validated below
 
-// dprint-ignore
+// prettier-ignore
 const error: RedirectToast | undefined = await (async () => {
     if (user.value.role !== "admin") return "session-expired";
     if (user.value.claims.perms.roster !== true) return "unauthorized";
@@ -28,11 +28,15 @@ if (error) {
 
 const creds = ref<AdminCreds>(null!);
 
-watch(user, user => {
-    if (user.role !== "admin") return;
-    if (!user.ok) return;
-    creds.value = { ...user };
-}, { immediate: true });
+watch(
+    user,
+    (user) => {
+        if (user.role !== "admin") return;
+        if (!user.ok) return;
+        creds.value = { ...user };
+    },
+    { immediate: true },
+);
 
 const title = {
     build: "Build Season",
@@ -67,14 +71,14 @@ async function roster(id?: string, force = false) {
 
     if (!res.data) {
         if (res.response?.status === 404) {
-            return newOpen.value = true;
+            return (newOpen.value = true);
         }
 
         return api.error(res.error, res.response);
     }
 
     if (res.data === "denied") {
-        return forceOpen.value = true;
+        return (forceOpen.value = true);
     }
 
     const io = res.data.replace("log", "");
@@ -85,8 +89,8 @@ async function roster(id?: string, force = false) {
 
 watch(currentId, (currentId, last) => {
     if (
-        currentId.length == studentId.props.length
-        && last.length < studentId.props.length
+        currentId.length == studentId.props.length &&
+        last.length < studentId.props.length
     ) {
         roster();
     }
@@ -105,13 +109,8 @@ useCleanup().add(auth.clearsession);
     <div class="content">
         <div class="form">
             <div>
-                <label class="label">
-                    Student ID
-                </label>
-                <OTPField
-                    v-bind="studentId.props"
-                    v-model="currentId"
-                />
+                <label class="label"> Student ID </label>
+                <OTPField v-bind="studentId.props" v-model="currentId" />
             </div>
         </div>
 
@@ -126,7 +125,7 @@ useCleanup().add(auth.clearsession);
 
     <AttendanceForceOut
         @retry="() => roster(undefined, true)"
-        @cancel="() => currentId = ''"
+        @cancel="() => (currentId = '')"
         v-model:open="forceOpen"
     />
 </template>

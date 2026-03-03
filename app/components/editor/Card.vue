@@ -49,15 +49,8 @@ async function add() {
             <EditorCardForm :entry />
         </div>
 
-        <Button
-            kind="none"
-            class="button-add"
-            @click="add"
-        >
-            <Icon
-                name="hugeicons:add-01"
-                size="20"
-            />
+        <Button kind="none" class="button-add" @click="add">
+            <Icon name="hugeicons:add-01" size="20" />
         </Button>
     </div>
 </template>

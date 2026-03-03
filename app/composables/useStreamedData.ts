@@ -21,7 +21,11 @@ export interface UseDataOptions {
     fetch?: Partial<ApiToastOptions>;
 }
 
-export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDataOptions = {}) {
+export function useStudentData({
+    onDenied,
+    onInit,
+    fetch: fetchOptions,
+}: UseDataOptions = {}) {
     const creds = useCreds();
     const crypto = useCrypto();
 
@@ -33,7 +37,7 @@ export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDat
         if (!res.data) return api.error(res.error, res.response, fetchOptions);
 
         const data = res.data.students;
-        const ifle = data.flatMap(s => [s.id, s.first, s.last]);
+        const ifle = data.flatMap((s) => [s.id, s.first, s.last]);
         const ifld = await crypto.decrypt(ifle, hex.asbytes(creds.value!.k1));
 
         if (!ifld) return toast.error("Failed to decrypt student data");
@@ -46,15 +50,12 @@ export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDat
             let first = ifld[ix + 1]!;
             let last = ifld[ix + 2]!;
 
-            students.value.set(
+            students.value.set(id_hashed, {
                 id_hashed,
-                {
-                    id_hashed,
-                    id,
-                    first,
-                    last,
-                },
-            );
+                id,
+                first,
+                last,
+            });
         }
 
         triggerRef(students);
@@ -67,19 +68,17 @@ export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDat
         switch (repl.operation) {
             case "INSERT": {
                 const { id, first, last } = repl;
-                const [id2, first2, last2] = await crypto.decrypt([id, first, last], k1) ?? [];
+                const [id2, first2, last2] =
+                    (await crypto.decrypt([id, first, last], k1)) ?? [];
 
                 if (!id2 || !first2 || !last2) return fetch();
 
-                students.value.set(
-                    repl.id_hashed,
-                    {
-                        id_hashed: repl.id_hashed,
-                        id: id2,
-                        first: first2,
-                        last: last2,
-                    },
-                );
+                students.value.set(repl.id_hashed, {
+                    id_hashed: repl.id_hashed,
+                    id: id2,
+                    first: first2,
+                    last: last2,
+                });
 
                 break;
             }
@@ -88,11 +87,18 @@ export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDat
                 if (!student) return fetch();
 
                 const { id, first, last } = repl;
-                const [id2] = id ? await crypto.decrypt([id], k1) ?? [null] : [undefined];
-                const [first2] = first ? await crypto.decrypt([first], k1) ?? [null] : [undefined];
-                const [last2] = last ? await crypto.decrypt([last], k1) ?? [null] : [undefined];
+                const [id2] = id
+                    ? ((await crypto.decrypt([id], k1)) ?? [null])
+                    : [undefined];
+                const [first2] = first
+                    ? ((await crypto.decrypt([first], k1)) ?? [null])
+                    : [undefined];
+                const [last2] = last
+                    ? ((await crypto.decrypt([last], k1)) ?? [null])
+                    : [undefined];
 
-                if (id2 === null || first2 === null || last2 === null) return fetch();
+                if (id2 === null || first2 === null || last2 === null)
+                    return fetch();
 
                 safeassign(student, {
                     id: id2,
@@ -112,15 +118,19 @@ export function useStudentData({ onDenied, onInit, fetch: fetchOptions }: UseDat
         triggerRef(students);
     }
 
-    watch(creds, async (creds) => {
-        if (!creds) return;
-        if (!creds.claims.perms.student_view) return onDenied?.();
-        if (students.value.size !== 0) return;
+    watch(
+        creds,
+        async (creds) => {
+            if (!creds) return;
+            if (!creds.claims.perms.student_view) return onDenied?.();
+            if (students.value.size !== 0) return;
 
-        await fetch();
-        useSSE().add(api.student.stream, replicate);
-        onInit?.();
-    }, { immediate: true });
+            await fetch();
+            useSSE().add(api.student.stream, replicate);
+            onInit?.();
+        },
+        { immediate: true },
+    );
 
     return { students, reload: fetch };
 }
@@ -137,7 +147,11 @@ export function studentNames(students: ShallowRef<Map<string, Student>>) {
     });
 }
 
-export function useAdminData({ onDenied, onInit, fetch: fetchOptions }: UseDataOptions = {}) {
+export function useAdminData({
+    onDenied,
+    onInit,
+    fetch: fetchOptions,
+}: UseDataOptions = {}) {
     const creds = useCreds();
 
     const admins = shallowRef(new Map<string, Admin>());
@@ -162,10 +176,7 @@ export function useAdminData({ onDenied, onInit, fetch: fetchOptions }: UseDataO
 
         switch (repl.operation) {
             case "INSERT": {
-                admins.value.set(
-                    repl.id,
-                    repl,
-                );
+                admins.value.set(repl.id, repl);
 
                 break;
             }
@@ -186,15 +197,19 @@ export function useAdminData({ onDenied, onInit, fetch: fetchOptions }: UseDataO
         triggerRef(admins);
     }
 
-    watch(creds, async (creds) => {
-        if (!creds) return;
-        if (!creds.claims.perms.student_view) return onDenied?.();
-        if (admins.value.size !== 0) return;
+    watch(
+        creds,
+        async (creds) => {
+            if (!creds) return;
+            if (!creds.claims.perms.student_view) return onDenied?.();
+            if (admins.value.size !== 0) return;
 
-        await fetch();
-        useSSE().add(api.admin.stream, replicate);
-        onInit?.();
-    }, { immediate: true });
+            await fetch();
+            useSSE().add(api.admin.stream, replicate);
+            onInit?.();
+        },
+        { immediate: true },
+    );
 
     return { admins, reload: fetch };
 }
@@ -216,7 +231,13 @@ export interface UseTelemetryOptions extends UseDataOptions {
     event?: EventTypeFilter;
 }
 
-export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, event }: UseTelemetryOptions) {
+export function useTelemetry({
+    onDenied,
+    onInit,
+    fetch: fetchOptions,
+    init,
+    event,
+}: UseTelemetryOptions) {
     const creds = useCreds();
     const events = shallowRef([] as TelemetryEvent[]);
     const filter = ref("");
@@ -229,7 +250,8 @@ export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, even
             },
         });
 
-        if (!search.data) return api.error(search.error, search.response, fetchOptions);
+        if (!search.data)
+            return api.error(search.error, search.response, fetchOptions);
 
         const data = Object.values(search.data.events);
         events.value = [];
@@ -240,10 +262,11 @@ export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, even
 
         if (!filter.value) {
             const res = await api.telemetry.filter.create({
-                body: event ?? null as any,
+                body: event ?? (null as any),
             });
 
-            if (res.data === undefined) return api.error(res.error, res.response, fetchOptions);
+            if (res.data === undefined)
+                return api.error(res.error, res.response, fetchOptions);
             filter.value = res.data;
         }
 
@@ -257,25 +280,26 @@ export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, even
         triggerRef(events);
     }
 
-    watch(creds, async (creds) => {
-        if (!creds) return;
-        if (!creds.claims.perms.telemetry) return onDenied?.();
-        if (events.value.length !== 0) return;
+    watch(
+        creds,
+        async (creds) => {
+            if (!creds) return;
+            if (!creds.claims.perms.telemetry) return onDenied?.();
+            if (events.value.length !== 0) return;
 
-        const id = await fetch();
+            const id = await fetch();
 
-        if (!id) return;
+            if (!id) return;
 
-        useSSE().add(
-            () => {
+            useSSE().add(() => {
                 return api.telemetry.stream({
                     query: { id },
                 });
-            },
-            add,
-        );
-        onInit?.();
-    }, { immediate: true });
+            }, add);
+            onInit?.();
+        },
+        { immediate: true },
+    );
 
     return {
         events: events,
@@ -286,10 +310,11 @@ export function useTelemetry({ onDenied, onInit, fetch: fetchOptions, init, even
             if (filter.value) {
                 const res = await api.telemetry.filter.update({
                     query: { id: filter.value },
-                    body: nf ?? null as any,
+                    body: nf ?? (null as any),
                 });
 
-                if (res.error) return api.error(res.error, res.response, fetchOptions);
+                if (res.error)
+                    return api.error(res.error, res.response, fetchOptions);
             }
 
             await fetch();

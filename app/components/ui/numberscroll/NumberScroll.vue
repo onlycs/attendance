@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ value: number; }>();
+const props = defineProps<{ value: number }>();
 const value = toRef(props, "value");
 
 // digits in REVERSE order [units, tens, hundreds, ...]
@@ -35,10 +35,7 @@ const boxW = computed(() => digits.value.length * DIGIT_WIDTH);
             v-for="i of Array(digits.length).keys()"
             :style="{ transform: `translateX(-${(i + 1) * DIGIT_WIDTH}px)` }"
         >
-            <Numeral
-                :key="i"
-                :index="i"
-            />
+            <Numeral :key="i" :index="i" />
         </div>
     </div>
 </template>

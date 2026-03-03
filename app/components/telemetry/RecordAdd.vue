@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type EventRecordAdd, HourTypeTitles } from "~/utils/api";
 
-const props = defineProps<{ event: EventRecordAdd; }>();
+const props = defineProps<{ event: EventRecordAdd }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);

@@ -11,23 +11,17 @@ export const Keys = narrow({
 });
 
 const storage = {
-    session(
-        key: string,
-        options?: UseStorageOptions<string | null>,
-    ) {
+    session(key: string, options?: UseStorageOptions<string | null>) {
         return useSessionStoragePrim(key, null as string | null, options);
     },
 
-    local(
-        key: string,
-        options?: UseStorageOptions<string | null>,
-    ) {
+    local(key: string, options?: UseStorageOptions<string | null>) {
         return useLocalStoragePrim(key, null as string | null, options);
     },
 };
 
-type AuthLocalStorage = { jwt: string; } | { studentid: string; };
-type AuthSessionStorage = { k1: string; };
+type AuthLocalStorage = { jwt: string } | { studentid: string };
+type AuthSessionStorage = { k1: string };
 
 function useLocalAuth(): Ref<AuthLocalStorage | null> {
     const local = storage.local(Keys.Auth);
@@ -65,32 +59,34 @@ function useSessionAuth(): Ref<AuthSessionStorage | null> {
     });
 }
 
-export type AuthAdmin = {
-    ok: true;
-    jwt: string;
-    claims: Claims;
-    k1: string;
-} | {
-    ok: false;
-    jwt: string;
-    claims: Claims;
-};
+export type AuthAdmin =
+    | {
+          ok: true;
+          jwt: string;
+          claims: Claims;
+          k1: string;
+      }
+    | {
+          ok: false;
+          jwt: string;
+          claims: Claims;
+      };
 
 export type AuthStudent = {
     id: string;
 };
 
 export type AuthData =
-    | ({ role: "student"; } & AuthStudent)
-    | ({ role: "admin"; } & AuthAdmin)
-    | ({ role: "none"; });
+    | ({ role: "student" } & AuthStudent)
+    | ({ role: "admin" } & AuthAdmin)
+    | { role: "none" };
 
 export type User = Ref<AuthData>;
 
 export interface Auth {
     __local: Ref<AuthLocalStorage | null>;
     __session: Ref<AuthSessionStorage | null>;
-    admin(username: string, password: string): Promise<{ ok: boolean; }>;
+    admin(username: string, password: string): Promise<{ ok: boolean }>;
     student(id: string): void;
     clear(): void;
     clearsession(): void;
@@ -156,7 +152,9 @@ export default defineNuxtPlugin(() => {
             });
 
             if (!complete.data) {
-                api.error(complete.error, complete.response, { handle401: "api-message" });
+                api.error(complete.error, complete.response, {
+                    handle401: "api-message",
+                });
                 return { ok: false };
             }
 

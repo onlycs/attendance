@@ -13,8 +13,16 @@ export interface ItemProps {
     "class:container"?: string;
 }
 
-export abstract class ItemBase<K extends string = string, P = unknown, Z extends z.ZodType = z.ZodType> {
-    constructor(public key: K, public props: P & ItemProps, public zod: Z) {}
+export abstract class ItemBase<
+    K extends string = string,
+    P = unknown,
+    Z extends z.ZodType = z.ZodType,
+> {
+    constructor(
+        public key: K,
+        public props: P & ItemProps,
+        public zod: Z,
+    ) {}
 
     abstract copy(): this;
 
@@ -57,12 +65,22 @@ export abstract class ItemBase<K extends string = string, P = unknown, Z extends
     }
 }
 
-export class ItemInput extends ItemBase<"input", InputProps, z.ZodType<string>> {
-    private constructor(props: InputProps & ItemProps = {}, zod: z.ZodType<string> = z.string()) {
+export class ItemInput extends ItemBase<
+    "input",
+    InputProps,
+    z.ZodType<string>
+> {
+    private constructor(
+        props: InputProps & ItemProps = {},
+        zod: z.ZodType<string> = z.string(),
+    ) {
         super("input", props, zod);
     }
 
-    static build(props: InputProps & ItemProps = {}, zod: z.ZodType<string> = z.string()) {
+    static build(
+        props: InputProps & ItemProps = {},
+        zod: z.ZodType<string> = z.string(),
+    ) {
         return new ItemInput(props, zod);
     }
 
@@ -72,13 +90,21 @@ export class ItemInput extends ItemBase<"input", InputProps, z.ZodType<string>> 
 }
 
 export class ItemOTP extends ItemBase<"otp", OTPFieldProps, z.ZodType<string>> {
-    private constructor(props: OTPFieldProps & ItemProps, zod: z.ZodType<string> = z.string()) {
+    private constructor(
+        props: OTPFieldProps & ItemProps,
+        zod: z.ZodType<string> = z.string(),
+    ) {
         super("otp", props, zod);
     }
 
-    static build(props: Omit<OTPFieldProps, "length"> & ItemProps, zod: z.ZodType<string>) {
-        const checks = zod.def.checks?.map(c => c._zod.def) ?? [];
-        const check: $ZodCheckLengthEqualsDef | undefined = checks.filter(c => c.check === "length_equals")[0] as any;
+    static build(
+        props: Omit<OTPFieldProps, "length"> & ItemProps,
+        zod: z.ZodType<string>,
+    ) {
+        const checks = zod.def.checks?.map((c) => c._zod.def) ?? [];
+        const check: $ZodCheckLengthEqualsDef | undefined = checks.filter(
+            (c) => c.check === "length_equals",
+        )[0] as any;
 
         return new ItemOTP(
             {
@@ -94,7 +120,11 @@ export class ItemOTP extends ItemBase<"otp", OTPFieldProps, z.ZodType<string>> {
     }
 }
 
-export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"select", SelectProps<z.output<Z>>, Z> {
+export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
+    "select",
+    SelectProps<z.output<Z>>,
+    Z
+> {
     private constructor(props: SelectProps<z.output<Z>> & ItemProps, zod: Z) {
         super("select", props, zod);
     }
@@ -102,13 +132,15 @@ export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"selec
     static build<T extends Record<string, string>>(
         schema: T,
         props: Omit<SelectProps<keyof T>, "kv"> & ItemProps = {},
-    ): ItemSelect<z.ZodEnum<{ [K in keyof T & string]: K; }>> {
+    ): ItemSelect<z.ZodEnum<{ [K in keyof T & string]: K }>> {
         return new ItemSelect(
             {
                 ...props,
                 kv: schema,
             },
-            z.enum(Object.keys(schema)) as z.ZodEnum<{ [K in keyof T & string]: K; }>,
+            z.enum(Object.keys(schema)) as z.ZodEnum<{
+                [K in keyof T & string]: K;
+            }>,
         );
     }
 
@@ -117,7 +149,11 @@ export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"selec
     }
 }
 
-export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"combobox", ComboboxProps<z.output<Z>>, Z> {
+export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
+    "combobox",
+    ComboboxProps<z.output<Z>>,
+    Z
+> {
     private constructor(props: ComboboxProps<z.output<Z>> & ItemProps, zod: Z) {
         super("combobox", props, zod);
     }
@@ -125,13 +161,16 @@ export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"com
     static build<T extends Record<string, string>>(
         schema: T,
         props: Omit<ComboboxProps<keyof T>, "kv"> & ItemProps = {},
-    ): ItemCombobox<z.ZodEnum<{ [K in keyof T & string]: K; }>> {
+    ): ItemCombobox<z.ZodEnum<{ [K in keyof T & string]: K }>> {
         return new ItemCombobox(
             {
                 ...props,
                 kv: schema,
             },
-            z.enum(Object.keys(schema), "Selection missing or invalid") as z.ZodEnum<{ [K in keyof T & string]: K; }>,
+            z.enum(
+                Object.keys(schema),
+                "Selection missing or invalid",
+            ) as z.ZodEnum<{ [K in keyof T & string]: K }>,
         );
     }
 
@@ -140,8 +179,15 @@ export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<"com
     }
 }
 
-export class ItemDate extends ItemBase<"date", InstantPickerProps, ZodTemporal<typeof Temporal.PlainDate>> {
-    private constructor(props: InstantPickerProps & ItemProps, zod: ZodTemporal<typeof Temporal.PlainDate>) {
+export class ItemDate extends ItemBase<
+    "date",
+    InstantPickerProps,
+    ZodTemporal<typeof Temporal.PlainDate>
+> {
+    private constructor(
+        props: InstantPickerProps & ItemProps,
+        zod: ZodTemporal<typeof Temporal.PlainDate>,
+    ) {
         super("date", props, zod);
     }
 
@@ -157,8 +203,15 @@ export class ItemDate extends ItemBase<"date", InstantPickerProps, ZodTemporal<t
     }
 }
 
-export class ItemTime extends ItemBase<"time", InstantPickerProps, ZodTemporal<typeof Temporal.PlainTime>> {
-    private constructor(props: InstantPickerProps & ItemProps, zod: ZodTemporal<typeof Temporal.PlainTime>) {
+export class ItemTime extends ItemBase<
+    "time",
+    InstantPickerProps,
+    ZodTemporal<typeof Temporal.PlainTime>
+> {
+    private constructor(
+        props: InstantPickerProps & ItemProps,
+        zod: ZodTemporal<typeof Temporal.PlainTime>,
+    ) {
         super("time", props, zod);
     }
 
@@ -178,7 +231,7 @@ export class ItemMany<
     K extends string = string,
     P = unknown,
     Z extends z.ZodType = z.ZodType,
-    A extends ItemBase<K, P, Z> = ItemBase<K, P, Z>
+    A extends ItemBase<K, P, Z> = ItemBase<K, P, Z>,
 > extends ItemBase<"many", P, z.ZodArray<Z>> {
     constructor(public base: A) {
         super("many", base.props, z.array(base.zod));
@@ -191,17 +244,19 @@ export class ItemMany<
 
 export type Items = Record<string, ItemBase>;
 
-export type ItemsMerge<I extends Items, K extends string, A extends ItemBase> =
-    & I
-    & {
-        [KK in K]: A;
-    };
+export type ItemsMerge<
+    I extends Items,
+    K extends string,
+    A extends ItemBase,
+> = I & {
+    [KK in K]: A;
+};
 
-export type ItemTyKey<A extends ItemBase> = A extends ItemBase<infer K, infer _P, infer _Z> ? K
-    : never;
+export type ItemTyKey<A extends ItemBase> =
+    A extends ItemBase<infer K, infer _P, infer _Z> ? K : never;
 
-export type ItemTyProps<A extends ItemBase> = A extends ItemBase<infer _K, infer P, infer _Z> ? P
-    : never;
+export type ItemTyProps<A extends ItemBase> =
+    A extends ItemBase<infer _K, infer P, infer _Z> ? P : never;
 
-export type ItemTyZ<A extends ItemBase> = A extends ItemBase<infer _K, infer _P, infer Z> ? Z
-    : never;
+export type ItemTyZ<A extends ItemBase> =
+    A extends ItemBase<infer _K, infer _P, infer Z> ? Z : never;

@@ -2,7 +2,7 @@
 import type { ICellRendererParams } from "ag-grid-community";
 import type { Event, TelemetryEvent } from "~/utils/api";
 
-defineProps<{ params: ICellRendererParams<TelemetryEvent, Event>; }>();
+defineProps<{ params: ICellRendererParams<TelemetryEvent, Event> }>();
 
 type Callback = (data: TelemetryEvent) => void;
 const open = inject<Callback>("open");

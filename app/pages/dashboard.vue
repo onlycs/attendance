@@ -38,11 +38,7 @@ onMounted(() => {
     <RequireWidth :width="1108" class="page">
         <Dialog v-model:open="open">
             <template #title>
-                {{
-                    EventTypeTitles[
-                        event?.event ?? "admin_delete"
-                    ]
-                }} Event
+                {{ EventTypeTitles[event?.event ?? "admin_delete"] }} Event
             </template>
             <TelemetryEventView v-if="event" :event />
         </Dialog>

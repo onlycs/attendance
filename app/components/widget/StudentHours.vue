@@ -22,7 +22,7 @@ watch(selected, async (sid_hashed) => {
 
     const end = (next: StudentHoursResponse | null = null) => {
         data.value = next;
-        setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+        setTimeout(() => (loading.value = false), 500); // prevent flashing the spinner
     };
 
     if (!sid_hashed) return end();
@@ -59,7 +59,8 @@ watch(selected, async (sid_hashed) => {
         </div>
         <HiddenText icon="hugeicons:view" v-else>
             Select a student to
-            <br /> view their hours
+            <br />
+            view their hours
         </HiddenText>
     </WidgetRoot>
 </template>
@@ -82,7 +83,8 @@ watch(selected, async (sid_hashed) => {
     row-gap: 1rem;
 }
 
-.title, .value {
+.title,
+.value {
     @apply flex justify-center items-center;
 }
 

@@ -44,7 +44,7 @@ const icons = {
 
 const build = useState(() => Random.choose(icons.build).unwrap());
 const learning = useState(() => Random.choose(icons.learning).unwrap());
-const maybe = <T>(mode: HourType, k: T) => (modes[mode] ? k : {});
+const maybe = <T,>(mode: HourType, k: T) => (modes[mode] ? k : {});
 
 const entries = computed(() => ({
     "/dashboard": {

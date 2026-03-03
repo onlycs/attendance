@@ -10,10 +10,12 @@ type Callback = (data: AgRow, colDef: ColDef<AgRow, number>) => void;
 const open = inject<Callback>("open");
 
 const fmt = (h: number) => {
-    return {
-        [-1]: "No data",
-        [0]: "Ongoing",
-    }[h] ?? Math2.formatHours(h);
+    return (
+        {
+            [-1]: "No data",
+            [0]: "Ongoing",
+        }[h] ?? Math2.formatHours(h)
+    );
 };
 </script>
 

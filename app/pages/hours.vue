@@ -85,19 +85,19 @@ onMounted(async () => {
 
         <div class="header top">Learning</div>
 
-        <div class="data" v-for='time of makeHours("learning")'>
+        <div class="data" v-for="time of makeHours('learning')">
             {{ Math2.formatHours(time) }}
         </div>
 
         <div class="header">Build</div>
 
-        <div class="data build" v-for='time of makeHours("build")'>
+        <div class="data build" v-for="time of makeHours('build')">
             {{ Math2.formatHours(time) }}
         </div>
 
         <div class="header">Outreach</div>
 
-        <div class="data" v-for='time of makeHours("demo")'>
+        <div class="data" v-for="time of makeHours('demo')">
             {{ Math2.formatHours(time) }}
         </div>
 
@@ -107,7 +107,9 @@ onMounted(async () => {
             {{ Math2.formatHours(hours.offseason) }}
         </div>
 
-        <div class="data select-none cursor-not-allowed !bg-black/75 col-span-2">
+        <div
+            class="data select-none cursor-not-allowed !bg-black/75 col-span-2"
+        >
             N/A
         </div>
 

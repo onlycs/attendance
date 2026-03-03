@@ -1,4 +1,9 @@
-import { type ColDef, type ColGroupDef, themeQuartz, type ValueFormatterParams } from "ag-grid-community";
+import {
+    type ColDef,
+    type ColGroupDef,
+    themeQuartz,
+    type ValueFormatterParams,
+} from "ag-grid-community";
 import { Temporal } from "temporal-polyfill";
 import type { ShallowRef } from "vue";
 import type { EventType, HourType, TelemetryEvent } from "~/utils/api";
@@ -64,7 +69,8 @@ export function useAgStudents(data: ShallowRef<Map<string, Row>>) {
             s.cells ??= [];
 
             for (const cell of s.cells) {
-                if (!dates.find((d) => d.equals(cell.date))) dates.push(cell.date);
+                if (!dates.find((d) => d.equals(cell.date)))
+                    dates.push(cell.date);
             }
         }
 
@@ -211,12 +217,13 @@ export const AgTelemetryCols: ColDef<TelemetryEvent>[] = [
     {
         field: "event.event",
         headerName: "Event Type",
-        valueFormatter: (params: { value: EventType; }) => EventTypeTitles[params.value] ?? params.value,
+        valueFormatter: (params: { value: EventType }) =>
+            EventTypeTitles[params.value] ?? params.value,
     },
     {
         field: "timestamp",
         headerName: "Timestamp",
-        valueFormatter: (params: { value: string; }) => {
+        valueFormatter: (params: { value: string }) => {
             const date = api.datetime.parse(params.value);
             return date.toLocaleString("en", {
                 month: "short",

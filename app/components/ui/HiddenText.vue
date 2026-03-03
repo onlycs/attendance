@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { icon } = defineProps<{ icon: string; }>();
+const { icon } = defineProps<{ icon: string }>();
 </script>
 
 <template>

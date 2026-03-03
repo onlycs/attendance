@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ dashless?: boolean; lineless?: boolean; }>();
+defineProps<{ dashless?: boolean; lineless?: boolean }>();
 const link = ref<HTMLElement | null>(null);
 
 function update(event: MouseEvent) {

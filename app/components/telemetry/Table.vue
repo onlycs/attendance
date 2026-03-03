@@ -3,12 +3,11 @@ import type { Renderable } from "./Field.vue";
 import type { FieldEntry } from "./Fields.vue";
 
 export interface TableEntry<T extends Renderable = Renderable>
-    extends FieldEntry<T>
-{
+    extends FieldEntry<T> {
     update: T | null;
 }
 
-defineProps<{ data: TableEntry[]; }>();
+defineProps<{ data: TableEntry[] }>();
 </script>
 
 <template>
@@ -18,7 +17,7 @@ defineProps<{ data: TableEntry[]; }>();
         <span class="title">Changed To</span>
 
         <TelemetryField
-            v-for="({ title, data, update }) of $props.data"
+            v-for="{ title, data, update } of $props.data"
             :title
             :value="data"
             :value2="update ?? 'N/A'"
@@ -40,7 +39,8 @@ defineProps<{ data: TableEntry[]; }>();
     @apply select-none;
 }
 
-:deep(.title), :deep(.value) {
+:deep(.title),
+:deep(.value) {
     @apply rounded-none;
 }
 

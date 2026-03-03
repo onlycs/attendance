@@ -22,18 +22,22 @@ const { connected, reconnect, data } = useTable();
 const creds = ref<AdminCreds>(null!);
 const ag = useAgStudents(data);
 
-watch(user, (user) => {
-    if (user.role !== "admin") return;
-    if (!user.ok) return;
+watch(
+    user,
+    (user) => {
+        if (user.role !== "admin") return;
+        if (!user.ok) return;
 
-    const perms = user.claims.perms;
+        const perms = user.claims.perms;
 
-    if (!perms.student_view || !perms.hours_view) {
-        router.push(redirect.build("/dashboard", "unauthorized"));
-    }
+        if (!perms.student_view || !perms.hours_view) {
+            router.push(redirect.build("/dashboard", "unauthorized"));
+        }
 
-    creds.value = { ...user };
-}, { immediate: true });
+        creds.value = { ...user };
+    },
+    { immediate: true },
+);
 
 async function edit(edit: CellValueChangedEvent<AgRow, string>) {
     const k1 = hex.asbytes(creds.value.k1);
@@ -41,7 +45,9 @@ async function edit(edit: CellValueChangedEvent<AgRow, string>) {
 
     switch (edit.colDef.field) {
         case "first": {
-            const [first] = await crypto.encrypt([edit.newValue], k1) ?? [null];
+            const [first] = (await crypto.encrypt([edit.newValue], k1)) ?? [
+                null,
+            ];
             if (!first) {
                 toast.error("Failed to encrypt data");
                 return;
@@ -59,7 +65,9 @@ async function edit(edit: CellValueChangedEvent<AgRow, string>) {
             break;
         }
         case "last": {
-            const [last] = await crypto.encrypt([edit.newValue], k1) ?? [null];
+            const [last] = (await crypto.encrypt([edit.newValue], k1)) ?? [
+                null,
+            ];
             if (!last) {
                 toast.error("Failed to encrypt data");
                 return;
@@ -121,13 +129,15 @@ function exportCSV() {
 }
 
 async function onDelete() {
-    await Promise.all(selected.value.map(async (id) => {
-        const res = await api.student.delete({
-            path: { id_hashed: sha256(id) },
-        });
+    await Promise.all(
+        selected.value.map(async (id) => {
+            const res = await api.student.delete({
+                path: { id_hashed: sha256(id) },
+            });
 
-        if (!res.data) api.error(res.error, res.response);
-    }));
+            if (!res.data) api.error(res.error, res.response);
+        }),
+    );
 }
 
 const studentOpen = ref(false);
@@ -141,19 +151,16 @@ const sWrap = { e: sEntries };
 
 // idrc about ag, but once it's updated, we get a ref in rows, which matters
 // also, this effect only runs once praise the lord
-watch(
-    [data, sHashed, sDate],
-    ([data, hashed, date]) => {
-        const student = data.get(hashed);
-        if (!student) return [];
+watch([data, sHashed, sDate], ([data, hashed, date]) => {
+    const student = data.get(hashed);
+    if (!student) return [];
 
-        student.cells ??= [];
-        const cell = student.cells.find(c => c.date.equals(date));
-        if (!cell) return [];
+    student.cells ??= [];
+    const cell = student.cells.find((c) => c.date.equals(date));
+    if (!cell) return [];
 
-        sEntries.value = [...cell.records];
-    },
-);
+    sEntries.value = [...cell.records];
+});
 
 const studentKv = studentNames(data);
 
@@ -161,7 +168,7 @@ provide("open", (row: AgRow, col: ColDef<AgRow, number>) => {
     sHashed.value = sha256(row.studentId);
     sDate.value = Temporal.PlainDate.from(col.field!);
     sOpen.value = false;
-    setTimeout(() => sOpen.value = true, 100);
+    setTimeout(() => (sOpen.value = true), 100);
 });
 
 definePageMeta({ layout: "admin-protected" });
@@ -203,7 +210,7 @@ defineExpose({ Dropdown: EditorDropdown });
                 kind="secondary"
                 class="!w-fit"
                 class:content="button"
-                @click="() => studentOpen = true"
+                @click="() => (studentOpen = true)"
                 :disabled="!creds?.claims.perms.student_add"
             >
                 <Icon name="hugeicons:user-add-01" size="22" />
@@ -214,7 +221,7 @@ defineExpose({ Dropdown: EditorDropdown });
                 kind="secondary"
                 class="!w-fit"
                 class:content="button"
-                @click="() => entryOpen = true"
+                @click="() => (entryOpen = true)"
                 :disabled="!creds?.claims.perms.hours_edit"
             >
                 <Icon name="hugeicons:calendar-add-01" size="22" />
@@ -225,8 +232,9 @@ defineExpose({ Dropdown: EditorDropdown });
                 kind="danger"
                 class="!w-fit"
                 class:content="button"
-                :disabled="selected.length === 0
-                || !creds?.claims.perms.student_delete"
+                :disabled="
+                    selected.length === 0 || !creds?.claims.perms.student_delete
+                "
                 @click="onDelete"
             >
                 <Icon name="hugeicons:delete-03" size="22" />
@@ -260,11 +268,13 @@ defineExpose({ Dropdown: EditorDropdown });
                     suppressMovable: true,
                 }"
                 @cell-value-changed="edit"
-                @selection-changed="(event: SelectionChangedEvent<AgRow>) => {
-                    selected = event.api
-                        .getSelectedRows()
-                        .map((row) => row.studentId);
-                }"
+                @selection-changed="
+                    (event: SelectionChangedEvent<AgRow>) => {
+                        selected = event.api
+                            .getSelectedRows()
+                            .map((row) => row.studentId);
+                    }
+                "
             />
         </div>
     </div>

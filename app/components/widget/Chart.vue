@@ -7,8 +7,7 @@ const { events } = useTelemetry({
     init: {
         query_type: "date_range",
         after: api.datetime.ser(
-            Temporal.Now
-                .plainDateISO()
+            Temporal.Now.plainDateISO()
                 .subtract({ days: 5 })
                 .toZonedDateTime({ timeZone: "UTC" }),
         ),
@@ -21,13 +20,7 @@ const { events } = useTelemetry({
 });
 
 const counts = computed(() => {
-    const sets = [
-        new Set(),
-        new Set(),
-        new Set(),
-        new Set(),
-        new Set(),
-    ];
+    const sets = [new Set(), new Set(), new Set(), new Set(), new Set()];
 
     for (const event of events.value.values()) {
         if (event.event.event !== "student_login") continue;
@@ -41,26 +34,22 @@ const counts = computed(() => {
         }
     }
 
-    return sets.map(set => set.size);
+    return sets.map((set) => set.size);
 });
 
 const xLabels = computed(() =>
     counts.value.map((_, i) => {
-        const date = Temporal.Now
-            .plainDateISO()
+        const date = Temporal.Now.plainDateISO()
             .subtract({ days: 4 - i })
             .toLocaleString("en-US", { month: "short", day: "numeric" });
 
         return date;
-    })
+    }),
 );
 </script>
 
 <template>
-    <WidgetRoot
-        class="widget"
-        :required="['hours_view', 'telemetry']"
-    >
+    <WidgetRoot class="widget" :required="['hours_view', 'telemetry']">
         <span class="title">Daily Logins</span>
 
         <Line

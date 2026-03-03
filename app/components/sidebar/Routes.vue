@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import type { ButtonProps } from "../ui/form/Button.vue";
 
-export type Route = {
-    name: string;
-    icon: string;
-    children?: never;
-    button?: ButtonProps;
-} | {
-    name: string;
-    icon: string;
-    children: Record<string, Route>;
-};
+export type Route =
+    | {
+          name: string;
+          icon: string;
+          children?: never;
+          button?: ButtonProps;
+      }
+    | {
+          name: string;
+          icon: string;
+          children: Record<string, Route>;
+      };
 
 export interface RoutesProps {
     routes: Record<string, Route>;
@@ -49,17 +51,17 @@ function expand(h: number) {
             <div
                 class="dropdownbox"
                 :style="{
-                    '--expand': expand(
-                        Object.keys(route.children).length,
-                    ),
+                    '--expand': expand(Object.keys(route.children).length),
                 }"
                 v-else
             >
                 <div
-                    :class="cn(
-                        'routebtn route dropdown',
-                        url.startsWith(path) && 'active',
-                    )"
+                    :class="
+                        cn(
+                            'routebtn route dropdown',
+                            url.startsWith(path) && 'active',
+                        )
+                    "
                 >
                     <Icon :name="route.icon" class="icon" />
                     <label class="text cursor-auto!">{{ route.name }}</label>

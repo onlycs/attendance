@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventStudentDelete } from "~/utils/api";
 
-const props = defineProps<{ event: EventStudentDelete; }>();
+const props = defineProps<{ event: EventStudentDelete }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);

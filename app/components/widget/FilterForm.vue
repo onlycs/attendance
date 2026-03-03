@@ -18,49 +18,47 @@ const loading = ref(false);
 const form = computed(() => {
     return f.form({
         items: {
-            event: f.select({
-                all: "All Telemetry",
-                ...EventTypeTitles,
-            }, {
-                title: "Telemetry Filter",
-                rows: 5,
-                "class:container": "ftype",
-            }),
-            admin_id: f.combobox(
-                usernames.value,
+            event: f.select(
                 {
+                    all: "All Telemetry",
+                    ...EventTypeTitles,
+                },
+                {
+                    title: "Telemetry Filter",
+                    rows: 5,
+                    "class:container": "ftype",
+                },
+            ),
+            admin_id: f
+                .combobox(usernames.value, {
                     title: "Authorized By",
                     placeholder: "Filter by admin...",
-                },
-            ).many(),
-            target_id: f.combobox(
-                usernames.value,
-                {
+                })
+                .many(),
+            target_id: f
+                .combobox(usernames.value, {
                     title: "Target User",
                     placeholder: "Filter by admin...",
-                },
-            ).many(),
-            inviter_id: f.combobox(
-                usernames.value,
-                {
+                })
+                .many(),
+            inviter_id: f
+                .combobox(usernames.value, {
                     title: "Inviteed By",
                     placeholder: "Filter by admin...",
-                },
-            ).many(),
-            invitee_id: f.combobox(
-                usernames.value,
-                {
+                })
+                .many(),
+            invitee_id: f
+                .combobox(usernames.value, {
                     title: "Invited User",
                     placeholder: "Filter by admin...",
-                },
-            ).many(),
-            sid_hashed: f.combobox(
-                names.value,
-                {
+                })
+                .many(),
+            sid_hashed: f
+                .combobox(names.value, {
                     title: "Student",
                     placeholder: "Filter by student...",
-                },
-            ).many(),
+                })
+                .many(),
         },
         deps: {
             admin_id: {
@@ -101,13 +99,13 @@ const form = computed(() => {
             event: "all",
         },
 
-        async submit(output: EventTypeFilter | { event: "all"; }) {
+        async submit(output: EventTypeFilter | { event: "all" }) {
             await props.update(output.event === "all" ? undefined : output);
         },
     });
 });
 
-const control = ref<FormControl<typeof form["value"]>>(null!);
+const control = ref<FormControl<(typeof form)["value"]>>(null!);
 </script>
 <template>
     <WidgetRoot :required="['telemetry', 'admin_view', 'student_view']">

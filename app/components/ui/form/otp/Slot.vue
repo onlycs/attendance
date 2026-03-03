@@ -35,10 +35,7 @@ const text = {
         <div v-if="char !== null" :class="cn(text, 'char')">
             {{ hidden ? "●" : char }}
         </div>
-        <div
-            v-else-if="!isActive"
-            :class="cn(text, 'char text-sub')"
-        >
+        <div v-else-if="!isActive" :class="cn(text, 'char text-sub')">
             {{ placeholder }}
         </div>
 
@@ -53,12 +50,13 @@ const text = {
 @reference "~/style/tailwind.css";
 
 @keyframes caret-pulse {
-    0%, 100% {
+    0%,
+    100% {
         transform: scaleY(0.85);
     }
 
     50% {
-        transform: scaleY(1.0);
+        transform: scaleY(1);
     }
 }
 

@@ -5,93 +5,95 @@ import { toast } from "vue-sonner";
 import api from "~/utils/api";
 import { f } from "~/utils/form";
 
-const props = defineProps<{ students: { [id: string]: string; }; }>();
+const props = defineProps<{ students: { [id: string]: string } }>();
 const open = defineModel<boolean>("open", { required: true });
 const loading = ref(false);
 
-const form = f.form(
-    {
-        items: {
-            student: f.combobox(props.students, {
-                title: "Student",
-            }),
-            kind: f.hourtype.any(),
-            date: f.date({
-                title: "Date",
-            }),
-            start: f.time({
-                title: "Sign In",
-                color: "green",
-                icon: "hugeicons:login-02",
-            }),
-            end: f.time({
-                title: "Sign Out",
-                color: "red",
-                icon: "hugeicons:logout-02",
-            }),
+const form = f.form({
+    items: {
+        student: f.combobox(props.students, {
+            title: "Student",
+        }),
+        kind: f.hourtype.any(),
+        date: f.date({
+            title: "Date",
+        }),
+        start: f.time({
+            title: "Sign In",
+            color: "green",
+            icon: "hugeicons:login-02",
+        }),
+        end: f.time({
+            title: "Sign Out",
+            color: "red",
+            icon: "hugeicons:logout-02",
+        }),
+    },
+    buttons: [
+        {
+            form: "submit",
+            label: "Submit",
+            kind: "primary",
+            class: "submit",
         },
-        buttons: [
-            {
-                form: "submit",
-                label: "Submit",
-                kind: "primary",
-                class: "submit",
-            },
-            {
-                form: "cancel",
-                label: "Cancel",
-                kind: "secondary-card",
-            },
-        ],
-        async validate(submission) {
-            const start = submission.date.toPlainDateTime(submission.start);
-            const end = submission.date.toPlainDateTime(submission.end);
-            const dt = start.until(end);
+        {
+            form: "cancel",
+            label: "Cancel",
+            kind: "secondary-card",
+        },
+    ],
+    async validate(submission) {
+        const start = submission.date.toPlainDateTime(submission.start);
+        const end = submission.date.toPlainDateTime(submission.end);
+        const dt = start.until(end);
 
-            if (dt.total("minutes") <= 0) {
-                return [{
+        if (dt.total("minutes") <= 0) {
+            return [
+                {
                     field: "end",
                     message: "End time must be after start time.",
-                }];
-            }
-
-            return [];
-        },
-
-        async submit(submission) {
-            // convert date and time, interpet as local and convert to UTC
-            const start = submission.date.toPlainDateTime(submission.start)
-                .toZonedDateTime(Temporal.Now.timeZoneId());
-            const end = submission.date.toPlainDateTime(submission.end)
-                .toZonedDateTime(Temporal.Now.timeZoneId());
-
-            loading.value = true;
-
-            const res = await api.roster.record.add({
-                body: {
-                    sid_hashed: submission.student,
-                    time_in: api.datetime.ser(start),
-                    time_out: api.datetime.ser(end),
-                    kind: submission.kind,
                 },
-            });
+            ];
+        }
 
-            open.value = false;
-            setTimeout(() => loading.value = false, 500); // after drawer close animation
-
-            if (!res.data) {
-                return api.error(res.error, res.response);
-            }
-
-            toast.success("Entry added");
-        },
-
-        cancel() {
-            toast.warning("Entry not added");
-            open.value = false;
-        },
+        return [];
     },
-);
+
+    async submit(submission) {
+        // convert date and time, interpet as local and convert to UTC
+        const start = submission.date
+            .toPlainDateTime(submission.start)
+            .toZonedDateTime(Temporal.Now.timeZoneId());
+        const end = submission.date
+            .toPlainDateTime(submission.end)
+            .toZonedDateTime(Temporal.Now.timeZoneId());
+
+        loading.value = true;
+
+        const res = await api.roster.record.add({
+            body: {
+                sid_hashed: submission.student,
+                time_in: api.datetime.ser(start),
+                time_out: api.datetime.ser(end),
+                kind: submission.kind,
+            },
+        });
+
+        open.value = false;
+        setTimeout(() => (loading.value = false), 500); // after drawer close animation
+
+        if (!res.data) {
+            return api.error(res.error, res.response);
+        }
+
+        toast.success("Entry added");
+    },
+
+    cancel() {
+        toast.warning("Entry not added");
+        open.value = false;
+    },
+});
 </script>
 
 <template>
@@ -99,10 +101,7 @@ const form = f.form(
         <div class="title">Custom Entry</div>
 
         <div class="form">
-            <Form
-                v-model:loading="loading"
-                :form
-            />
+            <Form v-model:loading="loading" :form />
         </div>
     </Drawer>
 </template>

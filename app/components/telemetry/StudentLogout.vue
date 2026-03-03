@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventStudentLogout } from "~/utils/api";
 
-const props = defineProps<{ event: EventStudentLogout; }>();
+const props = defineProps<{ event: EventStudentLogout }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);

@@ -1,7 +1,26 @@
-import { CategoryScale, Chart, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from "chart.js";
+import {
+    CategoryScale,
+    Chart,
+    Filler,
+    Legend,
+    LinearScale,
+    LineElement,
+    PointElement,
+    Title,
+    Tooltip,
+} from "chart.js";
 
 export default defineNuxtPlugin(() => {
-    Chart.register(CategoryScale, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip);
+    Chart.register(
+        CategoryScale,
+        Filler,
+        Legend,
+        LinearScale,
+        LineElement,
+        PointElement,
+        Title,
+        Tooltip,
+    );
 
     Chart.defaults.backgroundColor = "#191919";
     Chart.defaults.color = "#929292";

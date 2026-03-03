@@ -2,7 +2,7 @@
 import type { EventPermissionEdit, Permissions } from "~/utils/api";
 import { PermissionTitles } from "~/utils/api";
 
-const { event } = defineProps<{ event: EventPermissionEdit; }>();
+const { event } = defineProps<{ event: EventPermissionEdit }>();
 const denied = ref(false);
 
 const admin = await telemetryAdmin(event.admin_id, denied);
@@ -20,7 +20,7 @@ const fields = [
 ];
 
 const keys = Object.keys(event.old) as (keyof Permissions)[];
-const table = keys.map(perm => ({
+const table = keys.map((perm) => ({
     title: PermissionTitles[perm],
     data: event.old[perm],
     update: event.new[perm],

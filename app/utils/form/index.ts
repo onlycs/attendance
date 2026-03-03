@@ -25,7 +25,11 @@ export type FormError<I extends Items> = {
     message: string;
 };
 
-export interface Form<I extends Items, D extends Deps<I>, B extends FormButton[]> {
+export interface Form<
+    I extends Items,
+    D extends Deps<I>,
+    B extends FormButton[],
+> {
     items: I;
     deps: D;
     buttons: B;
@@ -35,19 +39,29 @@ export interface Form<I extends Items, D extends Deps<I>, B extends FormButton[]
     defaults: FormOutputLoose<I>;
 }
 
-export class FormBuilder<I extends Items = {}, D extends Deps<I> = {}, B extends FormButton[] = []> {
+export class FormBuilder<
+    I extends Items = {},
+    D extends Deps<I> = {},
+    B extends FormButton[] = [],
+> {
     public _submit?: (data: FormOutput<I, D>, ctx: ButtonContext<B>) => unknown;
     public _cancel?: () => unknown;
     public _validate?: (data: FormOutput<I, D>) => MaybePromise<FormError<I>[]>;
     public _defaults: FormOutputLoose<I> = {};
 
-    private constructor(public _items: I, public _deps: D, public _buttons: B) {}
+    private constructor(
+        public _items: I,
+        public _deps: D,
+        public _buttons: B,
+    ) {}
 
     static empty() {
         return new FormBuilder({}, {}, [] as FormButton[]);
     }
 
-    items<I2 extends Record<string, ItemBase>>(items: I2): FormBuilder<I2, {}, B> {
+    items<I2 extends Record<string, ItemBase>>(
+        items: I2,
+    ): FormBuilder<I2, {}, B> {
         return new FormBuilder(items, {}, this._buttons);
     }
 
@@ -59,7 +73,9 @@ export class FormBuilder<I extends Items = {}, D extends Deps<I> = {}, B extends
         return new FormBuilder(this._items, this._deps, buttons);
     }
 
-    submit(h: (data: FormOutput<I, D>, ctx: ButtonContext<B>) => unknown): this {
+    submit(
+        h: (data: FormOutput<I, D>, ctx: ButtonContext<B>) => unknown,
+    ): this {
         this._submit = h;
         return this;
     }
@@ -102,17 +118,23 @@ export const f = {
 
     // project-specific items
     hourtype: {
-        any: (props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {}) => {
+        any: (
+            props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {},
+        ) => {
             return f.select<Record<HourType, string>>(HourTypeTitles, {
                 title: "Hour Type",
                 ...props,
             });
         },
-        async available(props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {}) {
+        async available(
+            props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {},
+        ) {
             const available = await api.roster.allowed();
             const ht = f.hourtype.any();
             const allowed = available.data ?? ht.zod.options;
-            const titles = Object.fromEntries(allowed.map(k => [k, ht.props.kv[k]] as const));
+            const titles = Object.fromEntries(
+                allowed.map((k) => [k, ht.props.kv[k]] as const),
+            );
 
             return f.select<Partial<Record<HourType, string>>>(titles, {
                 title: "Hour Type",
@@ -129,10 +151,14 @@ export const f = {
                 type: "username",
                 autocomplete: "username",
             },
-            z.string()
+            z
+                .string()
                 .min(3, "Must contain at least 3 characters")
                 .max(32, "Must contain at most 32 characters")
-                .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores are allowed"),
+                .regex(
+                    /^[a-zA-Z0-9_]+$/,
+                    "Only letters, numbers, and underscores are allowed",
+                ),
         );
     },
     password: {
@@ -145,12 +171,22 @@ export const f = {
                     type: "password",
                     autocomplete: "new-password",
                 },
-                z.string()
+                z
+                    .string()
                     .min(8, "Must contain at least 8 characters")
-                    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-                    .regex(/[a-z]/, "Must contain at least one lowercase letter")
+                    .regex(
+                        /[A-Z]/,
+                        "Must contain at least one uppercase letter",
+                    )
+                    .regex(
+                        /[a-z]/,
+                        "Must contain at least one lowercase letter",
+                    )
                     .regex(/[0-9]/, "Must contain at least one number")
-                    .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
+                    .regex(
+                        /[^A-Za-z0-9]/,
+                        "Must contain at least one special character",
+                    ),
             );
         },
         current(props: InputProps & ItemProps = {}) {
@@ -173,14 +209,18 @@ export const f = {
                 type: "numeric",
                 ...props,
             },
-            z.string()
+            z
+                .string()
                 .length(5, "Student ID must contain 5 digits")
                 .regex(/^\d*$/, "Student ID must contain only digits"),
         );
     },
 
     form<I extends Items, D extends Deps<I> = {}, B extends FormButton[] = []>(
-        partial: Optionalize<Form<I, D, B>, "buttons" | "deps" | "submit" | "cancel" | "validate" | "defaults"> & {
+        partial: Optionalize<
+            Form<I, D, B>,
+            "buttons" | "deps" | "submit" | "cancel" | "validate" | "defaults"
+        > & {
             buttons?: Narrow<B>;
             deps?: Narrow<D>;
         },

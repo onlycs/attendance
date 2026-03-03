@@ -24,15 +24,7 @@
         applications = with pkgs; [
           toolchain
 
-          dprint
-          dprint-plugins.g-plane-markup_fmt
-          dprint-plugins.g-plane-malva
-          dprint-plugins.g-plane-pretty_yaml
-          dprint-plugins.dprint-plugin-typescript
-          dprint-plugins.dprint-plugin-json
-          dprint-plugins.dprint-plugin-markdown
-          dprint-plugins.dprint-plugin-toml
-          dprint-plugins.dprint-plugin-dockerfile
+          nodePackages.prettier
 
           bacon
           bun

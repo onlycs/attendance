@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ width: number; class?: string | string[]; }>();
+const props = defineProps<{ width: number; class?: string | string[] }>();
 
 const ok = ref(true);
 const root = ref<HTMLDivElement>();
@@ -21,15 +21,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div
-        ref="root"
-        :class="cn(ok ? 'root' : 'middle group/middle')"
-    >
+    <div ref="root" :class="cn(ok ? 'root' : 'middle group/middle')">
         <div
-            :class="cn(
-                'w-full h-full',
-                $props.class,
-            )"
+            :class="cn('w-full h-full', $props.class)"
             v-show="ok"
             v-bind="$attrs"
         >
@@ -39,7 +33,8 @@ onBeforeUnmount(() => {
             <Icon name="hugeicons:maximize-screen" class="icon" />
             <span class="desc">
                 Window too narrow. Please widen or
-                <br /> maximize the window to view this content.
+                <br />
+                maximize the window to view this content.
             </span>
         </template>
     </div>

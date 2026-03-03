@@ -39,12 +39,14 @@ defineExpose({
 <template>
     <button
         ref="button"
-        :class="cn(
-            'button group/button',
-            $props.class,
-            $props.disabled && 'disabled',
-            $props.kind ?? undefined,
-        )"
+        :class="
+            cn(
+                'button group/button',
+                $props.class,
+                $props.disabled && 'disabled',
+                $props.kind ?? undefined,
+            )
+        "
         v-bind="$attrs"
         :disabled
     >

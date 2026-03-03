@@ -1,11 +1,13 @@
-import { createVerifierAndSalt, SRPClientSession, SRPParameters, SRPRoutines } from "tssrp6a";
+import {
+    createVerifierAndSalt,
+    SRPClientSession,
+    SRPParameters,
+    SRPRoutines,
+} from "tssrp6a";
 import type { LoginStartResponse } from "./api";
 
 const routines = new SRPRoutines(
-    new SRPParameters(
-        SRPParameters.PrimeGroup[2048],
-        SRPParameters.H.SHA512,
-    ),
+    new SRPParameters(SRPParameters.PrimeGroup[2048], SRPParameters.H.SHA512),
 );
 
 export const srp = {
@@ -17,7 +19,11 @@ export const srp = {
         return await createVerifierAndSalt(routines, username, password);
     },
 
-    async login({ salt, b }: LoginStartResponse, username: string, password: string) {
+    async login(
+        { salt, b }: LoginStartResponse,
+        username: string,
+        password: string,
+    ) {
         const sessionA = this.session();
         const sessionB = await sessionA.step1(username, password);
         const sessionC = await sessionB.step2(hex.asint(salt), hex.asint(b));

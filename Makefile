@@ -23,13 +23,13 @@ openapi:
 	@echo "=== Re-exporting API client"
 	python scripts/openapi.py
 	@echo "=== Formatting generated files"
-	dprint fmt app/utils/api/**/* app/utils/api/*
+	prettier -w app/utils/api
 	@echo "=== Patching"
 	perl -i -0777 -pe 's/event_type\?:.*?;.*?;/event_type?: EventTypeFilter;/gs' app/utils/api/hey/types.gen.ts
 
 fmt:
 	@echo "=== Formatting code"
-	dprint fmt
+	bun fmt
 	cd src-api && cargo fmt
 	cd src-crypto && cargo fmt
 	cd src-macro && cargo fmt

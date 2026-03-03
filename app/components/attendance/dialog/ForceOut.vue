@@ -2,7 +2,7 @@
 import { toast } from "vue-sonner";
 
 const open = defineModel<boolean>("open", { required: true });
-const emit = defineEmits<{ retry: []; cancel: []; }>();
+const emit = defineEmits<{ retry: []; cancel: [] }>();
 
 function submit() {
     if (!open.value) return;

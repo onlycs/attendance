@@ -5,42 +5,44 @@
 {
     "languages": {
         "TypeScript": {
-            "formatter": {
-                "language_server": {
-                    "name": "dprint"
-                }
-            }
+            "formatter": "prettier"
         },
         "Vue.js": {
-            "formatter": {
-                "language_server": {
-                    "name": "dprint"
-                }
-            }
+            "formatter": "prettier"
         },
         "CSS": {
-            "formatter": {
-                "language_server": {
-                    "name": "dprint"
-                }
-            }
+            "language_servers": [
+                "tailwindcss-intellisense-css",
+                "!vscode-css-language-server"
+            ],
+            "formatter": "prettier"
         },
         "Markdown": {
-            "formatter": {
-                "language_server": {
-                    "name": "dprint"
-                }
-            }
+            "formatter": "prettier"
         },
         "YAML": {
-            "formatter": {
-                "language_server": {
-                    "name": "dprint"
-                }
-            }
+            "formatter": "prettier"
         },
         "SQL": {
             "tab_size": 4
+        }
+    },
+    "lsp": {
+        "tailwindcss-language-server": {
+            "settings": {
+                "includeLanguages": {
+                    "vue": "html"
+                },
+                "classFunctions": ["cn"],
+                "experimental": {
+                    "classRegex": [
+                        "class=\"([^\"]*)\"",
+                        "class='([^']*)'",
+                        ":class=\"([^\"]*)\"",
+                        ":class='([^']*)'"
+                    ]
+                }
+            }
         }
     }
 }

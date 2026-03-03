@@ -5,7 +5,8 @@ type Awaited<R> = R extends Promise<infer T> ? T : R;
 
 export class CryptoWorker {
     private worker: Worker;
-    private pending: Map<number, { resolve: Function; reject: Function; }> = new Map();
+    private pending: Map<number, { resolve: Function; reject: Function }> =
+        new Map();
     private id = 0;
 
     constructor() {
@@ -22,7 +23,9 @@ export class CryptoWorker {
             console.error("Worker message error:", error);
         };
 
-        this.worker.onmessage = (event: MessageEvent<{ id: number; result: any; }>) => {
+        this.worker.onmessage = (
+            event: MessageEvent<{ id: number; result: any }>,
+        ) => {
             const { id, result } = event.data;
             const pending = this.pending.get(id);
             if (pending) {
@@ -34,7 +37,9 @@ export class CryptoWorker {
 
     async execute<K extends keyof CryptoJs>(
         message: Omit<WorkerMessage<K>, "id">,
-    ): Promise<CryptoJs[K] extends (...args: infer _P) => infer R ? Awaited<R> : never> {
+    ): Promise<
+        CryptoJs[K] extends (...args: infer _P) => infer R ? Awaited<R> : never
+    > {
         return new Promise((resolve, reject) => {
             this.pending.set(this.id, { resolve, reject });
             this.worker.postMessage({ id: this.id++, ...message });
@@ -50,7 +55,7 @@ export class CryptoWorker {
 export default defineNuxtPlugin(async () => {
     const worker = new CryptoWorker();
 
-    // dprint-ignore
+    // prettier-ignore
     return {
         provide: {
             crypto: {

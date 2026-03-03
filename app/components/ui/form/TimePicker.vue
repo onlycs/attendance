@@ -6,14 +6,11 @@ export interface InstantPickerProps {
     color?: "red" | "green" | "gray";
 }
 
-const props = withDefaults(
-    defineProps<InstantPickerProps>(),
-    {
-        icon: "hugeicons:clock-01",
-        color: "gray",
-        background: "bg",
-    },
-);
+const props = withDefaults(defineProps<InstantPickerProps>(), {
+    icon: "hugeicons:clock-01",
+    color: "gray",
+    background: "bg",
+});
 
 const DIGITS = 4;
 const SLOTS = 5; // AM/PM
@@ -51,9 +48,8 @@ function alldigits<N extends number>(
     setter: (n: number) => void,
     places: N,
 ): FixedArray<Ref<number>, N> {
-    return Array.from(
-        { length: places },
-        (_, i) => digit(getter, setter, places - i - 1),
+    return Array.from({ length: places }, (_, i) =>
+        digit(getter, setter, places - i - 1),
     ) as FixedArray<Ref<number>, N>;
 }
 
@@ -64,7 +60,7 @@ function to12(hour24: number) {
 function auto24(hour12: number, isP?: boolean) {
     const current24 = time.value.hour;
     const isPM = isP === undefined ? current24 >= 12 : isP;
-    if (isPM) return hour12 % 12 + 12;
+    if (isPM) return (hour12 % 12) + 12;
     else return hour12 % 12;
 }
 
@@ -103,7 +99,7 @@ const isP = computedWithControl([time], {
 
 const max = [
     1,
-    computed(() => digits[0].value === 1 ? 2 : 9),
+    computed(() => (digits[0].value === 1 ? 2 : 9)),
     5,
     9,
 ] as FixedArray<MaybeRef<number>, DIGITS>;
@@ -149,7 +145,7 @@ function keypress(kp: KeyboardEvent) {
         if (prev === 0) return; // neither day nor month can be == 0
 
         digits[current]!.value = prev;
-        setTimeout(() => digits[current - 1]!.value = 0, 0); // race condition in setters? who tf knows
+        setTimeout(() => (digits[current - 1]!.value = 0), 0); // race condition in setters? who tf knows
         active.value++;
         vis.value = Math.max(vis.value, active.value);
         return;
@@ -167,7 +163,7 @@ function keypress(kp: KeyboardEvent) {
     const num = Number(key);
 
     if (num > unref(max[active.value]!) && current % 2 === 0) {
-        setTimeout(() => digits[current]!.value = 0, 0);
+        setTimeout(() => (digits[current]!.value = 0), 0);
         active.value++;
     }
 
@@ -179,10 +175,7 @@ function keypress(kp: KeyboardEvent) {
 const timestr = computed(() => {
     const display = (n: number) => {
         const sep = n === 1 ? ":" : n === 3 ? "\u2009" : "";
-        return narrow([
-            n >= vis.value ? "-" : String(digits[n]!.value),
-            sep,
-        ]);
+        return narrow([n >= vis.value ? "-" : String(digits[n]!.value), sep]);
     };
 
     return [
@@ -199,7 +192,7 @@ watch(vis, (vis, old) => {
     }
 });
 
-watch(active, active => {
+watch(active, (active) => {
     if (active >= SLOTS) end();
 });
 </script>
@@ -229,10 +222,7 @@ watch(active, active => {
         <div class="display">
             <template v-for="([n, sep], i) of timestr">
                 <span
-                    :class="cn(
-                        'text sel',
-                        i == active && 'active',
-                    )"
+                    :class="cn('text sel', i == active && 'active')"
                     @click="start(i)"
                 >
                     {{ n }}

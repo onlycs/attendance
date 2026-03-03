@@ -2,14 +2,11 @@
 import { Temporal } from "temporal-polyfill";
 import type { InstantPickerProps } from "./TimePicker.vue";
 
-const props = withDefaults(
-    defineProps<InstantPickerProps>(),
-    {
-        icon: "hugeicons:calendar-03",
-        color: "gray",
-        background: "bg",
-    },
-);
+const props = withDefaults(defineProps<InstantPickerProps>(), {
+    icon: "hugeicons:calendar-03",
+    color: "gray",
+    background: "bg",
+});
 
 const pdate = defineModel<Temporal.PlainDate | null>({ default: null });
 const tdate = ref(pdate.value ?? Temporal.PlainDate.from("1972-01-01")); // would have done 1970 but need leap year or temporal clamps
@@ -45,9 +42,8 @@ function alldigits<N extends number>(
     setter: (n: number) => void,
     places: N,
 ): FixedArray<Ref<number>, N> {
-    return Array.from(
-        { length: places },
-        (_, i) => digit(getter, setter, places - i - 1),
+    return Array.from({ length: places }, (_, i) =>
+        digit(getter, setter, places - i - 1),
     ) as FixedArray<Ref<number>, N>;
 }
 
@@ -56,8 +52,8 @@ function visyear(year: number, add = false) {
     const tens = (n: number) => Math.floor(n / 10);
 
     const skipVis = vis.value + 1 >= DIGITS; // skip if year visible
-    const force = date.value.month === 2 && active.value === 3
-        && digits[2].value === 2; // force if editing feb 2X
+    const force =
+        date.value.month === 2 && active.value === 3 && digits[2].value === 2; // force if editing feb 2X
 
     if (skipVis && !force) return year;
     if (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) return year;
@@ -90,7 +86,7 @@ const digits = [
     ),
     ...alldigits(
         () => date.value.year,
-        (year) => date.value = date.value.with({ year: visyear(year) }),
+        (year) => (date.value = date.value.with({ year: visyear(year) })),
         4,
     ),
 ] as FixedArray<Ref<number>, DIGITS>;
@@ -98,7 +94,7 @@ const digits = [
 const max = [
     1,
     9,
-    computed(() => date.value.month === 2 ? 2 : 3), // no day 3x for feb
+    computed(() => (date.value.month === 2 ? 2 : 3)), // no day 3x for feb
     9,
     9,
     9,
@@ -147,7 +143,7 @@ function keypress(kp: KeyboardEvent) {
         if (prev === 0) return; // neither day nor month can be == 0
 
         digits[current]!.value = prev;
-        setTimeout(() => digits[current - 1]!.value = 0, 0); // race condition in setters? who tf knows
+        setTimeout(() => (digits[current - 1]!.value = 0), 0); // race condition in setters? who tf knows
         active.value++;
         vis.value = Math.max(vis.value, active.value);
         return;
@@ -158,7 +154,7 @@ function keypress(kp: KeyboardEvent) {
 
     if (num > unref(max[active.value]!)) {
         const cur = active.value;
-        setTimeout(() => digits[cur]!.value = 0, 0);
+        setTimeout(() => (digits[cur]!.value = 0), 0);
         active.value++;
     }
 
@@ -170,10 +166,7 @@ function keypress(kp: KeyboardEvent) {
 const datestr = computed(() => {
     const display = (n: number) => {
         const sep = [1, 3].includes(n);
-        return narrow([
-            n >= vis.value ? "-" : String(digits[n]!.value),
-            sep,
-        ]);
+        return narrow([n >= vis.value ? "-" : String(digits[n]!.value), sep]);
     };
 
     return Array.from({ length: DIGITS }, (_, i) => display(i));
@@ -185,7 +178,7 @@ watch(vis, (vis, old) => {
     }
 });
 
-watch(active, active => {
+watch(active, (active) => {
     if (active >= DIGITS) end();
 });
 </script>
@@ -215,10 +208,7 @@ watch(active, active => {
         <div class="display">
             <template v-for="([n, sep], i) of datestr">
                 <span
-                    :class="cn(
-                        'text sel',
-                        i == active && 'active',
-                    )"
+                    :class="cn('text sel', i == active && 'active')"
                     @click="start(i)"
                 >
                     {{ n }}

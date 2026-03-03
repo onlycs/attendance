@@ -1,0 +1,7 @@
+# rust projects
+src-api/**
+src-crypto/**
+src-macro/**
+
+# filetypes
+**/*.toml

@@ -1,9 +1,16 @@
 import { Temporal } from "temporal-polyfill";
 import type { ShallowRef } from "vue";
-import type { Record as AttendanceRecordRaw, ReplicationRecord, Student } from "~/utils/api";
+import type {
+    Record as AttendanceRecordRaw,
+    ReplicationRecord,
+    Student,
+} from "~/utils/api";
 import api from "~/utils/api";
 
-export type AttendanceRecord = Omit<AttendanceRecordRaw, "sign_in" | "sign_out"> & {
+export type AttendanceRecord = Omit<
+    AttendanceRecordRaw,
+    "sign_in" | "sign_out"
+> & {
     sign_in: Temporal.ZonedDateTime;
     sign_out: Temporal.ZonedDateTime | null;
 };
@@ -20,7 +27,10 @@ export type Row = Student & {
 export function useTable() {
     const connected = ref(false);
 
-    const { students: data, reload: fetchStudents }: {
+    const {
+        students: data,
+        reload: fetchStudents,
+    }: {
         students: ShallowRef<Map<string, Row>>;
         reload: () => Promise<unknown>;
     } = useStudentData({
@@ -60,14 +70,18 @@ export function useTable() {
                     else return await fetch();
                 }
 
-                const date = r1.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
+                const date = r1.sign_in
+                    .withTimeZone(Temporal.Now.timeZoneId())
+                    .toPlainDate();
 
                 student.cells ??= [];
                 let cell = student.cells.find((cc) => cc.date.equals(date));
 
                 if (!cell) {
                     const c = { date, records: [] };
-                    const i = student.cells.findIndex((cc) => cc.date.until(date).total("milliseconds") < 0);
+                    const i = student.cells.findIndex(
+                        (cc) => cc.date.until(date).total("milliseconds") < 0,
+                    );
 
                     if (i === -1) student.cells.push(c);
                     else student.cells.splice(i, 0, c);
@@ -75,7 +89,10 @@ export function useTable() {
                     cell = c;
                 }
 
-                const i = cell.records.findIndex(rr => rr.sign_in.until(r1.sign_in).total("milliseconds") < 0);
+                const i = cell.records.findIndex(
+                    (rr) =>
+                        rr.sign_in.until(r1.sign_in).total("milliseconds") < 0,
+                );
 
                 if (i === -1) cell.records.push(r1);
                 else cell.records.splice(i, 0, r1);
@@ -85,9 +102,9 @@ export function useTable() {
             case "UPDATE": {
                 const r0 = data.value
                     .values()
-                    .flatMap(s => s.cells ?? [])
-                    .flatMap(c => c.records)
-                    .find(r => r.id === repl.id);
+                    .flatMap((s) => s.cells ?? [])
+                    .flatMap((c) => c.records)
+                    .find((r) => r.id === repl.id);
 
                 if (!r0) return await fetch();
 
@@ -102,19 +119,28 @@ export function useTable() {
                 const s0 = data.value.get(r0.sid_hashed);
 
                 // remove from old student, if applicable
-                if (!!repl.sid_hashed && r0.sid_hashed !== repl.sid_hashed && s0) {
+                if (
+                    !!repl.sid_hashed &&
+                    r0.sid_hashed !== repl.sid_hashed &&
+                    s0
+                ) {
                     s0.cells ??= [];
 
-                    const d0 = r0.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
-                    const c0 = s0.cells.find(c => c.date.equals(d0))!;
-                    const i0 = c0.records.findIndex(r => r.id === r0.id);
+                    const d0 = r0.sign_in
+                        .withTimeZone(Temporal.Now.timeZoneId())
+                        .toPlainDate();
+                    const c0 = s0.cells.find((c) => c.date.equals(d0))!;
+                    const i0 = c0.records.findIndex((r) => r.id === r0.id);
                     c0.records.splice(i0, 1);
 
                     // add to new student
                     const s1 = data.value.get(repl.sid_hashed);
-                    const c1 = s1?.cells?.find(c => c.date.equals(d0));
-                    const i1 = c1?.records.findIndex(rr => {
-                        return rr.sign_in.until(r1.sign_in).total("milliseconds") > 0;
+                    const c1 = s1?.cells?.find((c) => c.date.equals(d0));
+                    const i1 = c1?.records.findIndex((rr) => {
+                        return (
+                            rr.sign_in.until(r1.sign_in).total("milliseconds") >
+                            0
+                        );
                     });
 
                     if (!s1 || !c1 || i1 === undefined) return await fetch();
@@ -130,9 +156,9 @@ export function useTable() {
             case "DELETE": {
                 const r0 = data.value
                     .values()
-                    .flatMap(s => s.cells ?? [])
-                    .flatMap(c => c.records)
-                    .find(rr => rr.id === repl.pkey);
+                    .flatMap((s) => s.cells ?? [])
+                    .flatMap((c) => c.records)
+                    .find((rr) => rr.id === repl.pkey);
 
                 if (!r0) return await fetch();
 
@@ -140,9 +166,11 @@ export function useTable() {
                 if (!s0) return await fetch();
 
                 s0.cells ??= [];
-                const d0 = r0.sign_in.withTimeZone(Temporal.Now.timeZoneId()).toPlainDate();
-                const c0 = s0.cells.find(c => c.date.equals(d0));
-                const i0 = c0?.records.findIndex(r => r.id === r0.id);
+                const d0 = r0.sign_in
+                    .withTimeZone(Temporal.Now.timeZoneId())
+                    .toPlainDate();
+                const c0 = s0.cells.find((c) => c.date.equals(d0));
+                const i0 = c0?.records.findIndex((r) => r.id === r0.id);
 
                 if (!c0 || i0 === undefined || i0 === -1) return await fetch();
                 c0.records.splice(i0, 1);
@@ -159,7 +187,7 @@ export function useTable() {
         pool.add(api.roster.record.stream, replicate);
     };
 
-    pool.onDisconnect(() => connected.value = false);
+    pool.onDisconnect(() => (connected.value = false));
     connect();
 
     return {

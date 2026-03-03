@@ -5,15 +5,21 @@ let initialized = false;
 export interface WorkerMessage<K extends keyof typeof attendance_crypto> {
     id: number;
     operation: K;
-    args: (typeof attendance_crypto)[K] extends (...args: infer P) => any ? P : never;
+    args: (typeof attendance_crypto)[K] extends (...args: infer P) => any
+        ? P
+        : never;
 }
 
-self.onmessage = async (event: MessageEvent<WorkerMessage<keyof typeof attendance_crypto>>) => {
+self.onmessage = async (
+    event: MessageEvent<WorkerMessage<keyof typeof attendance_crypto>>,
+) => {
     if (!initialized) {
         await attendance_crypto.default();
 
         try {
-            await attendance_crypto.initThreadPool(navigator.hardwareConcurrency || 4);
+            await attendance_crypto.initThreadPool(
+                navigator.hardwareConcurrency || 4,
+            );
         } catch (e) {
             console.error("Failed to initialize thread pool:", e);
             console.warn("Assuming pool is already initialized");

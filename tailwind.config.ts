@@ -34,9 +34,9 @@ const config: Config = {
                 sm: "calc(var(--radius) - 4px)",
             },
             screens: {
-                "max-h-md": { "raw": "(max-height: 647px)" },
-                "h-md": { "raw": "(min-height: 648px)" },
-                "h-lg": { "raw": "(min-height: 1024px)" },
+                "max-h-md": { raw: "(max-height: 647px)" },
+                "h-md": { raw: "(min-height: 648px)" },
+                "h-lg": { raw: "(min-height: 1024px)" },
             },
         },
     },

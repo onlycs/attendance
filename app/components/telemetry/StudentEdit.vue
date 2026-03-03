@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventStudentEdit } from "~/utils/api";
 
-const props = defineProps<{ event: EventStudentEdit; }>();
+const props = defineProps<{ event: EventStudentEdit }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);
@@ -20,10 +20,12 @@ const newFields = decryptFields(creds, crypto, [
 
 const admin = await telemetryAdmin(props.event.admin_id, denied);
 
-const fields = [{
-    title: "Edited By",
-    data: admin!.username,
-}];
+const fields = [
+    {
+        title: "Edited By",
+        data: admin!.username,
+    },
+];
 
 const table = computed(() => [
     {

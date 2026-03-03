@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const props = defineProps<{ duration: number; }>();
+const props = defineProps<{ duration: number }>();
 const remaining = defineModel<number>("timer", { required: true });
-const emit = defineEmits<{ complete: []; }>();
+const emit = defineEmits<{ complete: [] }>();
 
 let rafId: number | null = null;
 let lastTime: number | null = null;

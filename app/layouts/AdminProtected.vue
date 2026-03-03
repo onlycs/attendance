@@ -6,7 +6,7 @@ import DefaultLayout from "./Default.vue";
 const { auth, user } = useAuth();
 const router = useRouter();
 
-const creds = computed<typeof user["value"] & { role: "admin"; }>(() => {
+const creds = computed<(typeof user)["value"] & { role: "admin" }>(() => {
     if (user.value.role !== "admin") return {} as any; // we immediately redirect elsewhere
     return { ...user.value };
 });
@@ -17,8 +17,8 @@ const promise = ref((_a: AdminCreds) => {});
 const route = useRoute();
 
 function exit(
-    usr: typeof user["value"] = user.value,
-): usr is typeof user["value"] & { role: "admin"; } {
+    usr: (typeof user)["value"] = user.value,
+): usr is (typeof user)["value"] & { role: "admin" } {
     usr = user.value;
 
     if (user.value.role === "admin" && user.value.ok) {
@@ -32,7 +32,7 @@ function exit(
     return false;
 }
 
-watch(open, open => {
+watch(open, (open) => {
     if (open) loading.value = false;
 });
 
@@ -42,9 +42,10 @@ watch(
         await sleep(10);
 
         if (
-            user.value.role !== "admin"
-            || user.value.claims.exp < Math.floor(Date.now() / 1000)
-        ) return exit();
+            user.value.role !== "admin" ||
+            user.value.claims.exp < Math.floor(Date.now() / 1000)
+        )
+            return exit();
 
         if (user.value.ok) return;
 
@@ -64,7 +65,7 @@ async function submit(password: string) {
         return;
     }
 
-    setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+    setTimeout(() => (loading.value = false), 500); // prevent flashing the spinner
 }
 
 onMounted(() => {
@@ -110,15 +111,10 @@ const form = computed(() => {
         </div>
 
         <Drawer v-model:open="open" @close="exit">
-            <div class="title">
-                Enter Password to Continue
-            </div>
+            <div class="title">Enter Password to Continue</div>
 
             <div class="form">
-                <Form
-                    :form
-                    v-model:loading="loading"
-                />
+                <Form :form v-model:loading="loading" />
             </div>
         </Drawer>
     </DefaultLayout>

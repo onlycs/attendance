@@ -1,11 +1,7 @@
 <script
     setup
     lang="ts"
-    generic="
-    I extends Items,
-    D extends Deps<I>,
-    B extends FormButton[]
-"
+    generic="I extends Items, D extends Deps<I>, B extends FormButton[]"
 >
 import type { WatchHandle } from "vue";
 import type { Form } from "~/utils/form";
@@ -22,14 +18,13 @@ export interface FormControlInner<I extends Items, B extends FormButton[]> {
     outputs: FormRefs<I>;
 }
 
-export type FormControl<F> = F extends Form<infer I, any, infer B>
-    ? FormControlInner<I, B>
-    : never;
+export type FormControl<F> =
+    F extends Form<infer I, any, infer B> ? FormControlInner<I, B> : never;
 
 type F = Form<I, D, B>;
 
-const { form } = defineProps<{ form: F; class?: string | string[]; }>();
-const emit = defineEmits<{ "update:outputs": [outputs: FormRefs<I>]; }>();
+const { form } = defineProps<{ form: F; class?: string | string[] }>();
+const emit = defineEmits<{ "update:outputs": [outputs: FormRefs<I>] }>();
 const loading = defineModel<boolean>("loading");
 const dirty = defineModel<boolean>("dirty", { default: false });
 
@@ -53,10 +48,16 @@ function collectDefaults(): FormRefs<I> {
         const init = form.defaults[k] ?? null;
         const x = ref(init);
 
-        watchers.push(watch(x, () => {
-            dirty.value = true;
-            emit("update:outputs", outputs);
-        }, { deep: form.items[k]?.isMany() ?? false }));
+        watchers.push(
+            watch(
+                x,
+                () => {
+                    dirty.value = true;
+                    emit("update:outputs", outputs);
+                },
+                { deep: form.items[k]?.isMany() ?? false },
+            ),
+        );
 
         entries.push([k, x]);
     }
@@ -163,7 +164,7 @@ const control: FormControl<F> = {
         }
 
         showErrors.value = false;
-        setTimeout(() => dirty.value = false, 50); // wait for outputs to update
+        setTimeout(() => (dirty.value = false), 50); // wait for outputs to update
     },
     outputs,
 };
@@ -177,7 +178,7 @@ const renderkeys = computed(() => {
                 if (Array.isArray(dep)) return dep.includes(output);
                 return dep === output;
             },
-        )
+        ),
     );
 });
 
@@ -198,20 +199,25 @@ defineExpose(control);
     <template v-if="!loading">
         <div
             v-for="key of renderkeys"
-            :class="cn(
-                'item',
-                form.items[key]!.props['class:container'],
-                $props.class,
-            )"
+            :class="
+                cn(
+                    'item',
+                    form.items[key]!.props['class:container'],
+                    $props.class,
+                )
+            "
             :key
         >
             <label
                 :for="key as string"
-                :class="cn(
-                    'label',
-                    showErrors && errors[key]!.value.length > 0
-                        && '!text-red-400',
-                )"
+                :class="
+                    cn(
+                        'label',
+                        showErrors &&
+                            errors[key]!.value.length > 0 &&
+                            '!text-red-400',
+                    )
+                "
                 v-if="form.items[key]!.props.title"
             >
                 {{ form.items[key]!.props.title }}
@@ -273,12 +279,14 @@ defineExpose(control);
             v-for="button of form.buttons"
             :key="button.form"
             v-bind="button"
-            @click.prevent="() => {
-                if (button.action) button.action();
-                else if (button.form === 'submit') {
-                    submit(button.context as ButtonContext<B>);
-                } else control[button.form]();
-            }"
+            @click.prevent="
+                () => {
+                    if (button.action) button.action();
+                    else if (button.form === 'submit') {
+                        submit(button.context as ButtonContext<B>);
+                    } else control[button.form]();
+                }
+            "
         >
             {{ button.label }}
         </Button>

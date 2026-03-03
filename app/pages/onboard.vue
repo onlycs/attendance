@@ -79,7 +79,7 @@ const form = f.form({
         loading.value = true;
 
         const end = () => {
-            setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
+            setTimeout(() => (loading.value = false), 500); // prevent flashing the spinner
         };
 
         const oldstudents = await api.auth.onboard.start({
@@ -189,11 +189,7 @@ const form = f.form({
 </script>
 <template>
     <div :class="cn('content', loading && 'justify-center')">
-        <Form
-            v-if="!loading"
-            :form
-            class="item"
-        />
+        <Form v-if="!loading" :form class="item" />
         <Spinner v-else class="spinner" />
     </div>
 </template>

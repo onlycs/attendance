@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const open = defineModel<boolean>("open", { required: true });
-const emit = defineEmits<{ close: []; }>();
+const emit = defineEmits<{ close: [] }>();
 
 onMounted(() => {
     const handler = (e: KeyboardEvent) => {
@@ -17,24 +17,28 @@ defineOptions({ inheritAttrs: false });
 <template>
     <DrawerRoot
         :open
-        @close="() => {
-            if (open) {
-                open = false;
-                emit('close');
+        @close="
+            () => {
+                if (open) {
+                    open = false;
+                    emit('close');
+                }
             }
-        }"
+        "
         class="root"
         should-scale-background
     >
         <DrawerPortal>
             <DrawerOverlay
                 class="overlay"
-                @click="() => {
-                    if (open) {
-                        open = false;
-                        emit('close');
+                @click="
+                    () => {
+                        if (open) {
+                            open = false;
+                            emit('close');
+                        }
                     }
-                }"
+                "
             />
 
             <DrawerContent class="dialog" v-bind="$attrs">

@@ -1,36 +1,52 @@
 // Type Gymnastics Utilities
 
-export type { FilterArrayByValue as Filter, Narrow } from "@zodios/core/lib/utils.types";
+export type {
+    FilterArrayByValue as Filter,
+    Narrow,
+} from "@zodios/core/lib/utils.types";
 
 import type { MultiWatchSources } from "@vueuse/core";
-import type { Narrow, OptionalProps, RequiredKeys } from "@zodios/core/lib/utils.types";
+import type {
+    Narrow,
+    OptionalProps,
+    RequiredKeys,
+} from "@zodios/core/lib/utils.types";
 import type { DeepReadonly, WatchSource } from "vue";
 
-export type UnionToIntersection<U> = (U extends never ? never : (k: U) => void) extends (k: infer I) => void ? I
+export type UnionToIntersection<U> = (
+    U extends never ? never : (k: U) => void
+) extends (k: infer I) => void
+    ? I
     : never;
 
-export type LastOf<U> = UnionToIntersection<U extends never ? never : (x: U) => void> extends (x: infer L) => void ? L
-    : never;
+export type LastOf<U> =
+    UnionToIntersection<U extends never ? never : (x: U) => void> extends (
+        x: infer L,
+    ) => void
+        ? L
+        : never;
 
-export type UnionToTuple<T, L = LastOf<T>> = [T] extends [never] ? [] : [...UnionToTuple<Exclude<T, L>>, L];
+export type UnionToTuple<T, L = LastOf<T>> = [T] extends [never]
+    ? []
+    : [...UnionToTuple<Exclude<T, L>>, L];
 
-export type BuildTuple<N extends number, R extends unknown[] = []> = R["length"] extends N ? R
-    : BuildTuple<N, [...R, unknown]>;
+export type BuildTuple<
+    N extends number,
+    R extends unknown[] = [],
+> = R["length"] extends N ? R : BuildTuple<N, [...R, unknown]>;
 
-export type Subtract<
-    A extends number,
-    B extends number
-> = BuildTuple<A> extends [...infer U, ...BuildTuple<B>] ? U["length"] : never;
+export type Subtract<A extends number, B extends number> =
+    BuildTuple<A> extends [...infer U, ...BuildTuple<B>] ? U["length"] : never;
 
 export type LessThan<
     N extends number,
-    R extends unknown[] = []
+    R extends unknown[] = [],
 > = R["length"] extends N ? never : R["length"] | LessThan<N, [...R, unknown]>;
 
 export type FixedArray<
     T,
     N extends number,
-    R extends T[] = []
+    R extends T[] = [],
 > = R["length"] extends N ? R : FixedArray<T, N, [...R, T]>;
 
 export type CountKeys<T> = UnionToTuple<keyof T>["length"];
@@ -39,25 +55,30 @@ export type FilteredKeys<T, V> = {
     [K in keyof T]: T[K] extends V ? K : never;
 }[keyof T];
 
-export type DisplayKeys<T> = FilteredKeys<T, string | boolean | number | null | undefined>;
-
-export type Optionalize<T, K extends keyof T> =
-    & Omit<T, K>
-    & Partial<Pick<T, K>>;
-
-export type SemiPartial<T, K extends keyof T> = Partial<Pick<T, K>>;
-export type UndefinedIfOptional<T> = RequiredKeys<T> extends never ? undefined : T;
-export type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
-
-export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
-export type Merge<A, B> = Prettify<
-    & Pick<A, keyof A>
-    & Pick<B, Exclude<keyof B, keyof A>>
+export type DisplayKeys<T> = FilteredKeys<
+    T,
+    string | boolean | number | null | undefined
 >;
 
-export type ValueIntersection<T> = {
-    [K in keyof T]: (x: T[K]) => void;
-} extends Record<keyof T, (x: infer I) => void> ? I : never;
+export type Optionalize<T, K extends keyof T> = Omit<T, K> &
+    Partial<Pick<T, K>>;
+
+export type SemiPartial<T, K extends keyof T> = Partial<Pick<T, K>>;
+export type UndefinedIfOptional<T> =
+    RequiredKeys<T> extends never ? undefined : T;
+export type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
+
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+export type Merge<A, B> = Prettify<
+    Pick<A, keyof A> & Pick<B, Exclude<keyof B, keyof A>>
+>;
+
+export type ValueIntersection<T> =
+    {
+        [K in keyof T]: (x: T[K]) => void;
+    } extends Record<keyof T, (x: infer I) => void>
+        ? I
+        : never;
 
 export type KeyOf<T> = T extends never ? never : keyof T;
 export type NullPassthrough<T, K> = T extends null | undefined ? T : K;
@@ -102,7 +123,11 @@ export function narrow<T>(a: Narrow<T>): Narrow<T> {
  * @returns the merged object. `a` is not modified.
  */
 export function safeassign<T extends object>(a: T, ...bs: Partial<T>[]): T {
-    const safeBs = bs.map(b => Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)));
+    const safeBs = bs.map((b) =>
+        Object.fromEntries(
+            Object.entries(b).filter(([_, v]) => v !== undefined),
+        ),
+    );
     return Object.assign({}, a, ...safeBs) as T;
 }
 
@@ -120,16 +145,20 @@ export function safeassign<T extends object>(a: T, ...bs: Partial<T>[]): T {
  * @returns the merged object. `a` is modified.
  */
 export function safemut<T extends object>(a: T, ...bs: Partial<T>[]): T {
-    const safeBs = bs.map(b => Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)));
+    const safeBs = bs.map((b) =>
+        Object.fromEntries(
+            Object.entries(b).filter(([_, v]) => v !== undefined),
+        ),
+    );
     return Object.assign(a, ...safeBs) as T;
 }
 
-export function late<T>(): { value: T | null; } {
+export function late<T>(): { value: T | null } {
     return { value: null };
 }
 
-export function lazy<T>(factory: () => T): { get value(): T; } {
-    return new class {
+export function lazy<T>(factory: () => T): { get value(): T } {
+    return new (class {
         private _value: T | null = null;
 
         get value(): T {
@@ -138,7 +167,7 @@ export function lazy<T>(factory: () => T): { get value(): T; } {
             }
             return this._value;
         }
-    }();
+    })();
 }
 
 export type WithUndefined<T extends object> = {
@@ -166,21 +195,27 @@ export function null2undefined(a: any): any {
  * @param f function to wrap
  * @returns a function that returns null if the input is null or undefined
  */
-export function ornull<T, K>(f: (a: T) => K): (a: T | null | undefined) => K | null {
+export function ornull<T, K>(
+    f: (a: T) => K,
+): (a: T | null | undefined) => K | null {
     return (a: T | null | undefined) => {
         if (a === null || a === undefined) return null;
         return f(a);
     };
 }
 
-export function ornullable<T, K>(f: (a: T) => K): <A extends T | null | undefined>(a: A) => NullPassthrough<A, K> {
+export function ornullable<T, K>(
+    f: (a: T) => K,
+): <A extends T | null | undefined>(a: A) => NullPassthrough<A, K> {
     return (a: any) => {
         if (a === null || a === undefined) return a;
         return f(a);
     };
 }
 
-export function undefparam<T>(f: (a: T) => void): T extends undefined ? (a?: T) => void : (a: T) => void {
+export function undefparam<T>(
+    f: (a: T) => void,
+): T extends undefined ? (a?: T) => void : (a: T) => void {
     return ((a: T) => f(a)) as any;
 }
 

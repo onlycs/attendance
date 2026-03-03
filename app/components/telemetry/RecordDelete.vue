@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type EventRecordDelete, HourTypeTitles } from "~/utils/api";
 
-const props = defineProps<{ event: EventRecordDelete; }>();
+const props = defineProps<{ event: EventRecordDelete }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);

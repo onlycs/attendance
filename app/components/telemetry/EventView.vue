@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Event } from "~/utils/api";
-const { event } = defineProps<{ event: Event; }>();
+const { event } = defineProps<{ event: Event }>();
 </script>
 
 <template>

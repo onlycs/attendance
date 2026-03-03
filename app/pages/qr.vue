@@ -14,8 +14,12 @@ const q = {
 };
 
 if (
-    !q.code || !q.issuer || !q.kind || !q.exp || q.exp.match(/^\d+$/) === null
-    || !["build", "learning", "demo", "offseason"].includes(q.kind)
+    !q.code ||
+    !q.issuer ||
+    !q.kind ||
+    !q.exp ||
+    q.exp.match(/^\d+$/) === null ||
+    !["build", "learning", "demo", "offseason"].includes(q.kind)
 ) {
     useRouter().push(redirect.build("/", "bad-qr"));
     throw new Error("Redirecting...");
@@ -31,15 +35,19 @@ const studentId = ref<string | null>(null);
 const currentId = ref("");
 const form = f.studentId({ size: "lg" });
 
-watch(user, (user) => {
-    if (user.role !== "student") {
-        currentId.value = "";
-        studentId.value = null;
-        return;
-    }
+watch(
+    user,
+    (user) => {
+        if (user.role !== "student") {
+            currentId.value = "";
+            studentId.value = null;
+            return;
+        }
 
-    studentId.value = user.id;
-}, { immediate: true });
+        studentId.value = user.id;
+    },
+    { immediate: true },
+);
 
 watch(currentId, (current, last) => {
     const len = current.length === form.props.length;
@@ -100,7 +108,8 @@ async function roster(via: SwipeAction, id?: string, force = false) {
         <Icon name="hugeicons:square-lock-01" class="icon grey" />
         <span class="desc">
             QR code expired
-            <br /> Scan again?
+            <br />
+            Scan again?
         </span>
     </template>
 
@@ -130,7 +139,7 @@ async function roster(via: SwipeAction, id?: string, force = false) {
                 v-model:timer="dt"
                 class="progress"
                 :duration="55"
-                @complete="() => expired = true"
+                @complete="() => (expired = true)"
             />
         </div>
 

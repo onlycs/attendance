@@ -17,7 +17,7 @@ function update(res: PresentResponse) {
 }
 
 const percent = computed(() => {
-    return present.value * 100 / (present.value + absent.value);
+    return (present.value * 100) / (present.value + absent.value);
 });
 const safepercent = computed(() => {
     if (percent.value < 22 || percent.value > 78) return 50;
@@ -43,10 +43,7 @@ useSSE().add(api.roster.present.stream, update);
             </div>
 
             <div class="bar">
-                <div
-                    class="present"
-                    :style="{ width: `${percent}%` }"
-                >
+                <div class="present" :style="{ width: `${percent}%` }">
                     <div class="inner" />
                 </div>
             </div>
@@ -70,7 +67,8 @@ useSSE().add(api.roster.present.stream, update);
 .data {
     @apply flex flex-row;
 
-    .present, .absent {
+    .present,
+    .absent {
         @apply min-w-fit p-2;
         @apply flex flex-col items-center justify-center;
 

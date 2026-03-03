@@ -38,14 +38,17 @@ export namespace Math2 {
     }
 
     export function formatDate(dt: Temporal.ZonedDateTime): string {
-        const local = dt.withTimeZone(Temporal.Now.timeZoneId()).toPlainDateTime().toLocaleString("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-        });
+        const local = dt
+            .withTimeZone(Temporal.Now.timeZoneId())
+            .toPlainDateTime()
+            .toLocaleString("en-US", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+            });
 
         return local;
     }
@@ -65,8 +68,14 @@ export namespace Random {
     }
 
     export function choose<T>(array: T[], rng?: () => number): Option<T>;
-    export function choose<K extends string | number | symbol, V>(object: Record<K, V>, rng?: () => number): Option<V>;
-    export function choose<T>(arrayOrObject: T[] | Record<any, T>, rng = Math.random): Option<T> {
+    export function choose<K extends string | number | symbol, V>(
+        object: Record<K, V>,
+        rng?: () => number,
+    ): Option<V>;
+    export function choose<T>(
+        arrayOrObject: T[] | Record<any, T>,
+        rng = Math.random,
+    ): Option<T> {
         if (Array.isArray(arrayOrObject)) {
             if (arrayOrObject.length === 0) return None;
             const idx = range(0, arrayOrObject.length, false, rng);
@@ -76,7 +85,9 @@ export namespace Random {
             if (keys.length === 0) return None;
             const idx = range(0, keys.length, false, rng);
             const key = keys[idx];
-            return Option.ofNullable(arrayOrObject[key as keyof typeof arrayOrObject]);
+            return Option.ofNullable(
+                arrayOrObject[key as keyof typeof arrayOrObject],
+            );
         }
     }
 }
@@ -112,15 +123,31 @@ export class hex {
 export const sha256 = (a: string) => _sha256(a).toString();
 export const cuid2 = () => createId();
 
-export function sortNames(first1: string, first2: string, last1: string, last2: string): number;
+export function sortNames(
+    first1: string,
+    first2: string,
+    last1: string,
+    last2: string,
+): number;
 export function sortNames(full1: string, full2: string): number;
 export function sortNames(s1: Student, s2: Student): number;
 
-export function sortNames(...args: FixedArray<string, 2> | FixedArray<string, 4> | FixedArray<Student, 2>): number {
-    const isStudent = (arg: any): arg is FixedArray<Student, 2> => typeof arg[0] === "object";
+export function sortNames(
+    ...args:
+        | FixedArray<string, 2>
+        | FixedArray<string, 4>
+        | FixedArray<Student, 2>
+): number {
+    const isStudent = (arg: any): arg is FixedArray<Student, 2> =>
+        typeof arg[0] === "object";
 
     if (isStudent(args)) {
-        return sortNames(args[0].first, args[1].first, args[0].last, args[1].last);
+        return sortNames(
+            args[0].first,
+            args[1].first,
+            args[0].last,
+            args[1].last,
+        );
     }
 
     let f1, f2, l1, l2;

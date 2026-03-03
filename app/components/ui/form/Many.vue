@@ -9,9 +9,9 @@ export interface Props<I extends ItemMany> {
 
 type Output = ItemOutput<I["base"]>[];
 const props = defineProps<Props<I>>();
-const ret: ModelRef<any[], string, any[], any[]> = defineModel<Output>(
-    { default: [] },
-);
+const ret: ModelRef<any[], string, any[], any[]> = defineModel<Output>({
+    default: [],
+});
 
 onMounted(() => {
     if (!ret.value) ret.value = [] as Output;
@@ -21,15 +21,8 @@ onMounted(() => {
 <template>
     <div class="root">
         <div class="wrapper" v-for="(output, i) of ret">
-            <Button
-                kind="danger"
-                class="trash"
-                @click="ret.splice(i, 1)"
-            >
-                <Icon
-                    name="hugeicons:delete-02"
-                    size="20"
-                />
+            <Button kind="danger" class="trash" @click="ret.splice(i, 1)">
+                <Icon name="hugeicons:delete-02" size="20" />
             </Button>
 
             <Select
@@ -85,14 +78,8 @@ onMounted(() => {
             /> -->
         </div>
 
-        <Button
-            kind="secondary-drop"
-            @click="ret.push(null)"
-        >
-            <Icon
-                name="hugeicons:add-01"
-                size="20"
-            />
+        <Button kind="secondary-drop" @click="ret.push(null)">
+            <Icon name="hugeicons:add-01" size="20" />
         </Button>
     </div>
 </template>

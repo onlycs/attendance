@@ -3,7 +3,7 @@ import { Math2 } from "~/utils/math";
 
 export type Renderable = string | number | boolean;
 
-defineProps<{ title: string; value: Renderable; value2?: Renderable; }>();
+defineProps<{ title: string; value: Renderable; value2?: Renderable }>();
 
 const display = ornullable((value: string | number | boolean) => {
     if (typeof value === "string") return value;
@@ -22,7 +22,8 @@ const display = ornullable((value: string | number | boolean) => {
 <style scoped>
 @reference "~/style/tailwind.css";
 
-.title, .value {
+.title,
+.value {
     @apply flex justify-center items-center;
 }
 

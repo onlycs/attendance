@@ -1,4 +1,10 @@
-import { DrawerContent, DrawerHandle, DrawerOverlay, DrawerPortal, DrawerRoot } from "vaul-vue";
+import {
+    DrawerContent,
+    DrawerHandle,
+    DrawerOverlay,
+    DrawerPortal,
+    DrawerRoot,
+} from "vaul-vue";
 
 export default defineNuxtPlugin((app) => {
     app.vueApp.component("DrawerRoot", DrawerRoot);

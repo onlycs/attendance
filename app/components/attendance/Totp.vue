@@ -8,30 +8,36 @@ const crypto = useCrypto();
 const code = defineModel<string>("code", { required: true });
 const totp = ref<TotpResponse | null>(null);
 const issuer = ref<string | null>(null);
-const { kind } = defineProps<{ kind: HourType; }>();
+const { kind } = defineProps<{ kind: HourType }>();
 
-watch(user, (creds) => {
-    if (creds.role !== "admin" || !creds.ok) {
-        totp.value = null;
-        return;
-    }
-
-    issuer.value = creds.claims.sub;
-    api.roster.totp({
-        body: { hour_type: kind },
-    }).then((res) => {
-        if (!res.data) {
-            return api.error(res.error, res.response);
-        }
-
-        if (user.value.role !== "admin" || !user.value.ok) {
+watch(
+    user,
+    (creds) => {
+        if (creds.role !== "admin" || !creds.ok) {
             totp.value = null;
             return;
         }
 
-        totp.value = res.data;
-    });
-}, { immediate: true });
+        issuer.value = creds.claims.sub;
+        api.roster
+            .totp({
+                body: { hour_type: kind },
+            })
+            .then((res) => {
+                if (!res.data) {
+                    return api.error(res.error, res.response);
+                }
+
+                if (user.value.role !== "admin" || !user.value.ok) {
+                    totp.value = null;
+                    return;
+                }
+
+                totp.value = res.data;
+            });
+    },
+    { immediate: true },
+);
 
 if (!totp) {
     useRouter().push(redirect.build("/dashboard"));
@@ -58,35 +64,38 @@ watch(totp, refresh);
 
 const qr = ref<string | null>(null);
 
-watch([code, issuer, totp], async ([code, issuer, totp]) => {
-    if (!totp || !issuer || code === "") {
-        qr.value = null;
-        return;
-    }
+watch(
+    [code, issuer, totp],
+    async ([code, issuer, totp]) => {
+        if (!totp || !issuer || code === "") {
+            qr.value = null;
+            return;
+        }
 
-    const { host, protocol: proto } = window.location;
-    const now_sec = Math.floor(Date.now() / 1000);
-    const exp = now_sec + timer.value + 25; // could+should be +30, but I want a server buffer
+        const { host, protocol: proto } = window.location;
+        const now_sec = Math.floor(Date.now() / 1000);
+        const exp = now_sec + timer.value + 25; // could+should be +30, but I want a server buffer
 
-    const blob = await new Qr({
-        width: 512,
-        height: 512,
-        data:
-            `${proto}//${host}/qr?code=${code}&issuer=${issuer}&kind=${kind}&exp=${exp}`,
-        dotsOptions: {
-            color: "#fff",
-            type: "rounded",
-        },
-        cornersDotOptions: { color: "#fff" },
-        cornersSquareOptions: { color: "#fff" },
-        backgroundOptions: { color: "#171717" },
-    }).getRawData("png") as Blob | null;
+        const blob = (await new Qr({
+            width: 512,
+            height: 512,
+            data: `${proto}//${host}/qr?code=${code}&issuer=${issuer}&kind=${kind}&exp=${exp}`,
+            dotsOptions: {
+                color: "#fff",
+                type: "rounded",
+            },
+            cornersDotOptions: { color: "#fff" },
+            cornersSquareOptions: { color: "#fff" },
+            backgroundOptions: { color: "#171717" },
+        }).getRawData("png")) as Blob | null;
 
-    if (!blob) return;
-    if (qr.value) URL.revokeObjectURL(qr.value);
+        if (!blob) return;
+        if (qr.value) URL.revokeObjectURL(qr.value);
 
-    qr.value = URL.createObjectURL(blob);
-}, { immediate: true });
+        qr.value = URL.createObjectURL(blob);
+    },
+    { immediate: true },
+);
 
 onMounted(refresh);
 </script>
@@ -95,11 +104,7 @@ onMounted(refresh);
     <template v-if="qr">
         <div class="vline" />
 
-        <NuxtImg
-            :src="qr"
-            alt="TOTP QR Code"
-            class="qr"
-        />
+        <NuxtImg :src="qr" alt="TOTP QR Code" class="qr" />
 
         <TimedProgress
             v-model:timer="timer"

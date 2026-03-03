@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventInviteUse } from "~/utils/api";
 
-const props = defineProps<{ event: EventInviteUse; }>();
+const props = defineProps<{ event: EventInviteUse }>();
 const denied = ref(false);
 
 const invitee = await telemetryAdmin(props.event.invitee_id, denied);

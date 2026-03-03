@@ -43,19 +43,27 @@ function updateSliderPosition() {
 const container = ref<HTMLElement>();
 
 onMounted(() => {
-    watch([nth, buttons], () => {
-        updateSliderPosition();
-    }, { immediate: true });
+    watch(
+        [nth, buttons],
+        () => {
+            updateSliderPosition();
+        },
+        { immediate: true },
+    );
 
     new ResizeObserver(updateSliderPosition).observe(container.value!);
 });
 
-watch(selected, () => {
-    if (selected.value === null) {
-        const firstKey = Object.keys(props.kv)[0] as K;
-        selected.value = firstKey;
-    }
-}, { immediate: true });
+watch(
+    selected,
+    () => {
+        if (selected.value === null) {
+            const firstKey = Object.keys(props.kv)[0] as K;
+            selected.value = firstKey;
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -68,18 +76,25 @@ watch(selected, () => {
         }"
     >
         <Button
-            v-for="([key, label], i) of Object.entries($props.kv) as [K, string][]"
-            :class="cn(
-                'option',
-                selected === key && 'selected',
-                $props['class:btn'],
-            )"
+            v-for="([key, label], i) of Object.entries($props.kv) as [
+                K,
+                string,
+            ][]"
+            :class="
+                cn(
+                    'option',
+                    selected === key && 'selected',
+                    $props['class:btn'],
+                )
+            "
             class:active="!rounded-sm"
             class:hover="!rounded-sm"
             class:content="px-4"
-            :ref="(el) => {
-                if (el) buttons[i] = el as any;
-            }"
+            :ref="
+                (el) => {
+                    if (el) buttons[i] = el as any;
+                }
+            "
             :key
             @click="(_: unknown) => select(key)"
         >

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventAdminDelete } from "~/utils/api";
 
-const props = defineProps<{ event: EventAdminDelete; }>();
+const props = defineProps<{ event: EventAdminDelete }>();
 const denied = ref(false);
 
 const admin = await telemetryAdmin(props.event.admin_id, denied);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const DIGIT_HEIGHT = 36;
 
-const props = defineProps<{ index: number; }>();
+const props = defineProps<{ index: number }>();
 const digits = inject<Ref<number[]>>("digits")!;
 const digit = computed(() => digits.value[props.index] ?? 0);
 const inactive = ref(true);
@@ -9,7 +9,7 @@ const translate = computed(() => {
     return inactive.value ? 0 : -digit.value * DIGIT_HEIGHT;
 });
 
-onMounted(() => setTimeout(() => inactive.value = false, 10));
+onMounted(() => setTimeout(() => (inactive.value = false), 10));
 </script>
 
 <template>
@@ -38,7 +38,9 @@ onMounted(() => setTimeout(() => inactive.value = false, 10));
     @apply w-5 h-9;
     @apply transition-all;
 
-    transition: transform 0.5s, opacity 0.3s;
+    transition:
+        transform 0.5s,
+        opacity 0.3s;
 
     &.inactive {
         @apply opacity-0;

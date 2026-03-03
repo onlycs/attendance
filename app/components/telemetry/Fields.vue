@@ -6,13 +6,13 @@ export interface FieldEntry<T extends Renderable = Renderable> {
     data: T;
 }
 
-defineProps<{ data: FieldEntry[]; }>();
+defineProps<{ data: FieldEntry[] }>();
 </script>
 
 <template>
     <div class="content">
         <TelemetryField
-            v-for="({ title, data }) of $props.data"
+            v-for="{ title, data } of $props.data"
             :title
             :value="data"
         />

@@ -1,25 +1,25 @@
 import type { HourType, Permissions, TelemetryEvent } from "./hey/types.gen";
 
 export const PermissionTitles: Record<keyof Permissions, string> = {
-    "student_add": "Add Students",
-    "student_delete": "Remove Students",
-    "student_view": "View Students",
-    "student_edit": "Edit Students",
-    "roster": "Start Attendance",
-    "admin_delete": "Delete Admins",
-    "admin_invite": "Invite Admins",
-    "admin_view": "View Admins",
-    "telemetry": "View Telemetry",
-    "hours_view": "View Hours",
-    "hours_edit": "Edit Hours",
-    "admin_edit": "Edit Admins",
+    student_add: "Add Students",
+    student_delete: "Remove Students",
+    student_view: "View Students",
+    student_edit: "Edit Students",
+    roster: "Start Attendance",
+    admin_delete: "Delete Admins",
+    admin_invite: "Invite Admins",
+    admin_view: "View Admins",
+    telemetry: "View Telemetry",
+    hours_view: "View Hours",
+    hours_edit: "Edit Hours",
+    admin_edit: "Edit Admins",
 };
 
 export const HourTypeTitles: Record<HourType, string> = {
-    "build": "Build",
-    "learning": "Learning",
-    "demo": "Outreach",
-    "offseason": "Offseason",
+    build: "Build",
+    learning: "Learning",
+    demo: "Outreach",
+    offseason: "Offseason",
 };
 
 export const EventTypeTitles = {

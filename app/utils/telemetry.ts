@@ -10,7 +10,9 @@ export const TELEMETRY_DATE_FMT: Intl.DateTimeFormatOptions = {
 };
 
 export const datefmt = ornullable((apistr: string) => {
-    return api.datetime.parse(apistr).toLocaleString("en-US", TELEMETRY_DATE_FMT);
+    return api.datetime
+        .parse(apistr)
+        .toLocaleString("en-US", TELEMETRY_DATE_FMT);
 });
 
 export const studentName = ornullable((student: Student) => {
@@ -32,30 +34,34 @@ export const decryptedStudent = (
 ) => {
     const student = ref<Student | null>(null);
 
-    watch(creds, async (creds) => {
-        if (!creds) return;
-        if (!sid_hashed) return;
+    watch(
+        creds,
+        async (creds) => {
+            if (!creds) return;
+            if (!sid_hashed) return;
 
-        const res = await api.student.query({
-            path: { id_hashed: sid_hashed },
-        });
+            const res = await api.student.query({
+                path: { id_hashed: sid_hashed },
+            });
 
-        if (!res.data) denied.value = true;
-        else student.value = res.data ?? null;
+            if (!res.data) denied.value = true;
+            else student.value = res.data ?? null;
 
-        if (student.value) {
-            const decrypted = await crypto.decrypt(
-                [student.value.id, student.value.first, student.value.last],
-                hex.asbytes(creds.k1),
-            );
+            if (student.value) {
+                const decrypted = await crypto.decrypt(
+                    [student.value.id, student.value.first, student.value.last],
+                    hex.asbytes(creds.k1),
+                );
 
-            if (decrypted) {
-                student.value.id = decrypted[0];
-                student.value.first = decrypted[1];
-                student.value.last = decrypted[2];
+                if (decrypted) {
+                    student.value.id = decrypted[0];
+                    student.value.first = decrypted[1];
+                    student.value.last = decrypted[2];
+                }
             }
-        }
-    }, { immediate: true });
+        },
+        { immediate: true },
+    );
 
     return student;
 };
@@ -67,16 +73,20 @@ export const decryptFields = (
 ) => {
     const values = ref<string[]>(fields.map(() => ""));
 
-    watch(creds, async (creds) => {
-        if (!creds) return;
+    watch(
+        creds,
+        async (creds) => {
+            if (!creds) return;
 
-        const decrypted = await crypto.decrypt(
-            fields,
-            hex.asbytes(creds.k1),
-        );
+            const decrypted = await crypto.decrypt(
+                fields,
+                hex.asbytes(creds.k1),
+            );
 
-        if (decrypted) values.value = decrypted;
-    }, { immediate: true });
+            if (decrypted) values.value = decrypted;
+        },
+        { immediate: true },
+    );
 
     return values;
 };

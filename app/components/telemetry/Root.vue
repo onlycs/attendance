@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ denied: boolean; }>();
+defineProps<{ denied: boolean }>();
 </script>
 
 <template>

@@ -4,32 +4,49 @@ import { toast } from "vue-sonner";
 import client from "~/utils/api/client";
 import { client as hclient } from "~/utils/api/hey/client.gen";
 
-function parsedatetime<T extends string | null | undefined>(dt: T): NullPassthrough<T, Temporal.ZonedDateTime> {
-    if (dt === null || dt === undefined) return dt as NullPassthrough<T, Temporal.ZonedDateTime>;
+function parsedatetime<T extends string | null | undefined>(
+    dt: T,
+): NullPassthrough<T, Temporal.ZonedDateTime> {
+    if (dt === null || dt === undefined)
+        return dt as NullPassthrough<T, Temporal.ZonedDateTime>;
     const tz = Temporal.Now.timeZoneId();
 
     try {
         // Try parsing as ZonedDateTime first (has timezone info)
-        return Temporal.ZonedDateTime.from(dt) as NullPassthrough<T, Temporal.ZonedDateTime>;
+        return Temporal.ZonedDateTime.from(dt) as NullPassthrough<
+            T,
+            Temporal.ZonedDateTime
+        >;
     } catch {
         try {
             // Try parsing as Instant (ends with Z or has offset)
             const instant = Temporal.Instant.from(dt);
-            return instant.toZonedDateTimeISO(tz) as NullPassthrough<T, Temporal.ZonedDateTime>;
+            return instant.toZonedDateTimeISO(tz) as NullPassthrough<
+                T,
+                Temporal.ZonedDateTime
+            >;
         } catch {
             // Fall back to PlainDateTime (no timezone info)
             const plain = Temporal.PlainDateTime.from(dt);
-            return plain.toZonedDateTime(tz) as NullPassthrough<T, Temporal.ZonedDateTime>;
+            return plain.toZonedDateTime(tz) as NullPassthrough<
+                T,
+                Temporal.ZonedDateTime
+            >;
         }
     }
 }
 
-function serdatetime<T extends MaybeNone<Temporal.ZonedDateTime>>(dt: T): NullPassthrough<T, string> {
-    if (dt === null || dt === undefined) return dt as NullPassthrough<T, string>;
+function serdatetime<T extends MaybeNone<Temporal.ZonedDateTime>>(
+    dt: T,
+): NullPassthrough<T, string> {
+    if (dt === null || dt === undefined)
+        return dt as NullPassthrough<T, string>;
     return dt.toInstant().toString() as NullPassthrough<T, string>;
 }
 
-function parseplaindate<T extends string | null>(d: T): NullPassthrough<T, Temporal.PlainDate> {
+function parseplaindate<T extends string | null>(
+    d: T,
+): NullPassthrough<T, Temporal.PlainDate> {
     if (d === null) return null as NullPassthrough<T, Temporal.PlainDate>;
     return Temporal.PlainDate.from(d) as NullPassthrough<T, Temporal.PlainDate>;
 }
@@ -39,7 +56,7 @@ function serplaindate(d: Temporal.PlainDate): string {
 }
 
 export interface ApiToastOptions {
-    handle401?: "redirect" | { message: string; } | "api-message";
+    handle401?: "redirect" | { message: string } | "api-message";
     handle: Record<number, ((err: string) => void) | undefined>;
 }
 
@@ -86,7 +103,7 @@ export type ApiClient = NuxtApp["$api"];
 
 export default defineNuxtPlugin(() => {
     const config = useRuntimeConfig();
-    const url = config.public.apiUrl as string ?? "http://localhost:8080";
+    const url = (config.public.apiUrl as string) ?? "http://localhost:8080";
 
     hclient.setConfig({
         baseUrl: url,

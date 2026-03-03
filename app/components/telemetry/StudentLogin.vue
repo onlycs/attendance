@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventStudentLogin } from "~/utils/api";
 
-const props = defineProps<{ event: EventStudentLogin; }>();
+const props = defineProps<{ event: EventStudentLogin }>();
 const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);

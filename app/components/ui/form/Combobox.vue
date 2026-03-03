@@ -16,16 +16,15 @@ const inputbox = ref<InstanceType<typeof Input>>();
 const active = ref(false);
 
 const reversed = computed<Record<string, K>>(() => {
-    return Object.fromEntries(
-        Object.entries(props.kv).map(([k, v]) => [v, k]),
-    );
+    return Object.fromEntries(Object.entries(props.kv).map(([k, v]) => [v, k]));
 });
 
-const items = computed(() =>
-    Object.values<string>(props.kv).sort((a, b) => {
-        if (props.compare) return props.compare(a, b);
-        return a.localeCompare(b);
-    }) as string[]
+const items = computed(
+    () =>
+        Object.values<string>(props.kv).sort((a, b) => {
+            if (props.compare) return props.compare(a, b);
+            return a.localeCompare(b);
+        }) as string[],
 );
 
 const indisplay = ref(selected.value ? props.kv[selected.value] : "");
@@ -112,9 +111,7 @@ function typewatch(ev: string) {
                 v-if="active"
                 class="dropdown"
                 :style="{
-                    top: `${
-                        10 + (container?.offsetHeight ?? 0)
-                    }px`,
+                    top: `${10 + (container?.offsetHeight ?? 0)}px`,
                 }"
             >
                 <div
@@ -130,10 +127,7 @@ function typewatch(ev: string) {
                     <template v-else>
                         <span
                             v-for="(char, i) of item.item"
-                            :class="cn(
-                                item.positions.has(i)
-                                    && 'text-red-300',
-                            )"
+                            :class="cn(item.positions.has(i) && 'text-red-300')"
                             :key="char"
                         >
                             {{ char }}
@@ -141,11 +135,7 @@ function typewatch(ev: string) {
                     </template>
 
                     <div
-                        :class="cn(
-                            'hover',
-                            keyselect === index
-                                && 'selected',
-                        )"
+                        :class="cn('hover', keyselect === index && 'selected')"
                     />
                 </div>
 

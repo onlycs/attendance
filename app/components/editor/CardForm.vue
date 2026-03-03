@@ -6,84 +6,84 @@ import { f } from "~/utils/form";
 import { Math2 } from "~/utils/math";
 import type { FormControl } from "../ui/form/Form.vue";
 
-const form = f.form(
-    {
-        items: {
-            kind: f.hourtype.any(),
-            sign_in: f.time({
-                title: "Sign In",
-                icon: "hugeicons:login-02",
-                color: "green",
-            }),
-            sign_out: f.time({
-                title: "Sign Out",
-                icon: "hugeicons:logout-02",
-                color: "red",
-            }),
-        },
-        validate(submission) {
-            const { sign_in, sign_out } = submission;
-            const dt = sign_in.until(sign_out);
+const form = f.form({
+    items: {
+        kind: f.hourtype.any(),
+        sign_in: f.time({
+            title: "Sign In",
+            icon: "hugeicons:login-02",
+            color: "green",
+        }),
+        sign_out: f.time({
+            title: "Sign Out",
+            icon: "hugeicons:logout-02",
+            color: "red",
+        }),
+    },
+    validate(submission) {
+        const { sign_in, sign_out } = submission;
+        const dt = sign_in.until(sign_out);
 
-            if (dt.total({ unit: "minutes" }) <= 0) {
-                return [{
+        if (dt.total({ unit: "minutes" }) <= 0) {
+            return [
+                {
                     field: "sign_out",
                     message: "Sign out must be after sign in",
-                }];
-            }
+                },
+            ];
+        }
 
-            return [];
-        },
-        async submit(submission) {
-            const entry = props.entry;
-
-            const end = (ok: boolean) => {
-                dirty.value = !ok;
-                setTimeout(() => loading.value = false, 500); // prevent flashing the spinner
-            };
-
-            const toLocal = (dt: Temporal.ZonedDateTime) => {
-                return dt.withTimeZone(Temporal.Now.timeZoneId());
-            };
-
-            const toUTC = (dt: Temporal.ZonedDateTime) => {
-                return dt.withTimeZone("UTC");
-            };
-
-            const assign = (
-                dt: Temporal.ZonedDateTime,
-                tod: Temporal.PlainTime,
-            ) => {
-                return api.datetime.ser(toUTC(toLocal(dt).withPlainTime(tod)));
-            };
-
-            const patched = {
-                id: entry.id,
-                hour_type: submission.kind,
-                sign_in: assign(entry.sign_in, submission.sign_in),
-                sign_out: entry.sign_out
-                    ? assign(entry.sign_out, submission.sign_out)
-                    : assign(entry.sign_in, submission.sign_out),
-            };
-
-            loading.value = true;
-
-            const res = await api.roster.record.update({
-                body: patched,
-            });
-
-            if (!res.data) {
-                api.error(res.error, res.response);
-                end(false);
-                return;
-            }
-
-            end(true);
-        },
+        return [];
     },
-);
+    async submit(submission) {
+        const entry = props.entry;
 
-const props = defineProps<{ entry: AttendanceRecord; }>();
+        const end = (ok: boolean) => {
+            dirty.value = !ok;
+            setTimeout(() => (loading.value = false), 500); // prevent flashing the spinner
+        };
+
+        const toLocal = (dt: Temporal.ZonedDateTime) => {
+            return dt.withTimeZone(Temporal.Now.timeZoneId());
+        };
+
+        const toUTC = (dt: Temporal.ZonedDateTime) => {
+            return dt.withTimeZone("UTC");
+        };
+
+        const assign = (
+            dt: Temporal.ZonedDateTime,
+            tod: Temporal.PlainTime,
+        ) => {
+            return api.datetime.ser(toUTC(toLocal(dt).withPlainTime(tod)));
+        };
+
+        const patched = {
+            id: entry.id,
+            hour_type: submission.kind,
+            sign_in: assign(entry.sign_in, submission.sign_in),
+            sign_out: entry.sign_out
+                ? assign(entry.sign_out, submission.sign_out)
+                : assign(entry.sign_in, submission.sign_out),
+        };
+
+        loading.value = true;
+
+        const res = await api.roster.record.update({
+            body: patched,
+        });
+
+        if (!res.data) {
+            api.error(res.error, res.response);
+            end(false);
+            return;
+        }
+
+        end(true);
+    },
+});
+
+const props = defineProps<{ entry: AttendanceRecord }>();
 const dirty = ref(false);
 const control = ref<FormControl<typeof form>>();
 const loading = ref(false);
@@ -153,17 +153,10 @@ async function del(id: string) {
             </Button>
         </div>
 
-        <div
-            :class="cn(
-                'label',
-                dirty && 'italic',
-            )"
-        >
+        <div :class="cn('label', dirty && 'italic')">
             {{ entryLabel($props.entry) }}
 
-            <span v-if="dirty" class="not-italic">
-                •
-            </span>
+            <span v-if="dirty" class="not-italic"> • </span>
         </div>
     </div>
 

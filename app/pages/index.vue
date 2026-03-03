@@ -7,70 +7,65 @@ const router = useRouter();
 const loading = ref(false);
 const mobile = useMobile();
 
-const form = f.form(
-    {
-        items: {
-            who: f.select(
-                {
-                    student: "Student",
-                    admin: "Admin",
-                },
-                { "class:container": "select" },
-            ),
-            username: f.username({
-                "class:container": "username",
-            }),
-            password: f.password.current({
-                "class:container": "password",
-            }),
-            studentid: f.studentId({
-                size: "lg",
-                "class:container": "studentid",
-            }),
-        },
-        buttons: [
+const form = f.form({
+    items: {
+        who: f.select(
             {
-                form: "submit",
-                label: "Continue",
-                class: "submit",
-                kind: "primary",
+                student: "Student",
+                admin: "Admin",
             },
-        ],
-        deps: {
-            username: {
-                who: "admin",
-            },
-            password: {
-                who: "admin",
-            },
-            studentid: {
-                who: "student",
-            },
+            { "class:container": "select" },
+        ),
+        username: f.username({
+            "class:container": "username",
+        }),
+        password: f.password.current({
+            "class:container": "password",
+        }),
+        studentid: f.studentId({
+            size: "lg",
+            "class:container": "studentid",
+        }),
+    },
+    buttons: [
+        {
+            form: "submit",
+            label: "Continue",
+            class: "submit",
+            kind: "primary",
         },
-        async submit(output) {
-            const end = () => {
-                setTimeout(() => {
-                    loading.value = false;
-                }, 500); // prevent flashing the spinner
-            };
-
-            loading.value = true;
-
-            if (output.who === "admin") {
-                const { ok } = await auth.admin(
-                    output.username,
-                    output.password,
-                );
-
-                if (!ok) return end();
-                if (!mobile.value) router.push("/dashboard");
-                else router.push("/attendance");
-            } else {
-                toast.warning("Student login is not implemented yet.");
-            }
+    ],
+    deps: {
+        username: {
+            who: "admin",
+        },
+        password: {
+            who: "admin",
+        },
+        studentid: {
+            who: "student",
         },
     },
-);
+    async submit(output) {
+        const end = () => {
+            setTimeout(() => {
+                loading.value = false;
+            }, 500); // prevent flashing the spinner
+        };
+
+        loading.value = true;
+
+        if (output.who === "admin") {
+            const { ok } = await auth.admin(output.username, output.password);
+
+            if (!ok) return end();
+            if (!mobile.value) router.push("/dashboard");
+            else router.push("/attendance");
+        } else {
+            toast.warning("Student login is not implemented yet.");
+        }
+    },
+});
 </script>
 <template>
     <Require
@@ -80,11 +75,7 @@ const form = f.form(
         }"
     />
     <div :class="cn('content', loading && 'justify-center')">
-        <Form
-            :form
-            v-model:loading="loading"
-            class="item"
-        />
+        <Form :form v-model:loading="loading" class="item" />
     </div>
 </template>
 <style scoped>

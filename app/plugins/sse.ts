@@ -11,19 +11,22 @@ export default defineNuxtPlugin(() => {
     }
 
     const OnDisconnects: [string, () => unknown][] = [
-        [cuid2(), () => t = { ab: new AbortController() }],
+        [cuid2(), () => (t = { ab: new AbortController() })],
     ];
 
     function onDisconnect() {
         OnDisconnects.forEach(([_, f]) => f());
         if (OnDisconnects.length === 1) {
-            toast.error("Lost connection to the server. Please reload the page", { duration: Infinity });
+            toast.error(
+                "Lost connection to the server. Please reload the page",
+                { duration: Infinity },
+            );
             return;
         }
     }
 
     async function inner<T>(
-        ctor: () => Promise<{ stream: AsyncGenerator<T[]>; }>,
+        ctor: () => Promise<{ stream: AsyncGenerator<T[]> }>,
         f: (data: T) => MaybePromise<unknown>,
     ) {
         if (!t) return;
@@ -54,15 +57,23 @@ export default defineNuxtPlugin(() => {
                 const timeout = (tries + 1) * 5000;
 
                 // we grant all simultaneously-disconnected threads a chill pill
-                t.reconnection = sleep(timeout).then(() => t!.reconnection = undefined);
+                t.reconnection = sleep(timeout).then(
+                    () => (t!.reconnection = undefined),
+                );
 
                 const timer = defineComponent({
                     setup() {
                         const countdown = ref(timeout / 1000);
-                        const ctr = setInterval(() => countdown.value -= 1, 1000);
+                        const ctr = setInterval(
+                            () => (countdown.value -= 1),
+                            1000,
+                        );
                         onUnmounted(() => clearInterval(ctr));
                         return () =>
-                            h("span", `Lost connection with the server. Trying again in ${countdown.value} seconds`);
+                            h(
+                                "span",
+                                `Lost connection with the server. Trying again in ${countdown.value} seconds`,
+                            );
                     },
                 });
 
@@ -77,7 +88,7 @@ export default defineNuxtPlugin(() => {
     }
 
     function add<T>(
-        stream: () => Promise<{ stream: AsyncGenerator<T[]>; }>,
+        stream: () => Promise<{ stream: AsyncGenerator<T[]> }>,
         handler: (data: T) => MaybePromise<unknown>,
     ) {
         if (!t) {
