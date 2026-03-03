@@ -11,7 +11,7 @@ const props = withDefaults(
     },
 );
 
-const pdate = defineModel<Temporal.PlainDate | null>("date", { default: null });
+const pdate = defineModel<Temporal.PlainDate | null>({ default: null });
 const tdate = ref(pdate.value ?? Temporal.PlainDate.from("1972-01-01")); // would have done 1970 but need leap year or temporal clamps
 const vis = ref(pdate.value ? 8 : 0);
 

@@ -10,7 +10,7 @@ export interface SelectProps<K extends PropertyKey> {
 const props = withDefaults(defineProps<SelectProps<K>>(), {
     rows: 1,
 });
-const selected = defineModel<K | null>("selected", {
+const selected = defineModel<K | null>({
     required: true,
     default: null,
 });

@@ -42,7 +42,7 @@ watch(selected, async (sid_hashed) => {
 
 <template>
     <WidgetRoot class="widget" :required="['student_view']">
-        <Combobox v-bind="box.props" v-model:selected="selected" />
+        <Combobox v-bind="box.props" v-model="selected" />
 
         <div v-if="loading" class="loading">
             <Spinner class="size-32" />

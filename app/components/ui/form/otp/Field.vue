@@ -12,7 +12,7 @@ export type OTPFieldProps = {
 } & Omit<OTPSlotProps, "isActive" | "char" | "hasFakeCaret" | "hidden">;
 
 defineProps<OTPFieldProps>();
-defineModel<string>("otp", { required: true });
+defineModel<string>({ required: true });
 </script>
 
 <template>
@@ -21,8 +21,8 @@ defineModel<string>("otp", { required: true });
         :maxlength="$props.length"
         :inputmode="$props.type ?? 'numeric'"
         :pattern="$props.type === 'numeric' ? Numeric : Text"
-        :model-value="otp ?? ''"
-        @update:model-value="(val) => $emit('update:otp', val)"
+        :model-value="modelValue ?? ''"
+        @update:model-value="(val) => $emit('update:modelValue', val)"
         autocomplete="off"
         spellcheck="false"
     >

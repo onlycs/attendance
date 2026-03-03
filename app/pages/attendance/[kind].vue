@@ -110,7 +110,7 @@ useCleanup().add(auth.clearsession);
                 </label>
                 <OTPField
                     v-bind="studentId.props"
-                    v-model:otp="currentId"
+                    v-model="currentId"
                 />
             </div>
         </div>

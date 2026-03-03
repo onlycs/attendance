@@ -109,7 +109,7 @@ async function roster(via: SwipeAction, id?: string, force = false) {
             <span class="sub">Student ID</span>
             <OTPField
                 v-bind="form.props"
-                v-model:otp="currentId"
+                v-model="currentId"
                 v-if="!studentId"
             />
         </div>

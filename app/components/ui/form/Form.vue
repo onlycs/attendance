@@ -220,7 +220,7 @@ defineExpose(control);
             <Select
                 v-if="form.items[key]!.isSelect()"
                 v-bind="form.items[key]!.props"
-                v-model:selected="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <Input
@@ -232,31 +232,31 @@ defineExpose(control);
             <OTPField
                 v-else-if="form.items[key]!.isOTP()"
                 v-bind="form.items[key]!.props"
-                v-model:otp="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <DatePicker
                 v-else-if="form.items[key]!.isDate()"
                 v-bind="form.items[key]!.props"
-                v-model:date="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <TimePicker
                 v-else-if="form.items[key]!.isTime()"
                 v-bind="form.items[key]!.props"
-                v-model:time="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <Combobox
                 v-else-if="form.items[key]!.isCombobox()"
                 v-bind="form.items[key]!.props"
-                v-model:selected="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <Many
                 v-else-if="form.items[key]!.isMany()"
                 :item="form.items[key]!"
-                v-model:value="(outputs as any)[key].value"
+                v-model="(outputs as any)[key].value"
             />
 
             <div class="w-2" v-if="showErrors">

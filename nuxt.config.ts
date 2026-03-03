@@ -1,4 +1,5 @@
 import tailwind from "@tailwindcss/vite";
+import { HourTypeTitles } from "./app/utils/api/strings";
 
 export default defineNuxtConfig({
     app: {
@@ -34,6 +35,9 @@ export default defineNuxtConfig({
                     "Cross-Origin-Opener-Policy": "same-origin",
                 },
             },
+        },
+        prerender: {
+            routes: Object.keys(HourTypeTitles).map(type => `/attendance/${type}`),
         },
     },
     devtools: { enabled: false },

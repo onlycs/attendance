@@ -10,7 +10,6 @@ export interface Props<I extends ItemMany> {
 type Output = ItemOutput<I["base"]>[];
 const props = defineProps<Props<I>>();
 const ret: ModelRef<any[], string, any[], any[]> = defineModel<Output>(
-    "value",
     { default: [] },
 );
 
@@ -36,43 +35,43 @@ onMounted(() => {
             <Select
                 v-if="$props.item.base.isSelect()"
                 v-bind="$props.item.base.props"
-                :selected="output"
-                @update:selected="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <Input
                 v-else-if="$props.item.base.isInput()"
                 v-bind="$props.item.base.props"
-                :selected="output"
-                @update:selected="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <OTPField
                 v-else-if="$props.item.base.isOTP()"
                 v-bind="$props.item.base.props"
-                :otp="output"
-                @update:otp="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <DatePicker
                 v-else-if="$props.item.base.isDate()"
                 v-bind="$props.item.base.props"
-                :date="output"
-                @update:date="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <TimePicker
                 v-else-if="$props.item.base.isTime()"
                 v-bind="$props.item.base.props"
-                :time="output"
-                @update:time="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <Combobox
                 v-else-if="$props.item.base.isCombobox()"
                 v-bind="$props.item.base.props"
-                :selected="output"
-                @update:selected="ret[i] = $event ?? null"
+                :model-value="output"
+                @update:model-value="ret[i] = $event ?? null"
             />
 
             <!--
@@ -82,7 +81,7 @@ onMounted(() => {
             <!-- <Many
                 v-else-if="$props.item.base.isMany()"
                 :item="$props.item.base"
-                v-model:value="output"
+                v-model="output"
             /> -->
         </div>
 

@@ -9,7 +9,7 @@ export interface ComboboxProps<Key extends PropertyKey> {
 }
 
 const props = defineProps<ComboboxProps<K>>();
-const selected = defineModel<K | null>("selected", { required: true });
+const selected = defineModel<K | null>({ required: true });
 
 const container = ref<HTMLDivElement>();
 const inputbox = ref<InstanceType<typeof Input>>();
