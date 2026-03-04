@@ -1,5 +1,6 @@
 import type { Temporal } from "temporal-polyfill";
 import { type ZodTemporal, zPlainDate, zPlainTime } from "temporal-zod";
+import { type Component, defineAsyncComponent } from "vue";
 import { z } from "zod";
 import type { $ZodCheckLengthEqualsDef } from "zod/v4/core";
 import type { ComboboxProps } from "~/components/ui/form/Combobox.vue";
@@ -22,6 +23,7 @@ export abstract class ItemBase<
         public key: K,
         public props: P & ItemProps,
         public zod: Z,
+        public readonly component: Component,
     ) {}
 
     abstract copy(): this;
@@ -74,7 +76,14 @@ export class ItemInput extends ItemBase<
         props: InputProps & ItemProps = {},
         zod: z.ZodType<string> = z.string(),
     ) {
-        super("input", props, zod);
+        super(
+            "input",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/Input.vue"),
+            ),
+        );
     }
 
     static build(
@@ -94,7 +103,14 @@ export class ItemOTP extends ItemBase<"otp", OTPFieldProps, z.ZodType<string>> {
         props: OTPFieldProps & ItemProps,
         zod: z.ZodType<string> = z.string(),
     ) {
-        super("otp", props, zod);
+        super(
+            "otp",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/otp/Field.vue"),
+            ),
+        );
     }
 
     static build(
@@ -126,7 +142,14 @@ export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
     Z
 > {
     private constructor(props: SelectProps<z.output<Z>> & ItemProps, zod: Z) {
-        super("select", props, zod);
+        super(
+            "select",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/Select.vue"),
+            ),
+        );
     }
 
     static build<T extends Record<string, string>>(
@@ -155,7 +178,14 @@ export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
     Z
 > {
     private constructor(props: ComboboxProps<z.output<Z>> & ItemProps, zod: Z) {
-        super("combobox", props, zod);
+        super(
+            "combobox",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/Combobox.vue"),
+            ),
+        );
     }
 
     static build<T extends Record<string, string>>(
@@ -188,7 +218,14 @@ export class ItemDate extends ItemBase<
         props: InstantPickerProps & ItemProps,
         zod: ZodTemporal<typeof Temporal.PlainDate>,
     ) {
-        super("date", props, zod);
+        super(
+            "date",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/DatePicker.vue"),
+            ),
+        );
     }
 
     static build(
@@ -212,7 +249,14 @@ export class ItemTime extends ItemBase<
         props: InstantPickerProps & ItemProps,
         zod: ZodTemporal<typeof Temporal.PlainTime>,
     ) {
-        super("time", props, zod);
+        super(
+            "time",
+            props,
+            zod,
+            defineAsyncComponent(
+                () => import("~/components/ui/form/TimePicker.vue"),
+            ),
+        );
     }
 
     static build(
@@ -232,9 +276,17 @@ export class ItemMany<
     P = unknown,
     Z extends z.ZodType = z.ZodType,
     A extends ItemBase<K, P, Z> = ItemBase<K, P, Z>,
-> extends ItemBase<"many", P, z.ZodArray<Z>> {
+> extends ItemBase<"many", { item: A }, z.ZodArray<Z>> {
     constructor(public base: A) {
-        super("many", base.props, z.array(base.zod));
+        super(
+            "many",
+            {
+                ...base.props,
+                item: base,
+            },
+            z.array(base.zod),
+            defineAsyncComponent(() => import("~/components/ui/form/Many.vue")),
+        );
     }
 
     copy(): this {

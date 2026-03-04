@@ -208,62 +208,33 @@ defineExpose(control);
             "
             :key
         >
-            <label
-                :for="key as string"
-                :class="
-                    cn(
-                        'label',
-                        showErrors &&
-                            errors[key]!.value.length > 0 &&
-                            '!text-red-400',
-                    )
-                "
-                v-if="form.items[key]!.props.title"
+            <slot
+                name="item"
+                :props="form.items[key]!.props as unknown"
+                :component="form.items[key]!.component"
+                :model="(outputs as any)[key] as Ref<unknown>"
             >
-                {{ form.items[key]!.props.title }}
-            </label>
+                <label
+                    :for="key as string"
+                    :class="
+                        cn(
+                            'label',
+                            showErrors &&
+                                errors[key]!.value.length > 0 &&
+                                '!text-red-400',
+                        )
+                    "
+                    v-if="form.items[key]!.props.title"
+                >
+                    {{ form.items[key]!.props.title }}
+                </label>
 
-            <Select
-                v-if="form.items[key]!.isSelect()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <Input
-                v-else-if="form.items[key]!.isInput()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <OTPField
-                v-else-if="form.items[key]!.isOTP()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <DatePicker
-                v-else-if="form.items[key]!.isDate()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <TimePicker
-                v-else-if="form.items[key]!.isTime()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <Combobox
-                v-else-if="form.items[key]!.isCombobox()"
-                v-bind="form.items[key]!.props"
-                v-model="(outputs as any)[key].value"
-            />
-
-            <Many
-                v-else-if="form.items[key]!.isMany()"
-                :item="form.items[key]!"
-                v-model="(outputs as any)[key].value"
-            />
+                <component
+                    :is="form.items[key]!.component"
+                    v-bind="form.items[key]!.props"
+                    v-model="(outputs as any)[key].value"
+                />
+            </slot>
 
             <div class="w-2" v-if="showErrors">
                 <div class="errors" v-if="errors[key]!.value.length > 0">

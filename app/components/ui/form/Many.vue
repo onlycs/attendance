@@ -1,13 +1,13 @@
-<script setup lang="ts" generic="I extends ItemMany">
+<script setup lang="ts" generic="I extends ItemBase">
 import type { ModelRef } from "vue";
-import type { ItemMany } from "~/utils/form/item";
+import type { ItemBase } from "~/utils/form/item";
 import type { ItemOutput } from "~/utils/form/output";
 
-export interface Props<I extends ItemMany> {
+export interface Props<I extends ItemBase> {
     item: I;
 }
 
-type Output = ItemOutput<I["base"]>[];
+type Output = ItemOutput<I>[];
 const props = defineProps<Props<I>>();
 const ret: ModelRef<any[], string, any[], any[]> = defineModel<Output>({
     default: [],
@@ -26,43 +26,43 @@ onMounted(() => {
             </Button>
 
             <Select
-                v-if="$props.item.base.isSelect()"
-                v-bind="$props.item.base.props"
+                v-if="$props.item.isSelect()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
 
             <Input
-                v-else-if="$props.item.base.isInput()"
-                v-bind="$props.item.base.props"
+                v-else-if="$props.item.isInput()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
 
             <OTPField
-                v-else-if="$props.item.base.isOTP()"
-                v-bind="$props.item.base.props"
+                v-else-if="$props.item.isOTP()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
 
             <DatePicker
-                v-else-if="$props.item.base.isDate()"
-                v-bind="$props.item.base.props"
+                v-else-if="$props.item.isDate()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
 
             <TimePicker
-                v-else-if="$props.item.base.isTime()"
-                v-bind="$props.item.base.props"
+                v-else-if="$props.item.isTime()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
 
             <Combobox
-                v-else-if="$props.item.base.isCombobox()"
-                v-bind="$props.item.base.props"
+                v-else-if="$props.item.isCombobox()"
+                v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
@@ -72,8 +72,8 @@ onMounted(() => {
             but who the fuck is actually going to need this
             -->
             <!-- <Many
-                v-else-if="$props.item.base.isMany()"
-                :item="$props.item.base"
+                v-else-if="$props.item.isMany()"
+                :item="$props.item"
                 v-model="output"
             /> -->
         </div>
