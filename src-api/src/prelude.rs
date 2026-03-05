@@ -38,6 +38,7 @@ impl DateTimeExt for chrono::DateTime<Utc> {
 pub(crate) enum Tag {
     Admin,
     Auth,
+    HourType,
     Roster,
     Student,
     Telemetry,

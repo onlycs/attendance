@@ -24,6 +24,7 @@ pub fn oai(pg: PgPool) -> OpenApiService<impl OpenApi, ()> {
         (
             admin::AdminService::new(pg.clone()),
             auth::AuthService::new(pg.clone()),
+            roster::HourTypeService::new(pg.clone()),
             roster::RosterService::new(pg.clone()),
             student::StudentService::new(pg.clone()),
             telemetry::TelemetryService::new(pg.clone()),

@@ -25,57 +25,12 @@ onMounted(() => {
                 <Icon name="hugeicons:delete-02" size="20" />
             </Button>
 
-            <Select
-                v-if="$props.item.isSelect()"
+            <component
+                :is="$props.item.component"
                 v-bind="$props.item.props"
                 :model-value="output"
                 @update:model-value="ret[i] = $event ?? null"
             />
-
-            <Input
-                v-else-if="$props.item.isInput()"
-                v-bind="$props.item.props"
-                :model-value="output"
-                @update:model-value="ret[i] = $event ?? null"
-            />
-
-            <OTPField
-                v-else-if="$props.item.isOTP()"
-                v-bind="$props.item.props"
-                :model-value="output"
-                @update:model-value="ret[i] = $event ?? null"
-            />
-
-            <DatePicker
-                v-else-if="$props.item.isDate()"
-                v-bind="$props.item.props"
-                :model-value="output"
-                @update:model-value="ret[i] = $event ?? null"
-            />
-
-            <TimePicker
-                v-else-if="$props.item.isTime()"
-                v-bind="$props.item.props"
-                :model-value="output"
-                @update:model-value="ret[i] = $event ?? null"
-            />
-
-            <Combobox
-                v-else-if="$props.item.isCombobox()"
-                v-bind="$props.item.props"
-                :model-value="output"
-                @update:model-value="ret[i] = $event ?? null"
-            />
-
-            <!--
-            I don't actually believe the following will work correctly,
-            but who the fuck is actually going to need this
-            -->
-            <!-- <Many
-                v-else-if="$props.item.isMany()"
-                :item="$props.item"
-                v-model="output"
-            /> -->
         </div>
 
         <Button kind="secondary-drop" @click="ret.push(null)">
@@ -89,7 +44,7 @@ onMounted(() => {
 
 .root {
     @apply flex flex-col;
-    @apply bg-drop p-2 gap-2 rounded-lg;
+    @apply gap-2 rounded-lg bg-drop p-2;
     @apply w-full;
 }
 
@@ -98,7 +53,7 @@ onMounted(() => {
     grid-template-columns: auto 1fr;
 
     .trash {
-        @apply h-full aspect-square;
+        @apply aspect-square h-full;
     }
 }
 </style>

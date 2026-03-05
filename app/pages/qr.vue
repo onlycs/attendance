@@ -158,8 +158,8 @@ async function roster(via: SwipeAction, id?: string, force = false) {
     display: grid;
     grid-template-rows: auto 1fr 1fr auto;
 
-    @apply w-full h-full;
-    @apply p-2 gap-2;
+    @apply h-full w-full;
+    @apply gap-2 p-2;
 }
 
 .progress {
@@ -167,15 +167,15 @@ async function roster(via: SwipeAction, id?: string, force = false) {
 }
 
 .big {
-    @apply w-full h-full! bg-drop! rounded-lg!;
+    @apply h-full! w-full rounded-lg! bg-drop!;
 }
 
 .small {
-    @apply w-full h-full!;
+    @apply h-full! w-full;
 }
 
 .icon {
-    @apply w-16 h-16;
+    @apply h-16 w-16;
 
     &.green {
         @apply text-green-500;
@@ -191,10 +191,10 @@ async function roster(via: SwipeAction, id?: string, force = false) {
 }
 
 .sub {
-    @apply relative text-xs text-sub ml-2;
+    @apply relative ml-2 text-xs text-sub;
 }
 
 .desc {
-    @apply mt-2 text-sub select-none text-center;
+    @apply mt-2 text-center text-sub select-none;
 }
 </style>

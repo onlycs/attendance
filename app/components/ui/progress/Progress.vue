@@ -27,11 +27,11 @@ const width = computed(() => ({
 @reference "~/style/tailwind.css";
 
 .outer {
-    @apply bg-drop w-[32rem] h-8 rounded-[4px] overflow-hidden p-1.5;
+    @apply h-8 w-[32rem] overflow-hidden rounded-[4px] bg-drop p-1.5;
 }
 
 .inner {
-    @apply bg-text rounded-[3px] w-0 h-5;
+    @apply h-5 w-0 rounded-[3px] bg-text;
     @apply transition-all duration-300;
     @apply will-change-[width];
 

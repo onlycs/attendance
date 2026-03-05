@@ -2,25 +2,38 @@
 import { Temporal } from "temporal-polyfill";
 import type { InstantPickerProps } from "./TimePicker.vue";
 
-const props = withDefaults(defineProps<InstantPickerProps>(), {
+export interface DatePickerProps extends InstantPickerProps {
+    omitYear?: boolean;
+}
+
+const props = withDefaults(defineProps<DatePickerProps>(), {
     icon: "hugeicons:calendar-03",
     color: "gray",
     background: "bg",
+    omitYear: false,
 });
+
+const DIGITS = 8;
+const DIGITS_VISIBLE = props.omitYear ? 4 : DIGITS;
+type DIGITS = typeof DIGITS;
 
 const pdate = defineModel<Temporal.PlainDate | null>({ default: null });
 const tdate = ref(pdate.value ?? Temporal.PlainDate.from("1972-01-01")); // would have done 1970 but need leap year or temporal clamps
-const vis = ref(pdate.value ? 8 : 0);
-
-const DIGITS = 8;
-type DIGITS = typeof DIGITS;
+const vis = ref(pdate.value ? DIGITS_VISIBLE : 0);
 
 const date = computed({
     get: () => pdate.value ?? tdate.value,
     set: (v) => {
-        if (vis.value >= DIGITS) pdate.value = v;
+        if (vis.value >= DIGITS_VISIBLE) pdate.value = v;
         else tdate.value = v;
     },
+});
+
+watch(pdate, (pdate) => {
+    if (!pdate) {
+        vis.value = 0;
+        tdate.value = Temporal.PlainDate.from("1972-01-01");
+    }
 });
 
 function digit(
@@ -169,17 +182,17 @@ const datestr = computed(() => {
         return narrow([n >= vis.value ? "-" : String(digits[n]!.value), sep]);
     };
 
-    return Array.from({ length: DIGITS }, (_, i) => display(i));
+    return Array.from({ length: DIGITS_VISIBLE }, (_, i) => display(i));
 });
 
 watch(vis, (vis, old) => {
-    if (vis === DIGITS && old < DIGITS) {
+    if (vis === DIGITS_VISIBLE && old < DIGITS_VISIBLE) {
         pdate.value = tdate.value;
     }
 });
 
 watch(active, (active) => {
-    if (active >= DIGITS) end();
+    if (active >= DIGITS_VISIBLE) end();
 });
 </script>
 
@@ -224,23 +237,23 @@ watch(active, (active) => {
 
 .input {
     @apply relative;
-    @apply flex flex-row justify-center items-center;
-    @apply bg-drop rounded-lg p-3 pl-0.5;
+    @apply flex flex-row items-center justify-center;
+    @apply rounded-lg bg-drop p-3 pl-0.5;
     @apply select-none;
     @apply transition-all duration-150;
 }
 
 .display {
-    @apply flex relative flex-row gap-1;
+    @apply relative flex flex-row gap-1;
     @apply select-none;
 }
 
 .text {
-    @apply text-lg py-1;
+    @apply py-1 text-lg;
     @apply transition-all duration-150;
 
     &.sel {
-        @apply border rounded-xs px-1.5;
+        @apply rounded-xs border px-1.5;
         @apply duration-100;
 
         &.active {
@@ -279,7 +292,7 @@ watch(active, (active) => {
 }
 
 .hidden-input {
-    @apply absolute w-1 h-1;
+    @apply absolute h-1 w-1;
     @apply opacity-0;
 
     &:focus {

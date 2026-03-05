@@ -137,12 +137,12 @@ useCleanup().add(auth.clearsession);
     grid-row: span 2;
 
     @apply relative flex flex-col items-center justify-center;
-    @apply bg-drop rounded-md;
+    @apply rounded-md bg-drop;
     @apply max-md:w-full md:w-[24rem] lg:w-[32rem] xl:w-[36rem];
     @apply max-md:h-[32rem] md:h-[20rem] lg:h-[24rem] xl:h-[28rem];
 
     .label {
-        @apply text-sub text-sm ml-2 mb-0.5;
+        @apply mb-0.5 ml-2 text-sm text-sub;
     }
 }
 
@@ -161,8 +161,7 @@ useCleanup().add(auth.clearsession);
 }
 
 .form-container {
-    @apply absolute top-1/2 left-1/2 -translate-x-1/2
-        translate-y-[calc(-50%+1rem)];
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+1rem)];
 }
 
 .dialog {
@@ -174,7 +173,7 @@ useCleanup().add(auth.clearsession);
 
     .buttons {
         @apply flex flex-col gap-4;
-        @apply w-full max-md:px-8 md:w-96 mt-8;
+        @apply mt-8 w-full max-md:px-8 md:w-96;
 
         button {
             @apply w-full;

@@ -96,6 +96,6 @@ const xLabels = computed(() =>
 }
 
 .title {
-    @apply text-sm w-full mb-2;
+    @apply mb-2 w-full text-sm;
 }
 </style>

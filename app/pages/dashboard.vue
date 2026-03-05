@@ -72,7 +72,7 @@ onMounted(() => {
 @reference "~/style/tailwind.css";
 
 :deep(.page) {
-    @apply w-full h-full;
+    @apply h-full w-full;
     @apply flex flex-row gap-2;
 }
 

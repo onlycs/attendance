@@ -83,14 +83,14 @@ onUnmounted(() => {
 .drag-container {
     @apply absolute -top-11 -left-11 p-2;
     @apply flex items-center justify-center;
-    @apply rounded-lg bg-drop border border-border;
+    @apply rounded-lg border border-border bg-drop;
     @apply cursor-move;
 }
 
 .close-container {
     @apply absolute -top-0 -left-11 p-2;
     @apply flex items-center justify-center;
-    @apply rounded-lg bg-drop border border-border;
+    @apply rounded-lg border border-border bg-drop;
     @apply cursor-pointer;
 }
 

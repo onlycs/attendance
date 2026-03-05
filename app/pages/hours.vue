@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { api, error, type Hours, type HourType } from "~/utils/api";
+import { api, type Hours, type HourType } from "~/utils/api";
 import { Math2 } from "~/utils/math";
 
 const hours = ref<Hours | null>(null);
@@ -108,7 +108,7 @@ onMounted(async () => {
         </div>
 
         <div
-            class="data select-none cursor-not-allowed !bg-black/75 col-span-2"
+            class="data col-span-2 cursor-not-allowed !bg-black/75 select-none"
         >
             N/A
         </div>
@@ -130,14 +130,14 @@ onMounted(async () => {
     }
 
     .data {
-        @apply flex justify-center items-center;
-        @apply px-8 py-6 bg-drop;
+        @apply flex items-center justify-center;
+        @apply bg-drop px-8 py-6;
         @apply text-lg md:text-xl;
     }
 
     .header {
-        @apply flex justify-center items-center;
-        @apply px-8 py-6 bg-card;
+        @apply flex items-center justify-center;
+        @apply bg-card px-8 py-6;
         @apply text-2xl font-semibold select-none;
 
         &.top {
@@ -155,8 +155,8 @@ onMounted(async () => {
 
     .button {
         @apply col-span-4;
-        @apply flex flex-row justify-center items-center gap-4;
-        @apply px-8 py-6 text-2xl !rounded-t-sm;
+        @apply flex flex-row items-center justify-center gap-4;
+        @apply !rounded-t-sm px-8 py-6 text-2xl;
     }
 
     div {

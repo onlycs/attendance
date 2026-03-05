@@ -38,15 +38,15 @@ const fmt = (h: number) => {
 
 .container {
     @apply flex flex-row items-center justify-between gap-2;
-    @apply p-0 pt-px -mr-2 w-[calc(100%+0.5rem)];
+    @apply -mr-2 w-[calc(100%+0.5rem)] p-0 pt-px;
 }
 
 .icon {
-    @apply w-6 h-6 m-0;
+    @apply m-0 h-6 w-6;
 }
 
 .button {
     @apply flex items-center justify-center;
-    @apply p-0 w-8 h-8;
+    @apply h-8 w-8 p-0;
 }
 </style>

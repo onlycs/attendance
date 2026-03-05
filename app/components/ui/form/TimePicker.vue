@@ -29,6 +29,13 @@ const time = computed({
     },
 });
 
+watch(ptime, (ptime) => {
+    if (!ptime) {
+        vis.value = 0;
+        ttime.value = Temporal.PlainTime.from("00:00:00");
+    }
+});
+
 function digit(
     getter: () => number,
     setter: (n: number) => void,
@@ -238,8 +245,8 @@ watch(active, (active) => {
 
 .input {
     @apply relative;
-    @apply flex flex-row justify-center items-center;
-    @apply bg-drop rounded-lg p-3 pl-0.5;
+    @apply flex flex-row items-center justify-center;
+    @apply rounded-lg bg-drop p-3 pl-0.5;
     @apply select-none;
     @apply transition-all duration-150;
 }
@@ -250,11 +257,11 @@ watch(active, (active) => {
 }
 
 .text {
-    @apply text-lg py-1;
+    @apply py-1 text-lg;
     @apply transition-all duration-150;
 
     &.sel {
-        @apply border rounded-xs px-1.5;
+        @apply rounded-xs border px-1.5;
         @apply duration-100;
 
         &.active {
@@ -293,7 +300,7 @@ watch(active, (active) => {
 }
 
 .hidden-input {
-    @apply absolute w-1 h-1;
+    @apply absolute h-1 w-1;
     @apply opacity-0;
 
     &:focus {

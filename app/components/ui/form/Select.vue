@@ -113,11 +113,11 @@ watch(
 <style scoped>
 @reference "~/style/tailwind.css";
 .select {
-    @apply grid w-full h-fit;
-    @apply p-2 bg-drop rounded-lg gap-2 relative;
+    @apply grid h-fit w-full;
+    @apply relative gap-2 rounded-lg bg-drop p-2;
 
     .option {
-        @apply active:scale-100! duration-75! md:h-10 h-12;
+        @apply h-12 duration-75! active:scale-100! md:h-10;
         @apply relative z-10 bg-transparent mix-blend-difference;
 
         &.selected {
@@ -128,8 +128,8 @@ watch(
 
     .overlay {
         @apply absolute top-2 left-2;
-        @apply h-[calc(3rem)] md:h-[calc(2.5rem)] transition-all duration-200;
-        @apply bg-white rounded-sm z-0;
+        @apply h-[calc(3rem)] transition-all duration-200 md:h-[calc(2.5rem)];
+        @apply z-0 rounded-sm bg-white;
     }
 }
 </style>

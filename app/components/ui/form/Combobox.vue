@@ -161,20 +161,20 @@ function typewatch(ev: string) {
 
 .dropdown-enter-from,
 .dropdown-leave-to {
-    @apply opacity-0 -translate-y-2;
+    @apply -translate-y-2 opacity-0;
 }
 
 .dropdown {
-    @apply absolute w-full max-h-52 overflow-y-scroll;
-    @apply bg-card rounded-lg drop-shadow-xl;
-    @apply flex flex-col p-2 gap-2 z-50 text-sm;
+    @apply absolute max-h-52 w-full overflow-y-scroll;
+    @apply rounded-lg bg-card drop-shadow-xl;
+    @apply z-50 flex flex-col gap-2 p-2 text-sm;
 
     .item:not(.sub) {
-        @apply py-2 px-3 rounded-md relative;
+        @apply relative rounded-md px-3 py-2;
         @apply scroll-my-3;
 
         .hover {
-            @apply absolute top-0 left-0 w-full h-full;
+            @apply absolute top-0 left-0 h-full w-full;
             @apply rounded-md bg-transparent;
             @apply hover:bg-white/5;
 
@@ -185,7 +185,7 @@ function typewatch(ev: string) {
     }
 
     .item.sub {
-        @apply py-1 px-2 text-sm text-sub italic;
+        @apply px-2 py-1 text-sm text-sub italic;
     }
 
     ::-webkit-scrollbar-track {

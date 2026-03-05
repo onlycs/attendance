@@ -88,12 +88,12 @@ const form = f.form({
     /* desktop styles (md or above) */
     @apply md:w-[32rem] lg:w-[52rem];
     @apply h-md:min-h-[24rem] h-lg:min-h-[34rem];
-    @apply h-md:md:bg-card h-md:md:rounded-lg;
+    @apply h-md:md:rounded-lg h-md:md:bg-card;
     @apply h-md:gap-6 h-lg:gap-12;
 
     /* mobile styles (below md) */
-    @apply max-md:w-full max-md:h-full;
-    @apply max-h-md:w-full max-h-md:h-full;
+    @apply max-md:h-full max-md:w-full;
+    @apply max-h-md:h-full max-h-md:w-full;
 }
 </style>
 <style>
@@ -111,7 +111,7 @@ const form = f.form({
         }
 
         &.studentid {
-            @apply justify-center w-fit!;
+            @apply w-fit! justify-center;
         }
 
         &.username {

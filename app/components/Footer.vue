@@ -42,16 +42,16 @@
 @reference "~/style/tailwind.css";
 
 .footer {
-    @apply bottom-0 right-0 w-screen shrink-0;
-    @apply max-md:h-8 h-10;
-    @apply flex flex-row items-center px-4 justify-between;
+    @apply right-0 bottom-0 w-screen shrink-0;
+    @apply h-10 max-md:h-8;
+    @apply flex flex-row items-center justify-between px-4;
     @apply bg-drop;
     @apply z-50;
 }
 
 .section {
     @apply flex flex-row items-center;
-    @apply max-md:gap-2 gap-3;
+    @apply gap-3 max-md:gap-2;
     @apply h-full;
 }
 
@@ -64,11 +64,11 @@
 }
 
 .linkbox {
-    @apply w-[18px] h-[18px];
+    @apply h-[18px] w-[18px];
     @apply text-white;
 
     .icon {
-        @apply w-[18px] h-[18px];
+        @apply h-[18px] w-[18px];
     }
 }
 

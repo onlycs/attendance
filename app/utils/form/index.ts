@@ -5,7 +5,7 @@ import type { SelectProps } from "~/components/ui/form/Select.vue";
 import type { HourType } from "../api";
 import api, { HourTypeTitles } from "../api";
 import type { ButtonContext, FormButton } from "./button";
-import type { DepMerge, Deps } from "./deps";
+import type { Deps } from "./deps";
 import {
     type ItemBase,
     ItemCombobox,
@@ -15,10 +15,9 @@ import {
     type ItemProps,
     type Items,
     ItemSelect,
-    type ItemsMerge,
     ItemTime,
 } from "./item";
-import type { FormOutput, FormOutputLoose, ItemOutput } from "./output";
+import type { FormOutput, FormOutputLoose } from "./output";
 
 export type FormError<I extends Items> = {
     field: keyof I & string;

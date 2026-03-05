@@ -293,16 +293,16 @@ defineExpose({ Dropdown: EditorDropdown });
 @reference "~/style/tailwind.css";
 
 .page {
-    @apply flex flex-col relative gap-2;
-    @apply w-full h-full;
+    @apply relative flex flex-col gap-2;
+    @apply h-full w-full;
 }
 
 .table-container {
     @apply flex flex-row;
-    @apply flex-1 min-h-0;
+    @apply min-h-0 flex-1;
 
     .table {
-        @apply w-full h-full;
+        @apply h-full w-full;
     }
 }
 
@@ -322,10 +322,10 @@ defineExpose({ Dropdown: EditorDropdown });
 
 .loading {
     .title {
-        @apply text-4xl fixed top-[35%];
+        @apply fixed top-[35%] text-4xl;
     }
 
-    @apply flex items-center justify-center flex-col gap-3;
+    @apply flex flex-col items-center justify-center gap-3;
     @apply text-xl;
     @apply absolute top-[62%];
 

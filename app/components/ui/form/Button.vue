@@ -62,14 +62,14 @@ defineExpose({
 @reference "~/style/tailwind.css";
 
 .button {
-    @apply relative md:h-12 h-14;
+    @apply relative h-14 md:h-12;
     @apply w-full rounded-md p-2;
     @apply cursor-pointer;
     @apply active:scale-95 active:duration-300;
     @apply transition-all duration-200;
 
     &.disabled {
-        @apply opacity-50 cursor-not-allowed;
+        @apply cursor-not-allowed opacity-50;
         @apply active:scale-100;
     }
 
@@ -112,17 +112,17 @@ defineExpose({
     .hover {
         @apply absolute inset-0 rounded-md bg-transparent;
         @apply transition-all duration-200;
-        @apply group-hover/button:duration-300 group-hover/button:bg-white/5;
+        @apply group-hover/button:bg-white/5 group-hover/button:duration-300;
     }
 
     .active {
         @apply absolute inset-0 rounded-md bg-transparent;
         @apply transition-all duration-200;
-        @apply group-active/button:duration-300 group-active/button:bg-black/20;
+        @apply group-active/button:bg-black/20 group-active/button:duration-300;
     }
 
     .content {
-        @apply z-10 relative;
+        @apply relative z-10;
         @apply flex flex-row items-center justify-center;
     }
 }

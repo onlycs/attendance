@@ -7,12 +7,13 @@ import type { WatchHandle } from "vue";
 import type { Form } from "~/utils/form";
 import type { ButtonContext, FormButton } from "~/utils/form/button";
 import type { Deps } from "~/utils/form/deps";
-import type { Items } from "~/utils/form/item";
+import { ItemMany, type Items } from "~/utils/form/item";
 import type { FormRefs } from "~/utils/form/output";
 import { type UndefParam, undefparam } from "~/utils/gymnastics";
 
 export interface FormControlInner<I extends Items, B extends FormButton[]> {
     cancel: () => void;
+    clear: () => void;
     submit: UndefParam<ButtonContext<B>>;
     reset: () => void;
     outputs: FormRefs<I>;
@@ -55,7 +56,7 @@ function collectDefaults(): FormRefs<I> {
                     dirty.value = true;
                     emit("update:outputs", outputs);
                 },
-                { deep: form.items[k]?.isMany() ?? false },
+                { deep: form.items[k] instanceof ItemMany },
             ),
         );
 
@@ -156,10 +157,19 @@ const control: FormControl<F> = {
     submit: undefparam(submit),
     reset: () => {
         for (const k of keys) {
-            if (!form.items[k]?.isSelect() || form.defaults[k] !== undefined) {
+            if (form.defaults[k] !== undefined) {
                 outputs[k]!.value = form.defaults[k] ?? null;
             }
 
+            errors[k]!.value = [];
+        }
+
+        showErrors.value = false;
+        setTimeout(() => (dirty.value = false), 50); // wait for outputs to update
+    },
+    clear: () => {
+        for (const k of keys) {
+            outputs[k]!.value = null;
             errors[k]!.value = [];
         }
 
@@ -269,25 +279,25 @@ defineExpose(control);
 @reference "~/style/tailwind.css";
 
 .item {
-    @apply flex flex-col w-full;
+    @apply flex w-full flex-col;
 
     .label {
-        @apply text-sub text-sm ml-2 mb-0.5;
+        @apply mb-0.5 ml-2 text-sm text-sub;
     }
 }
 
 .errors {
-    @apply flex flex-col gap-2 ml-1;
+    @apply ml-1 flex flex-col gap-2;
     @apply mt-1 w-fit p-3;
     @apply rounded-md bg-red-500/10;
 
     .error {
         .icon {
-            @apply inline-block w-5 h-5;
+            @apply inline-block h-5 w-5;
         }
 
         @apply flex items-center gap-2;
-        @apply w-fit text-red-400 text-sm whitespace-nowrap;
+        @apply w-fit text-sm whitespace-nowrap text-red-400;
     }
 }
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import { zPlainTime } from "temporal-zod";
 import api from "~/utils/api";
 import { f } from "~/utils/form";
 import { Math2 } from "~/utils/math";
@@ -179,17 +178,17 @@ async function del(id: string) {
     @apply w-full;
 
     .button {
-        @apply w-fit h-fit;
+        @apply h-fit w-fit;
     }
 
     .label {
         @apply flex items-center gap-2;
-        @apply select-none whitespace-nowrap;
+        @apply whitespace-nowrap select-none;
     }
 }
 
 .times {
-    @apply flex flex-row items-center gap-2 w-full;
+    @apply flex w-full flex-row items-center gap-2;
 }
 
 :deep(.spinner) {

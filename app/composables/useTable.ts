@@ -47,10 +47,9 @@ export function useTable() {
 
     async function fetch(skip = false) {
         if (!skip) await fetchStudents();
-        const res = await api.roster.record.query();
+        const res = await api.roster.record.query.many();
 
         if (!res.data) return api.error(res.error, res.response);
-        if (res.data.quantity !== "Many") throw new Error("unreachable");
 
         for (const r of Object.values(res.data.records)) {
             await replicate({ operation: "INSERT", ...r }, true);

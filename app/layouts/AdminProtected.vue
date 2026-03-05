@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AuthData } from "~/plugins/auth";
 import { f } from "~/utils/form";
 import DefaultLayout from "./Default.vue";
 
@@ -128,8 +127,8 @@ const form = computed(() => {
 }
 
 .form {
-    @apply mt-8 gap-2 flex flex-col items-center;
-    @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+    @apply mt-8 flex flex-col items-center gap-2;
+    @apply max-w-full md:w-[32rem] lg:w-[38rem];
 }
 
 .form :deep(.item.password) {
@@ -140,12 +139,12 @@ const form = computed(() => {
     display: grid;
     grid-template-columns: auto 1fr;
 
-    @apply w-full h-full p-2 gap-2;
+    @apply h-full w-full gap-2 p-2;
 }
 
 .content {
     @apply flex-1 overflow-hidden;
-    @apply flex flex-col justify-center items-center;
+    @apply flex flex-col items-center justify-center;
     @apply bg-background;
     @apply w-full;
 }

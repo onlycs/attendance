@@ -24,14 +24,14 @@ const display = ornullable((value: string | number | boolean) => {
 
 .title,
 .value {
-    @apply flex justify-center items-center;
+    @apply flex items-center justify-center;
 }
 
 .title {
-    @apply bg-white/9 h-14 w-full rounded-l-md;
+    @apply h-14 w-full rounded-l-md bg-white/9;
 }
 
 .value {
-    @apply bg-white/3 h-14 w-full rounded-r-md px-8 text-nowrap;
+    @apply h-14 w-full rounded-r-md bg-white/3 px-8 text-nowrap;
 }
 </style>

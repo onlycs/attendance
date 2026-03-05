@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use poem_openapi::types::ToJSON;
 use totp_rs::{Algorithm, TOTP};
 
-use crate::prelude::*;
+use crate::{prelude::*, roster::hour_type::HourTypeError};
 
 #[derive(Object)]
 #[oai(rename = "SwipeRequest")]
@@ -85,7 +85,7 @@ impl ToJSON for Response {
 }
 
 #[derive(ApiResponse, ApiError)]
-#[from(PermissionDeniedError)]
+#[from(PermissionDeniedError, HourTypeError)]
 pub(super) enum SwipeError {
     /// The given hour type is not allowed at this time. See `/roster/allowed`.
     #[oai(status = 400)]
@@ -145,7 +145,7 @@ pub(super) async fn route(
     let claims = jwt::Claims::new(issuer, jwt::Claims::EXPIRY, &pg).await?;
     claims.perms.assert(Permission::Roster)?;
 
-    if !kind.allowed() {
+    if !kind.allowed(&pg).await? {
         return Err(SwipeError::hour_type(kind));
     }
 

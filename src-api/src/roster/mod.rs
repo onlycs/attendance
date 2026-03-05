@@ -84,21 +84,31 @@ impl RosterService {
     }
 
     #[oai(path = "/", method = "get")]
-    async fn record_query(
+    async fn record_query_many(
         &self,
         jwt: Jwt,
-        id: Query<Option<String>>,
-    ) -> Result<Json<crud::QueryResponse>, crud::GetError> {
+    ) -> Result<Json<crud::QueryManyResponse>, crud::GetManyError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
-        Ok(Json(crud::query(id.0, self.pg.clone()).await?))
+        Ok(Json(crud::query_many(self.pg.clone()).await?))
+    }
+
+    #[oai(path = "/:id", method = "get")]
+    async fn record_query_one(
+        &self,
+        id: Path<String>,
+        jwt: Jwt,
+    ) -> Result<Json<crud::QueryOneResponse>, crud::GetOneError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::HoursView)?;
+        Ok(Json(crud::query_one(id.0, self.pg.clone()).await?))
     }
 
     #[oai(path = "/stream", method = "get")]
     async fn record_stream(
         &self,
         jwt: Jwt,
-    ) -> Result<EventStream<BoxStream<'static, ReplicateRecord>>, crud::GetError> {
+    ) -> Result<EventStream<BoxStream<'static, ReplicateRecord>>, crud::GetManyError> {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
@@ -150,8 +160,53 @@ impl RosterService {
     }
 
     #[oai(path = "/allowed", method = "get")]
-    async fn allowed(&self, jwt: Jwt) -> Result<Json<Vec<HourType>>, hour_type::AllowedError> {
+    async fn allowed(&self, jwt: Jwt) -> Result<Json<Vec<HourType>>, hour_type::HourTypeError> {
         jwt.verify()?;
-        Ok(Json(hour_type::allowed()))
+        Ok(Json(hour_type::allowed(&self.pg).await?))
+    }
+}
+
+pub(crate) struct HourTypeService {
+    pg: PgPool,
+}
+
+impl HourTypeService {
+    pub(crate) fn new(pg: PgPool) -> Self {
+        Self { pg }
+    }
+}
+
+#[auto_operation_ids]
+#[OpenApi(tag = "Tag::HourType", prefix_path = "/hour-type")]
+impl HourTypeService {
+    #[oai(path = "/:kind", method = "put")]
+    async fn update(
+        &self,
+        kind: Path<HourType>,
+        request: Json<hour_type::HourTypeInfo>,
+        jwt: Jwt,
+    ) -> Result<(), hour_type::HourTypeError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::HoursEdit)?;
+        kind.0.update(request.0, self.pg.clone()).await?;
+
+        Ok(())
+    }
+
+    #[oai(path = "/:kind", method = "get")]
+    async fn query(
+        &self,
+        kind: Path<HourType>,
+        jwt: Jwt,
+    ) -> Result<Json<hour_type::HourTypeInfo>, hour_type::HourTypeError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::HoursView)?;
+
+        Ok(Json(kind.0.query(self.pg.clone()).await?))
+    }
+
+    #[oai(path = "/:kind/goal", method = "get")]
+    async fn get(&self, kind: Path<HourType>) -> Result<Json<f64>, hour_type::HourTypeError> {
+        Ok(Json(kind.0.goal(self.pg.clone()).await?))
     }
 }

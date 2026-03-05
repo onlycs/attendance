@@ -3,7 +3,6 @@ import { toast } from "vue-sonner";
 import type { ApiToastOptions } from "~/plugins/api";
 import type {
     Admin,
-    Event,
     EventTypeFilter,
     QueryFilter,
     ReplicationAdmin,

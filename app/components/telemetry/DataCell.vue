@@ -23,7 +23,7 @@ const open = inject<Callback>("open");
 @reference "~/style/tailwind.css";
 
 .cell {
-    @apply w-[calc(100%+1rem)] h-[calc(100%-0.5rem)] -ml-2 my-1 p-0;
+    @apply my-1 -ml-2 h-[calc(100%-0.5rem)] w-[calc(100%+1rem)] p-0;
     @apply text-xs text-sub;
 }
 </style>

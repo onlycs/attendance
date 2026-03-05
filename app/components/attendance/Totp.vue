@@ -120,7 +120,7 @@ onMounted(refresh);
 
 .vline {
     grid-row: span 2;
-    @apply w-px bg-border rounded-md mx-2;
+    @apply mx-2 w-px rounded-md bg-border;
 }
 
 .progress {

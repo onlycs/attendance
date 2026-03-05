@@ -35,16 +35,16 @@ const matches = computed(() => {
 @reference "~/style/tailwind.css";
 
 .widget {
-    @apply flex flex-col gap-2 justify-center items-center;
-    @apply bg-drop rounded-lg;
+    @apply flex flex-col items-center justify-center gap-2;
+    @apply rounded-lg bg-drop;
 }
 
 .icon {
-    @apply w-12 h-12 text-sub;
+    @apply h-12 w-12 text-sub;
 }
 
 .desc {
-    @apply h-0 opacity-0 text-sm text-center text-sub select-none;
+    @apply h-0 text-center text-sm text-sub opacity-0 select-none;
     @apply group-hover/widget:h-6 group-hover/widget:opacity-100;
     @apply transition-all duration-200 group-hover/widget:duration-300;
 }

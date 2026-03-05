@@ -113,7 +113,7 @@ const form = computed(() => {
 @reference "~/style/tailwind.css";
 
 .widget {
-    @apply min-w-[24rem] min-h-62.5 p-4 pt-2;
+    @apply min-h-62.5 min-w-[24rem] p-4 pt-2;
 }
 
 .widget :deep(.submit) {
@@ -121,6 +121,6 @@ const form = computed(() => {
 }
 
 .widget :deep(.select) {
-    @apply -ml-2 -mb-1 w-[calc(100%+1rem)];
+    @apply -mb-1 -ml-2 w-[calc(100%+1rem)];
 }
 </style>

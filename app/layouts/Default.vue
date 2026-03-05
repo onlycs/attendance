@@ -23,7 +23,7 @@ useRouter().beforeEach(() => useCleanup().run());
 
 #content {
     @apply flex-1 overflow-hidden;
-    @apply flex flex-col justify-center items-center;
+    @apply flex flex-col items-center justify-center;
     @apply bg-background;
     @apply w-full;
 }

@@ -28,7 +28,7 @@ const focused = defineModel<boolean>("focused", { default: false });
     &:focus-visible {
         @apply border-white;
         box-shadow: 0 0 0 2px white;
-        @apply outline-none ring-0;
+        @apply ring-0 outline-none;
         @apply duration-100;
     }
 

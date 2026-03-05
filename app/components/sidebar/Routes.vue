@@ -88,7 +88,7 @@ function expand(h: number) {
     .child {
         @apply rounded-bl-xl;
         @apply absolute top-13;
-        @apply group-hover/sidebar:pl-4 group-hover/sidebar:gap-1;
+        @apply group-hover/sidebar:gap-1 group-hover/sidebar:pl-4;
     }
 }
 

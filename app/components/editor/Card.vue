@@ -60,17 +60,17 @@ async function add() {
 
 .root {
     @apply flex flex-col;
-    @apply bg-drop rounded-lg gap-2 p-2;
+    @apply gap-2 rounded-lg bg-drop p-2;
     @apply border border-border;
 
     .entry {
         @apply flex flex-col items-center;
-        @apply bg-background rounded-md gap-2 p-2;
+        @apply gap-2 rounded-md bg-background p-2;
     }
 
     .button-add {
         @apply flex items-center justify-center;
-        @apply w-full h-fit bg-background;
+        @apply h-fit w-full bg-background;
     }
 }
 </style>

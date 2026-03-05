@@ -2,8 +2,9 @@
 import type { Renderable } from "./Field.vue";
 import type { FieldEntry } from "./Fields.vue";
 
-export interface TableEntry<T extends Renderable = Renderable>
-    extends FieldEntry<T> {
+export interface TableEntry<
+    T extends Renderable = Renderable,
+> extends FieldEntry<T> {
     update: T | null;
 }
 
@@ -29,12 +30,12 @@ defineProps<{ data: TableEntry[] }>();
 @reference "~/style/tailwind.css";
 
 .title {
-    @apply flex justify-center items-center;
-    @apply bg-white/9 h-14 w-full rounded-r-md px-8 text-nowrap;
+    @apply flex items-center justify-center;
+    @apply h-14 w-full rounded-r-md bg-white/9 px-8 text-nowrap;
 }
 
 .tbl {
-    @apply grid w-full mt-4;
+    @apply mt-4 grid w-full;
     @apply grid-cols-3;
     @apply select-none;
 }

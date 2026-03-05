@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use poem_openapi::{Union, types::MaybeUndefined};
+use poem_openapi::types::MaybeUndefined;
 
 use crate::{
     dbstream::{PartialRecord, Record, Row},
@@ -26,17 +26,12 @@ pub(super) struct DeleteRequest {
 }
 
 #[derive(Object)]
-#[oai(rename = "RosterQueryMany")]
+#[oai(rename = "RosterQueryManyResponse")]
 pub(super) struct QueryManyResponse {
     records: HashMap<<Record as Row>::Key, Record>,
 }
 
-#[derive(Union)]
-#[oai(rename = "RosterQueryResponse", discriminator_name = "quantity")]
-pub(super) enum QueryResponse {
-    Many(QueryManyResponse),
-    One(Record),
-}
+pub(super) type QueryOneResponse = Record;
 
 #[derive(Object)]
 #[oai(rename = "RosterCreateResponse")]
@@ -49,7 +44,21 @@ pub(super) type DeleteResponse = Record;
 
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
-pub(super) enum GetError {
+pub(super) enum GetManyError {
+    #[oai(status = 401)]
+    Unauthorized(PlainText<String>),
+
+    #[oai(status = 403)]
+    Forbidden(PlainText<String>),
+
+    #[oai(status = 500)]
+    #[from(sqlx::Error, "Database error")]
+    InternalServerError(PlainText<String>),
+}
+
+#[derive(ApiResponse, ApiError)]
+#[from(JwtVerifyError, PermissionDeniedError)]
+pub(super) enum GetOneError {
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
@@ -86,7 +95,7 @@ pub(super) enum CreateError {
 }
 
 #[derive(ApiResponse, ApiError)]
-#[from(JwtVerifyError, PermissionDeniedError, GetError)]
+#[from(JwtVerifyError, PermissionDeniedError)]
 pub(super) enum UpdateError {
     /// time_out is before or on a different day than time_in
     #[oai(status = 400)]
@@ -129,12 +138,13 @@ pub(super) enum DeleteError {
 }
 
 #[tracing::instrument(skip(pg), err)]
-pub(super) async fn query(id: Option<String>, pg: PgPool) -> Result<QueryResponse, GetError> {
-    let Some(id) = id else {
-        let records = Record::select_all(&pg).await?;
-        return Ok(QueryResponse::Many(QueryManyResponse { records }));
-    };
+pub(super) async fn query_many(pg: PgPool) -> Result<QueryManyResponse, GetManyError> {
+    let records = Record::select_all(&pg).await?;
+    Ok(QueryManyResponse { records })
+}
 
+#[tracing::instrument(skip(pg), err)]
+pub(super) async fn query_one(id: String, pg: PgPool) -> Result<QueryOneResponse, GetOneError> {
     let record = sqlx::query_as::<_, Record>(
         r#"
         SELECT *
@@ -145,9 +155,9 @@ pub(super) async fn query(id: Option<String>, pg: PgPool) -> Result<QueryRespons
     .bind(id)
     .fetch_optional(&pg)
     .await?
-    .ok_or(GetError::not_found())?;
+    .ok_or(GetOneError::not_found())?;
 
-    Ok(QueryResponse::One(record))
+    Ok(record)
 }
 
 #[tracing::instrument(skip(pg), err)]

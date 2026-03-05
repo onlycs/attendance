@@ -65,32 +65,32 @@ watch(open, (val) => {
 
 .overlay {
     @apply fixed inset-0 z-50;
-    @apply flex justify-center items-center;
+    @apply flex items-center justify-center;
     @apply bg-black/10 backdrop-blur-xs;
     @apply cursor-pointer;
 }
 
 .dialog {
-    @apply bg-background rounded-lg p-4;
+    @apply rounded-lg bg-background p-4;
     @apply flex flex-col gap-4;
     @apply w-full max-w-2xl;
     @apply cursor-default;
 }
 
 .header {
-    @apply flex justify-between items-center;
+    @apply flex items-center justify-between;
 
     .title {
         @apply ml-2 select-none;
     }
 
     .close {
-        @apply w-fit h-fit;
+        @apply h-fit w-fit;
     }
 }
 
 .body {
-    @apply flex flex-col justify-center items-center;
+    @apply flex flex-col items-center justify-center;
     @apply w-full gap-4;
 }
 

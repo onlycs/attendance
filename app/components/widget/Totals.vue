@@ -55,12 +55,12 @@ useSSE().add(api.roster.present.stream, update);
 @reference "~/style/tailwind.css";
 
 .widget {
-    @apply bg-drop rounded-lg;
-    @apply min-w-[24rem] min-h-37;
+    @apply rounded-lg bg-drop;
+    @apply min-h-37 min-w-[24rem];
 }
 
 .box {
-    @apply w-full h-full p-4 pt-5;
+    @apply h-full w-full p-4 pt-5;
     @apply flex flex-col gap-4;
 }
 
@@ -81,21 +81,21 @@ useSSE().add(api.roster.present.stream, update);
     }
 
     .label {
-        @apply text-sub text-sm select-none;
+        @apply text-sm text-sub select-none;
     }
 }
 
 .bar {
-    @apply w-full h-6 bg-red-500/40 rounded-md;
+    @apply h-6 w-full rounded-md bg-red-500/40;
 
     .present {
-        @apply h-full bg-drop rounded-md;
+        @apply h-full rounded-md bg-drop;
 
         @apply transition-all duration-150;
         transition-timing-function: linear;
 
         .inner {
-            @apply bg-green-500/40 w-full h-full rounded-md;
+            @apply h-full w-full rounded-md bg-green-500/40;
         }
     }
 }

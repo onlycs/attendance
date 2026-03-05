@@ -29,13 +29,13 @@ onMounted(() => setTimeout(() => (inactive.value = false), 10));
 @reference "~/style/tailwind.css";
 
 .digit {
-    @apply text-3xl h-9 absolute;
+    @apply absolute h-9 text-3xl;
     @apply flex flex-col;
     @apply overflow-y-hidden;
 }
 
 .text {
-    @apply w-5 h-9;
+    @apply h-9 w-5;
     @apply transition-all;
 
     transition:

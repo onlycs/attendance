@@ -5,13 +5,7 @@ export type {
     Narrow,
 } from "@zodios/core/lib/utils.types";
 
-import type { MultiWatchSources } from "@vueuse/core";
-import type {
-    Narrow,
-    OptionalProps,
-    RequiredKeys,
-} from "@zodios/core/lib/utils.types";
-import type { DeepReadonly, WatchSource } from "vue";
+import type { Narrow, RequiredKeys } from "@zodios/core/lib/utils.types";
 
 export type UnionToIntersection<U> = (
     U extends never ? never : (k: U) => void

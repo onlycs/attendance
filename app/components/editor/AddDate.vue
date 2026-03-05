@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import { zPlainDate, zPlainTime } from "temporal-zod";
 import { toast } from "vue-sonner";
 import api from "~/utils/api";
 import { f } from "~/utils/form";
@@ -114,8 +113,8 @@ const form = f.form({
 }
 
 .form {
-    @apply mt-8 gap-2 flex flex-col;
-    @apply md:w-[32rem] lg:w-[38rem] max-w-full;
+    @apply mt-8 flex flex-col gap-2;
+    @apply max-w-full md:w-[32rem] lg:w-[38rem];
     @apply items-center;
 }
 

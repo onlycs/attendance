@@ -1,6 +1,7 @@
 mod add;
 mod delete;
 mod hours;
+mod id;
 mod query;
 mod update;
 
@@ -94,5 +95,21 @@ impl StudentService {
     #[oai(path = "/:id_hashed/hours", method = "get")]
     async fn hours(&self, id_hashed: Path<String>) -> Result<Json<hours::Response>, hours::Error> {
         Ok(Json(hours::route(id_hashed.0, self.pg.clone()).await?))
+    }
+
+    #[oai(path = "/config", method = "get")]
+    async fn id_config_query(&self) -> Result<Json<id::StudentIdConfig>, id::StudentIdError> {
+        Ok(Json(id::query(&self.pg).await?))
+    }
+
+    #[oai(path = "/config", method = "patch")]
+    async fn id_config_update(
+        &self,
+        request: Json<id::StudentIdConfig>,
+        jwt: Jwt,
+    ) -> Result<(), id::StudentIdError> {
+        let claims = jwt.verify()?;
+        claims.perms.assert(Permission::StudentEdit)?;
+        id::update(&self.pg, request.0).await
     }
 }

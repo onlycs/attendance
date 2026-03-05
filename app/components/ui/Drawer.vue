@@ -57,13 +57,13 @@ defineOptions({ inheritAttrs: false });
 }
 
 .dialog {
-    @apply fixed bottom-0 right-0 left-0;
-    @apply flex flex-col items-center z-50;
+    @apply fixed right-0 bottom-0 left-0;
+    @apply z-50 flex flex-col items-center;
     @apply rounded-t-lg;
     @apply bg-card px-4 pb-7;
 
     .handle {
-        @apply mb-6 mt-4;
+        @apply mt-4 mb-6;
     }
 }
 </style>

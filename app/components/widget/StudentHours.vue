@@ -69,30 +69,30 @@ watch(selected, async (sid_hashed) => {
 @reference "~/style/tailwind.css";
 
 .widget {
-    @apply h-full p-4 justify-start;
+    @apply h-full justify-start p-4;
 }
 
 .loading {
-    @apply h-full flex justify-center items-center;
+    @apply flex h-full items-center justify-center;
 }
 
 .data {
-    @apply w-full h-full grid;
-    @apply grid-cols-2 grid-rows-4 mt-2;
+    @apply grid h-full w-full;
+    @apply mt-2 grid-cols-2 grid-rows-4;
 
     row-gap: 1rem;
 }
 
 .title,
 .value {
-    @apply flex justify-center items-center;
+    @apply flex items-center justify-center;
 }
 
 .title {
-    @apply bg-white/9 w-full rounded-l-md;
+    @apply w-full rounded-l-md bg-white/9;
 }
 
 .value {
-    @apply bg-white/3 w-full rounded-r-md;
+    @apply w-full rounded-r-md bg-white/3;
 }
 </style>

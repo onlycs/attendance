@@ -62,17 +62,17 @@ const text = {
 
 .slot {
     @apply flex items-center justify-center;
-    @apply bg-drop rounded-md border;
+    @apply rounded-md border bg-drop;
     @apply transition-all duration-150;
 
     &.active {
-        @apply border-white border-2;
+        @apply border-2 border-white;
         @apply duration-100;
     }
 }
 
 .caret {
-    @apply rounded-full w-[1px] bg-white;
+    @apply w-[1px] rounded-full bg-white;
     animation: caret-pulse linear 1000ms infinite;
 
     &.sm {

@@ -125,7 +125,7 @@ const entries = computed(() => ({
     grid-template-rows: 1fr auto 1fr;
 
     @apply h-full w-16;
-    @apply p-2 bg-drop rounded-lg;
+    @apply rounded-lg bg-drop p-2;
 
     &:hover {
         @apply w-78 p-6;
@@ -137,13 +137,13 @@ const entries = computed(() => ({
     @apply flex flex-row items-center gap-4 self-start;
 
     .icon {
-        @apply w-12 h-12;
+        @apply h-12 w-12;
     }
 
     .text {
         @apply duration-[20ms];
         @apply text-2xl font-semibold whitespace-nowrap select-none;
-        @apply opacity-0 w-0;
+        @apply w-0 opacity-0;
 
         @apply group-hover/sidebar:opacity-100;
         @apply group-hover/sidebar:translate-x-0;
