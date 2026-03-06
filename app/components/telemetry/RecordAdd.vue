@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type EventRecordAdd, HourTypeTitles } from "~/utils/api";
+import { type EventRecordAdd, HourTypeLabels } from "~/utils/api";
 
 const props = defineProps<{ event: EventRecordAdd }>();
 const creds = useCreds();
@@ -16,7 +16,7 @@ const fields = computed(() => [
     },
     {
         title: "Hour Type",
-        data: HourTypeTitles[props.event.hour_type],
+        data: HourTypeLabels[props.event.hour_type],
     },
     {
         title: "Student",

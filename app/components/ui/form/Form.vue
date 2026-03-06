@@ -220,9 +220,10 @@ defineExpose(control);
         >
             <slot
                 name="item"
-                :props="form.items[key]!.props as unknown"
+                :props="form.items[key]!.props as any"
                 :component="form.items[key]!.component"
-                :model="(outputs as any)[key] as Ref<unknown>"
+                :model="(outputs as any)[key].value as unknown"
+                :update="(val: unknown) => ((outputs as any)[key]!.value = val)"
             >
                 <label
                     :for="key as string"

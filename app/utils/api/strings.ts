@@ -15,10 +15,17 @@ export const PermissionTitles: Record<keyof Permissions, string> = {
     admin_edit: "Edit Admins",
 };
 
-export const HourTypeTitles: Record<HourType, string> = {
+export const HourTypeLabels: Record<HourType, string> = {
     build: "Build",
     learning: "Learning",
     demo: "Outreach",
+    offseason: "Offseason",
+};
+
+export const HourTypeTitles: Record<HourType, string> = {
+    build: "Build Season",
+    learning: "Learning Days",
+    demo: "Outreach Hours",
     offseason: "Offseason",
 };
 
@@ -40,3 +47,4 @@ export const EventTypeTitles = {
 } as const satisfies Record<TelemetryEvent["event"]["event"], string>;
 
 export type EventType = keyof typeof EventTypeTitles;
+export const HourTypes = Object.keys(HourTypeLabels) as FixedArray<HourType, 4>;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HourTypeTitles, type RecordEdit } from "~/utils/api";
+import { HourTypeLabels, type RecordEdit } from "~/utils/api";
 
 const { event } = defineProps<{ event: RecordEdit }>();
 const creds = useCreds();
@@ -27,7 +27,7 @@ const fields = [
 const table = computed(() => [
     {
         title: "Hour Type",
-        data: HourTypeTitles[event.old.hour_type],
+        data: HourTypeLabels[event.old.hour_type],
         update: event.hour_type ?? null,
     },
     {

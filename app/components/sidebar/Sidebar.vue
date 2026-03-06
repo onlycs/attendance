@@ -103,6 +103,16 @@ const entries = computed(() => ({
                     '/settings': {
                         icon: 'hugeicons:settings-02',
                         name: 'Settings',
+                        children: {
+                            '/settings/attendance': {
+                                icon: 'hugeicons:clock-04',
+                                name: 'Attendance',
+                            },
+                            '/settings/user': {
+                                icon: 'hugeicons:user-multiple-03',
+                                name: 'Users',
+                            },
+                        },
                     },
                     '/_logout': {
                         icon: 'hugeicons:logout-01',
@@ -112,6 +122,7 @@ const entries = computed(() => ({
                         },
                     },
                 }"
+                :class="cn(useRoute().path.includes('settings') && '!gap-2')"
             />
         </div>
     </div>

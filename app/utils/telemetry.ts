@@ -9,13 +9,13 @@ export const TELEMETRY_DATE_FMT: Intl.DateTimeFormatOptions = {
     year: "2-digit",
 };
 
-export const datefmt = ornullable((apistr: string) => {
+export const datefmt = ornullish((apistr: string) => {
     return api.datetime
         .parse(apistr)
         .toLocaleString("en-US", TELEMETRY_DATE_FMT);
 });
 
-export const studentName = ornullable((student: Student) => {
+export const studentName = ornullish((student: Student) => {
     return student ? `${student.first} ${student.last}` : "Unknown Student";
 });
 

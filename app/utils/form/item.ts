@@ -13,6 +13,7 @@ import type { Component } from "vue";
 import { z } from "zod";
 import type { $ZodCheckLengthEqualsDef } from "zod/v4/core";
 import { type ComboboxProps } from "~/components/ui/form/Combobox.vue";
+import type { DatePickerProps } from "~/components/ui/form/DatePicker.vue";
 import { type InputProps } from "~/components/ui/form/Input.vue";
 import { type SelectProps } from "~/components/ui/form/Select.vue";
 import { type InstantPickerProps } from "~/components/ui/form/TimePicker.vue";
@@ -21,6 +22,7 @@ import { type OTPFieldProps } from "~/components/ui/form/otp/Field.vue";
 export interface ItemProps {
     title?: string;
     "class:container"?: string;
+    class?: string;
 }
 
 export abstract class ItemBase<P = unknown, Z extends z.ZodType = z.ZodType> {
@@ -152,18 +154,18 @@ export class ItemCombobox<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
 }
 
 export class ItemDate extends ItemBase<
-    InstantPickerProps,
+    DatePickerProps,
     ZodTemporal<typeof Temporal.PlainDate>
 > {
     private constructor(
-        props: InstantPickerProps & ItemProps,
+        props: DatePickerProps & ItemProps,
         zod: ZodTemporal<typeof Temporal.PlainDate>,
     ) {
         super(props, zod, DatePicker);
     }
 
     static build(
-        props: InstantPickerProps & ItemProps,
+        props: DatePickerProps & ItemProps,
         zod: ZodTemporal<typeof Temporal.PlainDate> = zPlainDate,
     ) {
         return new ItemDate(props, zod);
@@ -218,7 +220,7 @@ export class ItemMany<
     }
 }
 
-export type Items = Record<string, ItemBase>;
+export type Items = Record<string, ItemBase<unknown, z.ZodType>>;
 
 export type ItemsMerge<
     I extends Items,

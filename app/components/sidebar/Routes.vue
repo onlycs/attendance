@@ -17,6 +17,7 @@ export type Route =
 export interface RoutesProps {
     routes: Record<string, Route>;
     isChild?: boolean;
+    class?: string | string[];
 }
 
 const props = defineProps<RoutesProps>();
@@ -35,7 +36,7 @@ function expand(h: number) {
 </script>
 
 <template>
-    <div :class="cn('routes', $props.isChild && 'child')">
+    <div :class="cn('routes', $props.isChild && 'child', $props.class)">
         <template v-for="(route, path) of routes" :key="path">
             <Button
                 v-if="!route.children"

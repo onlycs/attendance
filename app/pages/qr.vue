@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
-import api, { type HourType, type SwipeAction } from "~/utils/api";
+import api, { HourTypes, type HourType, type SwipeAction } from "~/utils/api";
 import { f } from "~/utils/form";
 
 const route = useRoute();
@@ -19,7 +19,7 @@ if (
     !q.kind ||
     !q.exp ||
     q.exp.match(/^\d+$/) === null ||
-    !["build", "learning", "demo", "offseason"].includes(q.kind)
+    !HourTypes.includes(q.kind)
 ) {
     useRouter().push(redirect.build("/", "bad-qr"));
     throw new Error("Redirecting...");
@@ -33,7 +33,7 @@ const { auth, user } = useAuth();
 
 const studentId = ref<string | null>(null);
 const currentId = ref("");
-const form = f.studentId({ size: "lg" });
+const form = await f.studentId({ size: "lg" });
 
 watch(
     user,

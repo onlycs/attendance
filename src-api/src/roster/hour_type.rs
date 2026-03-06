@@ -1,4 +1,4 @@
-use chrono::Datelike;
+use chrono::{Datelike, NaiveDate};
 use strum::{Display, EnumString, VariantArray};
 
 use crate::prelude::*;
@@ -17,7 +17,7 @@ pub(crate) enum HourTypeError {
     InternalServerError(PlainText<String>),
 }
 
-#[derive(Object, Debug)]
+#[derive(Object, Debug, Clone, Copy)]
 pub(super) struct HourTypeInfo {
     /// Year is ignored, filtering is applied based on month and day only
     ///
@@ -67,59 +67,153 @@ pub(crate) enum HourType {
     Offseason,
 }
 
+fn kickoff_day() -> NaiveDate {
+    // who tf knows when this will change but until first decides to give me an api
+    // for ts its staying this way
+    //
+    // ok, so, to find the date of kickoff, we can use the fact that its always the
+    // first saturday **unless** Jan 1st is a Thursday, Friday, or Saturday,
+    // in which case its the second saturday
+
+    // get new years day information
+    let today = Local::now().date_naive();
+    let year = today.year();
+    let nyd = chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap();
+    let nydotw = nyd.weekday();
+
+    // postpone iff nyd is thurs, fri, sat
+    let postpone = nydotw.num_days_from_sunday() >= 4;
+    let postpone = if postpone { 7 } else { 0 };
+
+    // calculate kickoff day
+    let days2sat = 6 - nydotw.days_since(chrono::Weekday::Sun);
+    let kickoff_day = nyd + chrono::Duration::days(days2sat as i64 + postpone);
+
+    kickoff_day
+}
+
 impl HourType {
     /// Check if this hour type is allowed in the given 1-based month.
     pub(crate) async fn allowed(self, pg: &PgPool) -> Result<bool, HourTypeError> {
-        // who tf knows when this will change but until first decides to give me an api
-        // for ts its staying this way
-        //
-        // ok, so, to find the date of kickoff, we can use the fact that its always the
-        // first saturday **unless** Jan 1st is a Thursday, Friday, or Saturday,
-        // in which case its the second saturday
-
-        // get new years day information
         let today = Local::now().date_naive();
-        let year = today.year();
-        let nyd = chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap();
-        let nydotw = nyd.weekday();
+        let year = Local::now().year();
 
-        // postpone iff nyd is thurs, fri, sat
-        let postpone = nydotw.num_days_from_sunday() >= 4;
-        let postpone = if postpone { 7 } else { 0 };
+        let default_build_start = kickoff_day();
+        let default_build_end = chrono::NaiveDate::from_ymd_opt(year, 4, 30).unwrap();
 
-        // calculate kickoff day
-        let days2sat = 6 - nydotw.days_since(chrono::Weekday::Sun);
-        let kickoff_day = nyd + chrono::Duration::days(days2sat as i64 + postpone);
+        let default_learning_end = async |pg: &PgPool| {
+            let build_info = HourType::Build.query(pg.clone()).await?;
 
-        // assemble automatic logic
-        let auto_build_start = kickoff_day;
-        let auto_build_end = chrono::NaiveDate::from_ymd_opt(year, 4, 30).unwrap();
-        let auto_offseason_start = chrono::NaiveDate::from_ymd_opt(year, 5, 1).unwrap();
-        let auto_offseason_end = chrono::NaiveDate::from_ymd_opt(year, 11, 30).unwrap();
-        let auto_learning_start = chrono::NaiveDate::from_ymd_opt(year, 9, 1).unwrap();
-        let auto_learning_end = kickoff_day - chrono::Duration::days(1);
+            let build_end = build_info
+                .ends
+                .and_then(|n| n.with_year(year))
+                .unwrap_or(default_build_end);
 
-        // pull manual logic from database
-        let info = self.query(pg.clone()).await?;
-        let start = info
-            .begins
-            .and_then(|n| n.with_year(year))
-            .unwrap_or_else(|| match self {
-                HourType::Build => auto_build_start,
-                HourType::Learning => auto_learning_start,
-                HourType::Demo => chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap(),
-                HourType::Offseason => auto_offseason_start,
-            });
+            Ok::<_, HourTypeError>(build_end - chrono::Duration::days(1))
+        };
 
-        let end = info
-            .ends
-            .and_then(|n| n.with_year(year))
-            .unwrap_or_else(|| match self {
-                HourType::Build => auto_build_end,
-                HourType::Learning => auto_learning_end,
-                HourType::Demo => chrono::NaiveDate::from_ymd_opt(year, 12, 31).unwrap(),
-                HourType::Offseason => auto_offseason_end,
-            });
+        let default_offseason_start = async |pg: &PgPool, build_info: &mut Option<HourTypeInfo>| {
+            let build_info = match build_info {
+                Some(info) => *info,
+                None => {
+                    let info = HourType::Build.query(pg.clone()).await?;
+                    *build_info = Some(info.clone());
+                    info
+                }
+            };
+
+            let build_end = build_info
+                .ends
+                .and_then(|n| n.with_year(year))
+                .unwrap_or(default_build_end);
+
+            Ok::<_, HourTypeError>(build_end + chrono::Duration::days(1))
+        };
+
+        let default_offseason_end = async |pg: &PgPool, build_info: &mut Option<HourTypeInfo>| {
+            let build_info = match build_info {
+                Some(info) => *info,
+                None => {
+                    let info = HourType::Build.query(pg.clone()).await?;
+                    *build_info = Some(info.clone());
+                    info
+                }
+            };
+
+            let build_start = build_info
+                .begins
+                .and_then(|n| n.with_year(year))
+                .unwrap_or(default_build_start);
+
+            Ok::<_, HourTypeError>(build_start - chrono::Duration::days(1))
+        };
+
+        let (start, end) = match self {
+            HourType::Build => {
+                let info = self.query(pg.clone()).await?;
+
+                let start = info
+                    .begins
+                    .and_then(|n| n.with_year(year))
+                    .unwrap_or(default_build_start);
+
+                let end = info
+                    .ends
+                    .and_then(|n| n.with_year(year))
+                    .unwrap_or(default_build_end);
+
+                (start, end)
+            }
+            HourType::Learning => {
+                let info = self.query(pg.clone()).await?;
+                let default_start = chrono::NaiveDate::from_ymd_opt(year, 9, 1).unwrap();
+
+                let start = info
+                    .begins
+                    .and_then(|n| n.with_year(year))
+                    .unwrap_or(default_start);
+
+                let end = match info.ends.and_then(|n| n.with_year(year)) {
+                    Some(n) => n,
+                    None => default_learning_end(pg).await?,
+                };
+
+                (start, end)
+            }
+            HourType::Demo => {
+                let info = self.query(pg.clone()).await?;
+                let default_start = chrono::NaiveDate::from_ymd_opt(year, 1, 1).unwrap();
+                let default_end = chrono::NaiveDate::from_ymd_opt(year, 12, 31).unwrap();
+
+                let start = info
+                    .begins
+                    .and_then(|n| n.with_year(year))
+                    .unwrap_or(default_start);
+
+                let end = info
+                    .ends
+                    .and_then(|n| n.with_year(year))
+                    .unwrap_or(default_end);
+
+                (start, end)
+            }
+            HourType::Offseason => {
+                let info = self.query(pg.clone()).await?;
+                let mut build_info = None;
+
+                let start = match info.begins.and_then(|n| n.with_year(year)) {
+                    Some(n) => n,
+                    None => default_offseason_start(pg, &mut build_info).await?,
+                };
+
+                let end = match info.ends.and_then(|n| n.with_year(year)) {
+                    Some(n) => n,
+                    None => default_offseason_end(pg, &mut build_info).await?,
+                };
+
+                (start, end)
+            }
+        };
 
         if start <= end {
             Ok(today >= start && today <= end)

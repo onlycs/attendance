@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
-import api, { type HourType } from "~/utils/api";
+import api, { HourTypes, type HourType } from "~/utils/api";
 import { f } from "~/utils/form";
 
 definePageMeta({ layout: "admin-protected" });
@@ -16,7 +16,7 @@ const error: RedirectToast | undefined = await (async () => {
     if (user.value.role !== "admin") return "session-expired";
     if (user.value.claims.perms.roster !== true) return "unauthorized";
     if (typeof kind !== "string") return "404";
-    if (!["build", "learning", "demo", "offseason"].includes(kind)) return "404";
+    if (!HourTypes.includes(kind)) return "404";
     if (!await api.roster.allowed().then(res => !res.data || res.data.includes(kind))) return "404";
     return undefined;
 })();
@@ -96,7 +96,7 @@ watch(currentId, (currentId, last) => {
     }
 });
 
-const studentId = f.studentId({ size: "lg" });
+const studentId = await f.studentId({ size: "lg" });
 
 useCleanup().add(auth.clearsession);
 </script>

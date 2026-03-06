@@ -1,5 +1,5 @@
 import tailwind from "@tailwindcss/vite";
-import { HourTypeTitles } from "./app/utils/api/strings";
+import { HourTypeLabels } from "./app/utils/api/strings";
 
 export default defineNuxtConfig({
     app: {
@@ -37,7 +37,7 @@ export default defineNuxtConfig({
             },
         },
         prerender: {
-            routes: Object.keys(HourTypeTitles).map(
+            routes: Object.keys(HourTypeLabels).map(
                 (type) => `/attendance/${type}`,
             ),
         },

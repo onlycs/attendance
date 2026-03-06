@@ -4,56 +4,36 @@ import { toast } from "vue-sonner";
 import client from "~/utils/api/client";
 import { client as hclient } from "~/utils/api/hey/client.gen";
 
-function parsedatetime<T extends string | null | undefined>(
-    dt: T,
-): NullPassthrough<T, Temporal.ZonedDateTime> {
-    if (dt === null || dt === undefined)
-        return dt as NullPassthrough<T, Temporal.ZonedDateTime>;
+const parsedatetime = ornullish((datetime: string) => {
     const tz = Temporal.Now.timeZoneId();
 
     try {
         // Try parsing as ZonedDateTime first (has timezone info)
-        return Temporal.ZonedDateTime.from(dt) as NullPassthrough<
-            T,
-            Temporal.ZonedDateTime
-        >;
+        return Temporal.ZonedDateTime.from(datetime);
     } catch {
         try {
             // Try parsing as Instant (ends with Z or has offset)
-            const instant = Temporal.Instant.from(dt);
-            return instant.toZonedDateTimeISO(tz) as NullPassthrough<
-                T,
-                Temporal.ZonedDateTime
-            >;
+            const instant = Temporal.Instant.from(datetime);
+            return instant.toZonedDateTimeISO(tz);
         } catch {
             // Fall back to PlainDateTime (no timezone info)
-            const plain = Temporal.PlainDateTime.from(dt);
-            return plain.toZonedDateTime(tz) as NullPassthrough<
-                T,
-                Temporal.ZonedDateTime
-            >;
+            const plain = Temporal.PlainDateTime.from(datetime);
+            return plain.toZonedDateTime(tz);
         }
     }
-}
+});
 
-function serdatetime<T extends MaybeNone<Temporal.ZonedDateTime>>(
-    dt: T,
-): NullPassthrough<T, string> {
-    if (dt === null || dt === undefined)
-        return dt as NullPassthrough<T, string>;
-    return dt.toInstant().toString() as NullPassthrough<T, string>;
-}
+const serdatetime = ornullish((d: Temporal.ZonedDateTime) => {
+    return d.toInstant().toString();
+});
 
-function parseplaindate<T extends string | null>(
-    d: T,
-): NullPassthrough<T, Temporal.PlainDate> {
-    if (d === null) return null as NullPassthrough<T, Temporal.PlainDate>;
-    return Temporal.PlainDate.from(d) as NullPassthrough<T, Temporal.PlainDate>;
-}
+const parseplaindate = ornullish((d: string) => {
+    return Temporal.PlainDate.from(d);
+});
 
-function serplaindate(d: Temporal.PlainDate): string {
+const serplaindate = ornullish((d: Temporal.PlainDate) => {
     return d.toString();
-}
+});
 
 export interface ApiToastOptions {
     handle401?: "redirect" | { message: string } | "api-message";

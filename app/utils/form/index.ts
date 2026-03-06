@@ -3,7 +3,7 @@ import type { InputProps } from "~/components/ui/form/Input.vue";
 import type { OTPFieldProps } from "~/components/ui/form/otp/Field.vue";
 import type { SelectProps } from "~/components/ui/form/Select.vue";
 import type { HourType } from "../api";
-import api, { HourTypeTitles } from "../api";
+import api, { HourTypeLabels } from "../api";
 import type { ButtonContext, FormButton } from "./button";
 import type { Deps } from "./deps";
 import {
@@ -120,7 +120,7 @@ export const f = {
         any: (
             props: Omit<SelectProps<keyof HourType>, "kv"> & ItemProps = {},
         ) => {
-            return f.select<Record<HourType, string>>(HourTypeTitles, {
+            return f.select<Record<HourType, string>>(HourTypeLabels, {
                 title: "Hour Type",
                 ...props,
             });
@@ -201,17 +201,32 @@ export const f = {
             );
         },
     },
-    studentId(props: Omit<OTPFieldProps, "length" | "type"> & ItemProps = {}) {
+    async studentId(
+        props: Omit<OTPFieldProps, "length" | "type"> & ItemProps = {},
+    ) {
+        const res = await api.student.id_config.query();
+        const { length, regex } = res.data ?? {
+            length: 5,
+            regex: "^\\d*$",
+        };
+
+        // check if the regex is digits-only
+        // 1. anyof { \d , [0-9] }
+        // 2. followed by a quantifier (*, +, or {n})
+        // this is crude but should work for 99% of cases
+        const META_REGEX = /^\^((\\d)|(\[0-9\]))(\*|\+|(\{\d*\}))\$$/;
+        const digits_only = META_REGEX.test(regex);
+
         return f.otp(
             {
                 title: "Student ID",
-                type: "numeric",
+                type: digits_only ? "numeric" : "text",
                 ...props,
             },
             z
                 .string()
-                .length(5, "Student ID must contain 5 digits")
-                .regex(/^\d*$/, "Student ID must contain only digits"),
+                .length(length, `Must contain exactly ${length} digits`)
+                .regex(new RegExp(regex), "Invalid format"),
         );
     },
 

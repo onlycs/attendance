@@ -2,10 +2,8 @@ use crate::prelude::*;
 
 #[derive(Object, Debug)]
 pub(super) struct StudentIdConfig {
-    /// Minimum length of the unhashed student ID.
-    min: usize,
-    /// Maximum length of the unhashed student ID.
-    max: usize,
+    /// Length of the unhashed student ID.
+    length: usize,
     /// Regular expression that the unhashed student ID must match.
     regex: String,
 }
@@ -28,10 +26,9 @@ pub(super) async fn update(pg: &PgPool, new_config: StudentIdConfig) -> Result<(
     sqlx::query!(
         r#"
         UPDATE student_id_config
-        SET min = $1, max = $2, regex = $3
+        SET length = $1, regex = $2
         "#,
-        new_config.min as i32,
-        new_config.max as i32,
+        new_config.length as i32,
         new_config.regex,
     )
     .execute(pg)
@@ -41,13 +38,12 @@ pub(super) async fn update(pg: &PgPool, new_config: StudentIdConfig) -> Result<(
 }
 
 pub(super) async fn query(pg: &PgPool) -> Result<StudentIdConfig, StudentIdError> {
-    let record = sqlx::query!(r#"SELECT min, max, regex FROM student_id_config"#)
+    let record = sqlx::query!(r#"SELECT length, regex FROM student_id_config"#)
         .fetch_one(pg)
         .await?;
 
     Ok(StudentIdConfig {
-        min: record.min as usize,
-        max: record.max as usize,
+        length: record.length as usize,
         regex: record.regex,
     })
 }

@@ -5,7 +5,7 @@ export type Renderable = string | number | boolean;
 
 defineProps<{ title: string; value: Renderable; value2?: Renderable }>();
 
-const display = ornullable((value: string | number | boolean) => {
+const display = ornullish((value: string | number | boolean) => {
     if (typeof value === "string") return value;
     else if (typeof value === "boolean") return ["Yes", "No"][+!value];
     else if (typeof value === "number") return Math2.round(value, 2);

@@ -7,8 +7,8 @@
 
 @font-face {
     font-family: "JetBrainsMono Nerd Font";
-    src: url("/fonts/JetBrainsMono.ttf");
-    font-weight: 400;
+    src: url("/fonts/JetBrainsMono.woff2") format("woff2-variations");
+    font-weight: 100 800;
     font-style: normal;
     font-display: swap;
 }
@@ -69,6 +69,7 @@ body,
         "Segoe UI Emoji",
         "Segoe UI Symbol",
         "Noto Color Emoji";
+    font-weight: 300;
 }
 
 html,

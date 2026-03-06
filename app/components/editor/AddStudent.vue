@@ -23,7 +23,7 @@ const loading = ref(false);
 
 const form = f.form({
     items: {
-        id: f.studentId(),
+        id: await f.studentId(),
         first: f.input(
             {
                 title: "First Name",

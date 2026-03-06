@@ -22,7 +22,7 @@ const form = f.form({
         password: f.password.current({
             "class:container": "password",
         }),
-        studentid: f.studentId({
+        studentid: await f.studentId({
             size: "lg",
             "class:container": "studentid",
         }),

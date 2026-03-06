@@ -178,7 +178,7 @@ function keypress(kp: KeyboardEvent) {
 
 const datestr = computed(() => {
     const display = (n: number) => {
-        const sep = [1, 3].includes(n);
+        const sep = n === 1 || (n === 3 && !props.omitYear);
         return narrow([n >= vis.value ? "-" : String(digits[n]!.value), sep]);
     };
 

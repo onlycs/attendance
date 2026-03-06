@@ -198,7 +198,7 @@ export function ornull<T, K>(
     };
 }
 
-export function ornullable<T, K>(
+export function ornullish<T, K>(
     f: (a: T) => K,
 ): <A extends T | null | undefined>(a: A) => NullPassthrough<A, K> {
     return (a: any) => {
