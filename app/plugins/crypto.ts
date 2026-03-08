@@ -64,6 +64,10 @@ export default defineNuxtPlugin(async () => {
                     encrypt: (ptxt: Uint8Array, psk: string) => worker.execute({ operation: "k1_encrypt", args: [ptxt, psk] }),
                     decrypt: (ctxt: string, psk: string) => worker.execute({ operation: "k1_decrypt", args: [ctxt, psk] }),
                 },
+                invite: {
+                    encryptk1: (k1: Uint8Array, k2: Uint8Array) => worker.execute({ operation: "k1_key_encrypt", args: [k1, k2] }),
+                    decryptk1: (ctxt: string, k2: Uint8Array) => worker.execute({ operation: "k1_key_decrypt", args: [ctxt, k2] }),
+                },
                 encrypt: <T extends string[]>(ptxt: Narrow<T>, psk: Uint8Array): Promise<T | undefined> => worker.execute({ operation: "encrypt", args: [ptxt, psk] }) as any,
                 decrypt: <T extends string[]>(ctxt: Narrow<T>, psk: Uint8Array): Promise<T | undefined> => worker.execute({ operation: "decrypt", args: [ctxt, psk] }) as any,
                 random_bytes: (len: number) => worker.execute({ operation: "random_bytes", args: [len] }),

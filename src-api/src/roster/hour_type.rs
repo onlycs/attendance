@@ -104,12 +104,12 @@ impl HourType {
         let default_learning_end = async |pg: &PgPool| {
             let build_info = HourType::Build.query(pg.clone()).await?;
 
-            let build_end = build_info
-                .ends
+            let build_start = build_info
+                .begins
                 .and_then(|n| n.with_year(year))
-                .unwrap_or(default_build_end);
+                .unwrap_or(default_build_start);
 
-            Ok::<_, HourTypeError>(build_end - chrono::Duration::days(1))
+            Ok::<_, HourTypeError>(build_start - chrono::Duration::days(1))
         };
 
         let default_offseason_start = async |pg: &PgPool, build_info: &mut Option<HourTypeInfo>| {

@@ -25,6 +25,7 @@
           toolchain
 
           nodePackages.prettier
+          node-gyp
 
           bacon
           bun
@@ -37,6 +38,7 @@
         ];
 
         libraries = with pkgs; [
+          vips
           openssl
           pkg-config
           gcc

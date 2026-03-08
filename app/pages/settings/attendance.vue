@@ -2,186 +2,99 @@
 import z from "zod";
 import type { FormControl } from "~/components/ui/form/Form.vue";
 import type { HourType } from "~/utils/api";
-import api, { HourTypeTitles } from "~/utils/api";
+import api, { HourTypeTitles, HourTypes } from "~/utils/api";
 import { f } from "~/utils/form";
 
 definePageMeta({ layout: "admin-protected" });
 
-const htdata = async (kind: HourType) => {
-    const res = await api.hour_type.query({
-        path: { kind },
-    });
+const htdata = Object.fromEntries(
+    await Promise.all(
+        HourTypes.map(async (kind) => {
+            const res = await api.hour_type.query({ path: { kind } });
+            if (!res.data) api.error(res.error, res.response);
+            return [kind, res.data] as const;
+        }),
+    ),
+) as Record<HourType, Awaited<ReturnType<typeof api.hour_type.query>>["data"]>;
+const zGoal = z.string().regex(/^\d+(\.\d*)?$/, "Must be a number");
 
-    if (!res.data) {
-        api.error(res.error, res.response);
-    }
+const items = Object.fromEntries(
+    HourTypes.flatMap((kind) => [
+        [
+            `${kind}_start`,
+            f
+                .date({
+                    title: `${kind}-start`,
+                    class: "!rounded-md",
+                    omitYear: true,
+                })
+                .optional(),
+        ],
+        [
+            `${kind}_end`,
+            f
+                .date({
+                    title: `${kind}-end`,
+                    class: "!rounded-md",
+                    omitYear: true,
+                })
+                .optional(),
+        ],
+        [
+            `${kind}_goal`,
+            f.input(
+                { title: `${kind}-goal`, class: "!rounded-md goal" },
+                zGoal,
+            ),
+        ],
+    ]),
+);
 
-    return res.data;
-};
-
-const build = await htdata("build");
-const learning = await htdata("learning");
-const demo = await htdata("demo");
-const offseason = await htdata("offseason");
+const defaults = Object.fromEntries(
+    HourTypes.flatMap((kind) => {
+        const d = htdata[kind];
+        return [
+            [`${kind}_start`, api.plaindate.parse(d?.begins) ?? undefined],
+            [`${kind}_end`, api.plaindate.parse(d?.ends) ?? undefined],
+            [`${kind}_goal`, d?.goal.toString() ?? ""],
+        ];
+    }),
+);
 
 const form = f.form({
-    items: {
-        build_start: f
-            .date({
-                title: "build-start",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        build_end: f
-            .date({
-                title: "build-end",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        build_goal: f.input(
-            {
-                title: "build-goal",
-                class: "!rounded-md goal",
-            },
-            z.string().regex(/^\d+(\.\d*)?$/, "Must be a number"),
-        ),
-        learning_start: f
-            .date({
-                title: "learning-start",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        learning_end: f
-            .date({
-                title: "learning-end",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        learning_goal: f.input(
-            {
-                title: "learning-goal",
-                class: "!rounded-md goal",
-            },
-            z.string().regex(/^\d+(\.\d*)?$/, "Must be a number"),
-        ),
-        offseason_start: f
-            .date({
-                title: "offseason-start",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        offseason_end: f
-            .date({
-                title: "offseason-end",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        offseason_goal: f.input(
-            {
-                title: "offseason-goal",
-                class: "!rounded-md goal",
-            },
-            z.string().regex(/^\d+(\.\d*)?$/, "Must be a number"),
-        ),
-        demo_start: f
-            .date({
-                title: "demo-start",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        demo_end: f
-            .date({
-                title: "demo-end",
-                class: "!rounded-md",
-                omitYear: true,
-            })
-            .optional(),
-        demo_goal: f.input(
-            {
-                title: "demo-goal",
-                class: "!rounded-md goal",
-            },
-            z.string().regex(/^\d+(\.\d*)?$/, "Must be a number"),
-        ),
-    },
-    defaults: {
-        build_start: api.plaindate.parse(build?.begins) ?? undefined,
-        build_end: api.plaindate.parse(build?.ends) ?? undefined,
-        build_goal: build?.goal.toString() ?? "",
-        learning_start: api.plaindate.parse(learning?.begins) ?? undefined,
-        learning_end: api.plaindate.parse(learning?.ends) ?? undefined,
-        learning_goal: learning?.goal.toString() ?? "",
-        offseason_start: api.plaindate.parse(offseason?.begins) ?? undefined,
-        offseason_end: api.plaindate.parse(offseason?.ends) ?? undefined,
-        offseason_goal: offseason?.goal.toString() ?? "",
-        demo_start: api.plaindate.parse(demo?.begins) ?? undefined,
-        demo_end: api.plaindate.parse(demo?.ends) ?? undefined,
-        demo_goal: demo?.goal.toString() ?? "",
-    },
-    async submit(data) {
-        const rbuild = await api.hour_type.update({
-            path: { kind: "build" },
-            body: {
-                begins: api.plaindate.ser(data.build_start),
-                ends: api.plaindate.ser(data.build_end),
-                goal: build!.goal,
-            },
-        });
+    items,
+    defaults,
+    async submit(data: Record<string, any>) {
+        const results = await Promise.all(
+            HourTypes.map((kind) =>
+                api.hour_type.update({
+                    path: { kind },
+                    body: {
+                        begins: api.plaindate.ser(data[`${kind}_start`]),
+                        ends: api.plaindate.ser(data[`${kind}_end`]),
+                        goal: parseFloat(data[`${kind}_goal`]),
+                    },
+                }),
+            ),
+        );
 
-        const rlearning = await api.hour_type.update({
-            path: { kind: "learning" },
-            body: {
-                begins: api.plaindate.ser(data.learning_start),
-                ends: api.plaindate.ser(data.learning_end),
-                goal: learning!.goal,
-            },
-        });
-
-        const roffseason = await api.hour_type.update({
-            path: { kind: "offseason" },
-            body: {
-                begins: api.plaindate.ser(data.offseason_start),
-                ends: api.plaindate.ser(data.offseason_end),
-                goal: offseason!.goal,
-            },
-        });
-
-        const rdemo = await api.hour_type.update({
-            path: { kind: "demo" },
-            body: {
-                begins: api.plaindate.ser(data.demo_start),
-                ends: api.plaindate.ser(data.demo_end),
-                goal: demo!.goal,
-            },
-        });
-
-        if (rbuild.error) return api.error(rbuild.error, rbuild.response);
-        if (rlearning.error)
-            return api.error(rlearning.error, rlearning.response);
-        if (roffseason.error)
-            return api.error(roffseason.error, roffseason.response);
-        if (rdemo.error) return api.error(rdemo.error, rdemo.response);
+        for (const res of results) {
+            if (res.error) return api.error(res.error, res.response);
+        }
     },
 });
 
+const FieldSubtitles: Record<string, string> = {
+    start: "Start Date",
+    end: "End Date",
+    goal: "Goal (Hours)",
+};
+
 function subtitle(key: string) {
-    return (
-        {
-            start: "Start Date",
-            end: "End Date",
-            goal: "Goal (Hours)",
-        }[key.split("-")[1] ?? ""] ?? "Unknown"
-    );
+    return FieldSubtitles[key.split("-")[1] ?? ""] ?? "Unknown";
 }
 
-const Descriptions = {
+const Descriptions: Record<string, string> = {
     "build-start": "Default: Day of the kickoff event",
     "build-end": "Default: 04/30",
     "learning-start": "Default: 09/01",
@@ -190,7 +103,7 @@ const Descriptions = {
     "offseason-end": "Set to day before build season start if blank",
     "demo-start": "Set to start of the year if blank",
     "demo-end": "Set to end of the year if blank",
-} as Record<string, string>;
+};
 
 function title(key: string) {
     if (key.split("-")[1] !== "start") return null;
@@ -220,26 +133,26 @@ const loading = ref(false);
                             <span class="subtitle">
                                 {{ subtitle(props.title) }}
                             </span>
-                            <span class="desc">
+                            <span class="desc" v-if="Descriptions[props.title]">
                                 {{ Descriptions[props.title] }}
                             </span>
                         </div>
 
                         <div class="end">
+                            <Button
+                                kind="warning"
+                                @click="update(null)"
+                                v-if="props.title.split('-')[1] !== 'goal'"
+                            >
+                                <Icon name="hugeicons:eraser-01" />
+                            </Button>
+
                             <component
                                 :is="component"
                                 v-bind="props"
                                 :model-value="model"
                                 @update:model-value="update"
                             />
-
-                            <Button
-                                kind="warning"
-                                @click="update(null)"
-                                v-if="props.title.split('-')[1] !== 'goal'"
-                            >
-                                <Icon name="hugeicons:arrow-turn-backward" />
-                            </Button>
                         </div>
                     </div>
                 </template>
@@ -265,7 +178,7 @@ const loading = ref(false);
 
 .page {
     @apply flex w-full flex-col gap-2 overflow-y-scroll;
-    @apply items-center;
+    @apply items-center py-4;
 }
 
 .setting {
@@ -286,11 +199,11 @@ const loading = ref(false);
 }
 
 .title {
-    @apply mt-6 text-lg font-normal select-none;
+    @apply mt-6 mb-1 ml-2 text-lg font-normal select-none;
 }
 
 .save {
-    @apply w-22;
+    @apply h-fit w-fit px-2 py-1;
 }
 
 .control {

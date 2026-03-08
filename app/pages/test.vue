@@ -4,6 +4,6 @@ const open = ref(true);
 
 <template>
     <div class="cntr">
-        <Dialog v-model:open="open"></Dialog>
+        <Checkbox v-model="open" label="Open" />
     </div>
 </template>

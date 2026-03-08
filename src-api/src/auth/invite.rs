@@ -3,8 +3,6 @@ use super::prelude::*;
 #[derive(Object)]
 #[oai(rename = "InviteRequest")]
 pub(super) struct Request {
-    /// The hashed student ID to associate with this invite, if any.
-    sid_hashed: Option<String>,
     /// Initial permissions to grant the user
     permissions: jwt::Permissions,
 }
@@ -35,10 +33,7 @@ pub(super) enum Error {
 
 #[tracing::instrument("auth::invite", skip(pg), err)]
 pub(super) async fn route(
-    Request {
-        sid_hashed,
-        permissions,
-    }: Request,
+    Request { permissions }: Request,
     claims: jwt::Claims,
     pg: PgPool,
 ) -> Result<Response, Error> {
@@ -50,13 +45,12 @@ pub(super) async fn route(
 
     sqlx::query!(
         r#"
-        INSERT INTO invites (id, inviter_id, k2, sid_hashed, permissions)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO invites (id, inviter_id, k2, permissions)
+        VALUES ($1, $2, $3, $4)
         "#,
         token,
         claims.sub,
         k2,
-        sid_hashed,
         serde_json::to_value(&permissions)?
     )
     .execute(&pg)

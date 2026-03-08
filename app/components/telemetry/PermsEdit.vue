@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EventPermissionEdit, Permissions } from "~/utils/api";
+import type { EventPermissionEdit, Permission } from "~/utils/api";
 import { PermissionTitles } from "~/utils/api";
 
 const { event } = defineProps<{ event: EventPermissionEdit }>();
@@ -19,7 +19,7 @@ const fields = [
     },
 ];
 
-const keys = Object.keys(event.old) as (keyof Permissions)[];
+const keys = Object.keys(event.old) as Permission[];
 const table = keys.map((perm) => ({
     title: PermissionTitles[perm],
     data: event.old[perm],

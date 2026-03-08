@@ -70,6 +70,17 @@ impl AuthService {
         Ok(())
     }
 
+    #[oai(path = "/reregister", method = "post")]
+    async fn reregister(
+        &self,
+        request: Json<register::ReregisterRequest>,
+        jwt: Jwt,
+    ) -> Result<(), register::FinishError> {
+        let claims = jwt.verify()?;
+        register::reregister(request.0, claims.sub, self.pg.clone()).await?;
+        Ok(())
+    }
+
     #[oai(path = "/onboard/token", method = "post")]
     async fn onboard_token(&self) -> Result<(), onboard::SetupKeyError> {
         onboard::token(self.pg.clone()).await?;

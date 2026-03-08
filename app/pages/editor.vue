@@ -188,7 +188,7 @@ defineExpose({ Dropdown: EditorDropdown });
         <div class="utilities">
             <Button
                 kind="danger"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 @click="$router.push('/dashboard')"
             >
@@ -198,7 +198,7 @@ defineExpose({ Dropdown: EditorDropdown });
 
             <Button
                 kind="secondary"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 @click="exportCSV"
             >
@@ -208,7 +208,7 @@ defineExpose({ Dropdown: EditorDropdown });
 
             <Button
                 kind="secondary"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 @click="() => (studentOpen = true)"
                 :disabled="!creds?.claims.perms.student_add"
@@ -219,7 +219,7 @@ defineExpose({ Dropdown: EditorDropdown });
 
             <Button
                 kind="secondary"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 @click="() => (entryOpen = true)"
                 :disabled="!creds?.claims.perms.hours_edit"
@@ -230,7 +230,7 @@ defineExpose({ Dropdown: EditorDropdown });
 
             <Button
                 kind="danger"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 :disabled="
                     selected.length === 0 || !creds?.claims.perms.student_delete
@@ -244,7 +244,7 @@ defineExpose({ Dropdown: EditorDropdown });
             <Button
                 v-if="!connected"
                 kind="warning"
-                class="!w-fit"
+                class="w-fit!"
                 class:content="button"
                 @click="reconnect"
             >

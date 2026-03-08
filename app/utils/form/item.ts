@@ -1,4 +1,5 @@
 import {
+    Checkbox,
     Combobox,
     DatePicker,
     Input,
@@ -12,6 +13,7 @@ import { type ZodTemporal, zPlainDate, zPlainTime } from "temporal-zod";
 import type { Component } from "vue";
 import { z } from "zod";
 import type { $ZodCheckLengthEqualsDef } from "zod/v4/core";
+import type { CheckboxProps } from "~/components/ui/form/Checkbox.vue";
 import { type ComboboxProps } from "~/components/ui/form/Combobox.vue";
 import type { DatePickerProps } from "~/components/ui/form/DatePicker.vue";
 import { type InputProps } from "~/components/ui/form/Input.vue";
@@ -121,6 +123,26 @@ export class ItemSelect<Z extends z.ZodEnum = z.ZodEnum> extends ItemBase<
 
     copy(): this {
         return new ItemSelect({ ...this.props }, this.zod.clone()) as this;
+    }
+}
+
+export class ItemCheckbox extends ItemBase<CheckboxProps, z.ZodType<boolean>> {
+    private constructor(
+        props: CheckboxProps & ItemProps,
+        zod: z.ZodType<boolean> = z.boolean(),
+    ) {
+        super(props, zod, Checkbox);
+    }
+
+    static build(
+        props: CheckboxProps & ItemProps = {},
+        zod: z.ZodType<boolean> = z.boolean(),
+    ) {
+        return new ItemCheckbox(props, zod);
+    }
+
+    copy(): this {
+        return new ItemCheckbox({ ...this.props }, this.zod.clone()) as this;
     }
 }
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Permissions } from "~/utils/api";
+import type { Permission } from "~/utils/api";
 
 const props = defineProps<{
-    required: (keyof Permissions)[];
+    required: Permission[];
     class?: string | string[];
 }>();
 

@@ -1,5 +1,9 @@
 <script setup lang="ts">
-defineProps<{ dashless?: boolean; lineless?: boolean }>();
+defineProps<{
+    dashless?: boolean;
+    lineless?: boolean;
+    text?: "text" | "sub";
+}>();
 const link = ref<HTMLElement | null>(null);
 
 function update(event: MouseEvent) {
@@ -22,8 +26,14 @@ function update(event: MouseEvent) {
         ref="link"
     >
         <slot />
-        <span v-if="!$props.dashless" class="dashes" />
-        <span v-if="!$props.lineless" class="line" />
+        <span
+            v-if="!$props.dashless"
+            :class="cn('dashes', $props.text ?? 'text')"
+        />
+        <span
+            v-if="!$props.lineless"
+            :class="cn('line', $props.text ?? 'text')"
+        />
     </a>
 </template>
 
@@ -36,13 +46,21 @@ function update(event: MouseEvent) {
 }
 
 .line {
-    @apply absolute bottom-[2px] left-0 -mt-1;
-    @apply h-[1px] w-full bg-text;
+    @apply absolute bottom-[1px] left-0 -mt-1;
+    @apply h-[1px] w-full;
     @apply pointer-events-none;
 
     transform: scaleX(0);
     transform-origin: var(--mouse-x) 50%;
     transition: transform 0.15s;
+
+    &.text {
+        @apply bg-text;
+    }
+
+    &.sub {
+        @apply bg-sub;
+    }
 }
 
 a:hover .line {
@@ -53,7 +71,15 @@ a:hover .line {
 .dashes {
     @apply absolute bottom-[2px] left-0;
     @apply h-0 w-full;
-    @apply border-b-[1px] border-dashed border-white/40;
+    @apply border-b-[1px] border-dashed;
+
+    &.text {
+        @apply border-white/40;
+    }
+
+    &.sub {
+        @apply border-white/25;
+    }
 }
 
 a:hover .dashes {

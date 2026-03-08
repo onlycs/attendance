@@ -28,6 +28,7 @@ pub(super) struct FinishRequest {
 }
 
 #[derive(ApiResponse, ApiError)]
+#[from(JwtVerifyError)]
 pub(super) enum FinishError {
     /// Invalid hex encoding for `v` or `s`
     #[oai(status = 400)]
@@ -44,11 +45,18 @@ pub(super) enum FinishError {
     InternalServerError(PlainText<String>),
 }
 
+#[derive(Debug, Object)]
+pub(super) struct ReregisterRequest {
+    k1e: String,
+    v: String,
+    s: String,
+}
+
 #[tracing::instrument(skip(pg), err)]
 pub(super) async fn start(token: String, pg: PgPool) -> Result<StartResponse, StartError> {
     let invite = sqlx::query!(
         r#"
-        SELECT k2, inviter_id, sid_hashed, permissions
+        SELECT k2, inviter_id, permissions
         FROM invites
         WHERE id = $1 AND expiry > NOW()
         "#,
@@ -60,12 +68,11 @@ pub(super) async fn start(token: String, pg: PgPool) -> Result<StartResponse, St
 
     sqlx::query!(
         r#"
-        INSERT INTO register_sessions (id, inviter_id, sid_hashed, permissions)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO register_sessions (id, inviter_id, permissions)
+        VALUES ($1, $2, $3)
         "#,
         token,
         invite.inviter_id,
-        invite.sid_hashed,
         invite.permissions
     )
     .execute(&pg)
@@ -100,7 +107,7 @@ pub(super) async fn finish(
 ) -> Result<(), FinishError> {
     let res = sqlx::query!(
         r#"
-        SELECT sid_hashed, inviter_id, permissions FROM register_sessions
+        SELECT inviter_id, permissions FROM register_sessions
         WHERE id = $1 AND expiry > NOW()
         "#,
         token
@@ -113,11 +120,10 @@ pub(super) async fn finish(
 
     sqlx::query!(
         r#"
-        INSERT INTO admins (id, sid_hashed, username, salt, verifier, k1e)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO admins (id, username, salt, verifier, k1e)
+        VALUES ($1, $2, $3, $4, $5)
         "#,
         userid,
-        res.sid_hashed,
         username,
         hex::decode(s)?,
         hex::decode(v)?,
@@ -157,6 +163,29 @@ pub(super) async fn finish(
         .await
         .log();
     });
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(pg, v, s), err)]
+pub(super) async fn reregister(
+    ReregisterRequest { k1e, v, s }: ReregisterRequest,
+    uid: String,
+    pg: PgPool,
+) -> Result<(), FinishError> {
+    sqlx::query!(
+        r#"
+        UPDATE admins
+        SET salt = $2, verifier = $3, k1e = $4
+        WHERE id = $1
+        "#,
+        uid,
+        hex::decode(s)?,
+        hex::decode(v)?,
+        k1e
+    )
+    .execute(&pg)
+    .await?;
 
     Ok(())
 }

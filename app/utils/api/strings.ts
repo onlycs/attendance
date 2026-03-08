@@ -1,6 +1,6 @@
 import type { HourType, Permissions, TelemetryEvent } from "./hey/types.gen";
 
-export const PermissionTitles: Record<keyof Permissions, string> = {
+export const PermissionTitles: Record<Permission, string> = {
     student_add: "Add Students",
     student_delete: "Remove Students",
     student_view: "View Students",
@@ -47,4 +47,5 @@ export const EventTypeTitles = {
 } as const satisfies Record<TelemetryEvent["event"]["event"], string>;
 
 export type EventType = keyof typeof EventTypeTitles;
+export type Permission = keyof Permissions;
 export const HourTypes = Object.keys(HourTypeLabels) as FixedArray<HourType, 4>;

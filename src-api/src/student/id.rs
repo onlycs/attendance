@@ -11,6 +11,10 @@ pub(super) struct StudentIdConfig {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
 pub(super) enum StudentIdError {
+    #[oai(status = 400)]
+    #[from(regex::Error, "Invalid regular expression")]
+    InvalidRegex(PlainText<String>),
+
     #[oai(status = 401)]
     Unauthorized(PlainText<String>),
 
@@ -23,6 +27,9 @@ pub(super) enum StudentIdError {
 }
 
 pub(super) async fn update(pg: &PgPool, new_config: StudentIdConfig) -> Result<(), StudentIdError> {
+    // test regex
+    regex::Regex::new(&new_config.regex)?;
+
     sqlx::query!(
         r#"
         UPDATE student_id_config

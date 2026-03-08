@@ -8,6 +8,7 @@ import type { ButtonContext, FormButton } from "./button";
 import type { Deps } from "./deps";
 import {
     type ItemBase,
+    ItemCheckbox,
     ItemCombobox,
     ItemDate,
     ItemInput,
@@ -114,6 +115,7 @@ export const f = {
     combobox: ItemCombobox.build,
     date: ItemDate.build,
     time: ItemTime.build,
+    checkbox: ItemCheckbox.build,
 
     // project-specific items
     hourtype: {

@@ -75,10 +75,9 @@ impl AdminService {
     ) -> Result<Json<update::UpdateResponse>, update::UpdateError> {
         let claims = jwt.verify()?;
 
-        // if we are changing sid or if we are changing a different admin, we need
-        // admin edit permissions. otherwise, we are just changing our own username and
-        // we don't care
-        if !request.0.sid_hashed.is_undefined() || claims.sub != request.0.id {
+        // if we are changing a different admin, we need admin edit permissions.
+        // otherwise, we are just changing our own username and we don't care
+        if claims.sub != request.0.id {
             claims.perms.assert(Permission::AdminEdit)?;
         }
 

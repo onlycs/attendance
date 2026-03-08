@@ -17,10 +17,14 @@ const CONTENT = lazy(() => document.getElementById("content")!);
 const WIDTH = lazy(() => CONTENT.value!.clientWidth - PAD_RIGHT);
 const HEIGHT = lazy(() => CONTENT.value!.clientHeight - PAD_BOTTOM);
 
-watch(open, (open) => {
-    if (!open) pos.value = [-1000, -1000];
-    else pos.value = [mouse.x.value, mouse.y.value];
-});
+watch(
+    open,
+    (open) => {
+        if (!open) pos.value = [-1000, -1000];
+        else pos.value = [mouse.x.value, mouse.y.value];
+    },
+    { immediate: true },
+);
 
 watch([mouse.x, mouse.y], ([x, y]) => {
     if (!dragging.value) return;
@@ -68,7 +72,7 @@ onUnmounted(() => {
 @reference "~/style/tailwind.css";
 
 .card {
-    @apply fixed -top-full -left-full opacity-0;
+    @apply fixed -top-[100vh] -left-[100vw] opacity-0;
     @apply z-50;
 
     &.open {

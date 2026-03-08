@@ -67,15 +67,12 @@ pub(super) async fn route(
     let new = sqlx::query_as::<_, Admin>(
         r#"
         UPDATE admins
-        SET
-            sid_hashed = COALESCE($2, sid_hashed),
-            username = COALESCE($3, username),
+        SET username = COALESCE($2, username),
         WHERE id = $1
         RETURNING *
         "#,
     )
     .bind(&incoming.id)
-    .bind(incoming.sid_hashed.as_opt_ref())
     .bind(&incoming.username)
     .fetch_one(&pg) // checked for existence above
     .await?;

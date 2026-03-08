@@ -232,7 +232,7 @@ defineExpose(control);
                             'label',
                             showErrors &&
                                 errors[key]!.value.length > 0 &&
-                                '!text-red-400',
+                                'text-red-400!',
                         )
                     "
                     v-if="form.items[key]!.props.title"
@@ -269,7 +269,9 @@ defineExpose(control);
                     } else control[button.form]();
                 }
             "
+            class:content="formbtn"
         >
+            <Icon v-if="button.icon" :name="button.icon" class="!mr-0" />
             {{ button.label }}
         </Button>
     </template>
@@ -304,5 +306,9 @@ defineExpose(control);
 
 .spinner {
     @apply size-32;
+}
+
+:deep(.formbtn) {
+    @apply gap-2;
 }
 </style>

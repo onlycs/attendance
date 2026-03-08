@@ -183,5 +183,14 @@ export default defineNuxtPlugin(() => {
         },
     };
 
-    return { provide: { auth, user } };
+    return {
+        provide: {
+            auth,
+            user,
+            admin: computed(() => {
+                if (user.value.role === "admin") return user.value;
+                else return null;
+            }),
+        },
+    };
 });

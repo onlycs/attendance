@@ -16,7 +16,7 @@ const { icon } = defineProps<{ icon: string }>();
 
 .hidable {
     @apply flex flex-col items-center justify-center gap-2;
-    @apply h-full w-full;
+    @apply h-full min-h-42 w-full;
 }
 
 .icon {

@@ -163,8 +163,8 @@ pub(super) async fn token(pg: PgPool) -> Result<(), SetupKeyError> {
 
     sqlx::query!(
         r#"
-        INSERT INTO register_sessions (id, sid_hashed, permissions)
-        VALUES ($1, NULL, $2)
+        INSERT INTO register_sessions (id, permissions)
+        VALUES ($1, $2)
         "#,
         id,
         serde_json::to_value(jwt::Permissions::all())?,

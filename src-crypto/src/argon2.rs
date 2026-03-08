@@ -15,20 +15,20 @@ const P_CONST: u32 = 4;
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 24;
 
-fn argon2(password: &str, salt: &[u8; SALT_LEN]) -> Result<[u8; 32], Whatever> {
+fn argon2(password: impl AsRef<[u8]>, salt: &[u8; SALT_LEN]) -> Result<[u8; 32], Whatever> {
     let params = Params::new(M_COST, T_COST, P_CONST, None).ctx("param create failed")?;
     let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
     let mut kek = [0u8; 32];
 
     argon2
-        .hash_password_into(password.as_bytes(), salt, &mut kek)
+        .hash_password_into(password.as_ref(), salt, &mut kek)
         .ctx("password hash failed")?;
 
     Ok(kek)
 }
 
 #[wasm_bindgen(js_name = "k1_encrypt")]
-pub fn encrypt_k1(k1: &[u8], password: String) -> Option<String> {
+pub fn k1_encrypt(k1: &[u8], password: String) -> Option<String> {
     let salt = random::bytes::<SALT_LEN>().trace_ok()?;
     let nonce = XNonce::from(random::bytes::<NONCE_LEN>().trace_ok()?);
 
@@ -44,8 +44,21 @@ pub fn encrypt_k1(k1: &[u8], password: String) -> Option<String> {
     Some(hex::encode(result))
 }
 
+#[wasm_bindgen(js_name = "k1_key_encrypt")]
+pub fn k1_encrypt_key(k1: &[u8], k2: &[u8]) -> Option<String> {
+    let cipher = XChaCha20Poly1305::new_from_slice(k2).log_ok()?;
+    let nonce = XNonce::from(random::bytes::<NONCE_LEN>().trace_ok()?);
+    let ciphertext = cipher.encrypt(&nonce, k1).log_ok()?;
+
+    let mut result = Vec::with_capacity(NONCE_LEN + ciphertext.len());
+    result.extend_from_slice(&nonce);
+    result.extend_from_slice(&ciphertext);
+
+    Some(hex::encode(result))
+}
+
 #[wasm_bindgen(js_name = "k1_decrypt")]
-pub fn decrypt_k1(k1e: String, password: String) -> Option<Vec<u8>> {
+pub fn k1_decrypt(k1e: String, password: String) -> Option<Vec<u8>> {
     let k1e = hex::decode(k1e).ctx("Failed to decode hex").trace_ok()?;
 
     if k1e.len() < SALT_LEN + NONCE_LEN {
@@ -65,6 +78,22 @@ pub fn decrypt_k1(k1e: String, password: String) -> Option<Vec<u8>> {
     let plaintext = cipher.decrypt(nonce, ciphertext).log_ok()?;
 
     Some(plaintext)
+}
+
+#[wasm_bindgen(js_name = "k1_key_decrypt")]
+pub fn k1_decrypt_key(k1e: String, k2: &[u8]) -> Option<Vec<u8>> {
+    let data = hex::decode(k1e).log_ok()?;
+
+    if data.len() < NONCE_LEN {
+        return None;
+    }
+
+    let nonce = XNonce::from_slice(&data[..NONCE_LEN]);
+    let ciphertext = &data[NONCE_LEN..];
+    let cipher = XChaCha20Poly1305::new_from_slice(k2).log_ok()?;
+    let k1 = cipher.decrypt(nonce, ciphertext).log_ok()?;
+
+    Some(k1)
 }
 
 fn encrypt_sync(ptxt: &str, k1: &[u8]) -> Option<String> {

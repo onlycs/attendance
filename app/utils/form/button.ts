@@ -6,6 +6,7 @@ import type { ButtonProps } from "~/components/ui/form/Button.vue";
 
 export type FormButton<C extends string = string> = Partial<ButtonProps> & {
     label: string;
+    icon?: string;
 } & (
         | (({ form: "submit"; context?: C } | { form: "cancel" | "reset" }) & {
               action?: never;
