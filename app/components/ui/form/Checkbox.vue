@@ -4,11 +4,19 @@ export interface CheckboxProps {
 }
 
 const { label } = defineProps<CheckboxProps>();
-const checked = defineModel<boolean>({ default: false });
+const checked = defineModel<boolean | null>({ default: null });
 
 function onchange(event: Event) {
     checked.value = (event.target as HTMLInputElement).checked;
 }
+
+watch(
+    checked,
+    (next) => {
+        if (!next && typeof next !== "boolean") checked.value = false;
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -16,7 +24,7 @@ function onchange(event: Event) {
         <input
             type="checkbox"
             class="input"
-            :checked="checked"
+            :checked="checked ?? false"
             @change="onchange"
         />
 

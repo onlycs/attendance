@@ -271,7 +271,7 @@ defineExpose(control);
             "
             class:content="formbtn"
         >
-            <Icon v-if="button.icon" :name="button.icon" class="!mr-0" />
+            <Icon v-if="button.icon" :name="button.icon" class="mr-0!" />
             {{ button.label }}
         </Button>
     </template>

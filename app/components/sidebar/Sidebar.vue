@@ -108,9 +108,13 @@ const entries = computed(() => ({
                                 icon: 'hugeicons:clock-04',
                                 name: 'Attendance',
                             },
-                            '/settings/user': {
+                            '/settings/admin': {
                                 icon: 'hugeicons:user-multiple-03',
-                                name: 'Users',
+                                name: 'User Management',
+                            },
+                            '/settings/me': {
+                                icon: 'hugeicons:user-circle-02',
+                                name: 'My Account',
                             },
                         },
                     },

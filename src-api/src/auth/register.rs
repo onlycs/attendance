@@ -9,8 +9,8 @@ pub(super) struct StartResponse {
 #[derive(ApiResponse, ApiError)]
 pub(super) enum StartError {
     #[oai(status = 401)]
-    #[construct("Invalid or expired invite token")]
-    BadInvite(PlainText<String>),
+    #[construct(bad_invite, "Invalid or expired invite token")]
+    Unauthorized(PlainText<String>),
 
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
@@ -36,8 +36,12 @@ pub(super) enum FinishError {
     BadRequest(PlainText<String>),
 
     #[oai(status = 401)]
-    #[construct("Invalid or expired invite token")]
-    BadInvite(PlainText<String>),
+    #[construct(bad_invite, "Invalid or expired invite token")]
+    Unauthorized(PlainText<String>),
+
+    #[oai(status = 409)]
+    #[construct("Username already taken")]
+    Conflict(PlainText<String>),
 
     #[oai(status = 500)]
     #[from(sqlx::Error, "Database error")]
@@ -118,10 +122,11 @@ pub(super) async fn finish(
 
     let userid = cuid2();
 
-    sqlx::query!(
+    let ins = sqlx::query!(
         r#"
         INSERT INTO admins (id, username, salt, verifier, k1e)
         VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (username) DO NOTHING
         "#,
         userid,
         username,
@@ -131,6 +136,10 @@ pub(super) async fn finish(
     )
     .execute(&pg)
     .await?;
+
+    if ins.rows_affected() == 0 {
+        return Err(FinishError::conflict());
+    }
 
     serde_json::from_value::<jwt::Permissions>(res.permissions)?
         .create(&userid, &pg)

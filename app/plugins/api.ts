@@ -65,10 +65,6 @@ function error(
 
             return;
         }
-        case 404: {
-            toast.error("Could not find some data. This is probably a bug.");
-            return;
-        }
         case 500: {
             toast.error("There was a problem with the server. This is a bug");
             return;

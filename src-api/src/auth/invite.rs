@@ -39,7 +39,7 @@ pub(super) async fn route(
 ) -> Result<Response, Error> {
     let token = cuid2();
 
-    let mut k2 = [0u8; 64];
+    let mut k2 = [0u8; 32];
     rng().fill_bytes(&mut k2);
     let k2 = hex::encode(&k2);
 

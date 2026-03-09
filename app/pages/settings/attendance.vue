@@ -11,7 +11,10 @@ const htdata = Object.fromEntries(
     await Promise.all(
         HourTypes.map(async (kind) => {
             const res = await api.hour_type.query({ path: { kind } });
-            if (!res.data) api.error(res.error, res.response);
+            if (!res.data)
+                api.error(res.error, res.response, {
+                    handle: { [403]: () => {} },
+                });
             return [kind, res.data] as const;
         }),
     ),
@@ -120,7 +123,7 @@ const loading = ref(false);
             <Form
                 :form="form"
                 ref="control"
-                class="!w-4xl"
+                class="w-4xl!"
                 v-model:loading="loading"
             >
                 <template #item="{ component, props, model, update }">
@@ -215,6 +218,6 @@ const loading = ref(false);
 }
 
 :deep(.goal) {
-    @apply !px-3 !py-2;
+    @apply px-3! py-2!;
 }
 </style>

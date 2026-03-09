@@ -200,7 +200,7 @@ export function useAdminData({
         creds,
         async (creds) => {
             if (!creds) return;
-            if (!creds.claims.perms.student_view) return onDenied?.();
+            if (!creds.claims.perms.admin_view) return onDenied?.();
             if (admins.value.size !== 0) return;
 
             await fetch();

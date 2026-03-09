@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { h } from "vue";
+import { toast } from "vue-sonner";
 import z from "zod";
 import FancyLink from "~/components/ui/FancyLink.vue";
 import { type FormControl } from "~/components/ui/form/Form.vue";
@@ -137,13 +138,31 @@ const perms_form = computed(() => {
         buttons: [
             {
                 kind: "primary",
-                label: "Save",
+                label: "Save Permissions",
                 icon: "hugeicons:upload-01",
                 form: "submit",
                 class: "col-span-3",
+                context: "submit",
+            },
+            {
+                kind: "danger-card",
+                label: "Delete Account",
+                class: "col-span-3 -mt-4!",
+                form: "submit",
+                context: "delete",
             },
         ],
-        async submit(data) {
+        async submit(data, ctx) {
+            if (ctx === "delete") {
+                const res = await api.admin.delete({
+                    body: { admin_id: selected.value! },
+                });
+                if (res.error) api.error(res.error, res.response);
+
+                selected.value = null;
+                return;
+            }
+
             const res = await api.admin.permissions.update({
                 path: { id: selected.value! },
                 body: data,
@@ -156,6 +175,77 @@ const perms_form = computed(() => {
         },
     });
 });
+
+const dialog = ref(false);
+const dialog_loading = ref(false);
+const invite_url = ref("");
+const creds = useCreds();
+const crypto = useCrypto();
+
+const invite_checkboxes = Object.fromEntries(
+    Object.entries(PermissionTitles).map(([perm, title]) => [
+        perm as Permission,
+        f.checkbox({ label: title }),
+    ]),
+) as Record<Permission, ReturnType<typeof f.checkbox>>;
+
+const invite_form = f.form({
+    items: invite_checkboxes,
+    defaults: {
+        roster: true,
+        hours_view: true,
+        student_view: true,
+    },
+    buttons: [
+        {
+            kind: "primary",
+            label: "Create Invite",
+            icon: "hugeicons:upload-01",
+            form: "submit",
+            class: "col-span-3",
+        },
+    ],
+    async submit(data) {
+        const k1 = hex.asbytes(creds.value!.k1);
+
+        dialog_loading.value = true;
+        dialog.value = true;
+
+        const end = () => {
+            setTimeout(() => {
+                dialog.value = false;
+                dialog_loading.value = false;
+            }, 500); // ensure the dialog shows for at least 500ms to prevent flashing
+        };
+
+        const res = await api.auth.invite({ body: { permissions: data } });
+        if (!res.data) {
+            api.error(res.error, res.response);
+            return end();
+        }
+
+        const k2 = hex.asbytes(res.data.k2);
+        const k3 = await crypto.invite.encryptk1(k1, k2);
+
+        if (!k3) {
+            toast.error("Failed to encrypt master key. Please try again.");
+            return end();
+        }
+
+        const url = new URL(window.location.origin);
+        url.pathname = "/invite";
+        url.searchParams.set("k3", k3);
+        url.searchParams.set("token", res.data.token);
+
+        invite_url.value = url.toString();
+        dialog_loading.value = false;
+    },
+});
+
+function copy() {
+    navigator.clipboard.writeText(invite_url.value);
+    toast.success("Invite URL copied to clipboard");
+}
 </script>
 
 <template>
@@ -203,7 +293,7 @@ const perms_form = computed(() => {
                 </template>
             </Form>
 
-            <div class="title col-span-3 -mb-1!">Admin Permissions</div>
+            <div class="title col-span-3 -mb-1!">Admin Management</div>
             <Combobox
                 :kv="adminNames"
                 v-model="selected"
@@ -230,15 +320,40 @@ const perms_form = computed(() => {
             <div class="selected flex items-center justify-center" v-else>
                 <Spinner class="spinner size-24" />
             </div>
+
+            <div class="title col-span-3 -mb-1!">Invitation</div>
+            <div class="selected">
+                <span class="col-span-3 -mt-2! -mb-2! -ml-2! text-sub">
+                    Select Permissions
+                </span>
+
+                <Form :form="invite_form" />
+            </div>
         </div>
     </RequirePerms>
+
+    <Dialog
+        v-model:open="dialog"
+        :xButton="!dialog_loading"
+        :escape="!dialog_loading"
+    >
+        <template v-if="!dialog_loading" #title>Invitation</template>
+        <Spinner v-if="dialog_loading" class="mb-4 size-32" />
+
+        <div class="copyable">
+            <p class="copytxt">{{ invite_url.repeat(10) }}</p>
+            <Button class="clipboard" kind="secondary-drop" @click="copy">
+                <Icon name="lets-icons:copy-alt" size="20" />
+            </Button>
+        </div>
+    </Dialog>
 </template>
 
 <style scoped>
 @reference "~/style/tailwind.css";
 
 .page {
-    @apply grid w-4xl gap-2 overflow-y-scroll;
+    @apply grid w-4xl gap-2 overflow-y-scroll py-4;
     grid-template-columns: 1fr auto auto;
 }
 
@@ -263,10 +378,6 @@ const perms_form = computed(() => {
     @apply mt-4 mb-1 ml-2 text-lg font-normal select-none;
 }
 
-.control {
-    @apply flex w-4xl items-end justify-end;
-}
-
 .end {
     @apply flex h-full items-center justify-center gap-2;
 }
@@ -277,7 +388,6 @@ const perms_form = computed(() => {
 
 .selected {
     @apply col-span-3 rounded-lg bg-card;
-    @apply min-h-48 overflow-y-scroll;
 
     @apply grid grid-cols-3 gap-8 p-8;
 }
@@ -292,5 +402,18 @@ const perms_form = computed(() => {
 
 :deep(.spinner) {
     @apply col-span-3 self-center justify-self-center;
+}
+
+.copyable {
+    @apply w-full rounded-md bg-drop p-3 pl-4 select-none;
+    @apply flex flex-row items-center justify-between gap-4;
+
+    .copytxt {
+        @apply min-w-0 truncate text-sm text-sub;
+    }
+
+    .clipboard {
+        @apply size-8 shrink-0 p-0;
+    }
 }
 </style>

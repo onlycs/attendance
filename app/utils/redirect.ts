@@ -5,6 +5,9 @@ export type RedirectToast =
     | "unauthorized"
     | "404"
     | "bad-qr"
+    | "bad-invite-link"
+    | "bad-invite"
+    | "invite-success"
     | "onboard";
 
 const meta = {
@@ -14,6 +17,9 @@ const meta = {
         "404": "That page does not exist",
         unauthorized: "You do not have permission to access that page.",
         "bad-qr": "The QR code you scanned is invalid.",
+        "bad-invite-link": "Invalid invite link.",
+        "bad-invite": "Invalid invite.",
+        "invite-success": "Invite accepted! Please sign in.",
     } satisfies Record<RedirectToast, string>,
     status: {
         "session-expired": "error",
@@ -21,6 +27,9 @@ const meta = {
         "404": "error",
         onboard: "success",
         "bad-qr": "error",
+        "bad-invite-link": "error",
+        "bad-invite": "error",
+        "invite-success": "success",
     } satisfies Record<RedirectToast, "error" | "success" | "info" | "warning">,
 } as const;
 
@@ -40,5 +49,10 @@ export function handleRedirectQuery() {
         toast[meta.status[message]](meta.messages[message]);
     }
 
-    useRouter().replace({ query: {} });
+    useRouter().replace({
+        query: {
+            ...route.query,
+            throw: undefined,
+        },
+    });
 }

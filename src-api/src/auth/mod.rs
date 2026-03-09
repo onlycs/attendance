@@ -56,9 +56,9 @@ impl AuthService {
     #[oai(path = "/register", method = "get")]
     async fn register_start(
         &self,
-        key: Query<String>,
+        token: Query<String>,
     ) -> Result<Json<register::StartResponse>, register::StartError> {
-        Ok(Json(register::start(key.0, self.pg.clone()).await?))
+        Ok(Json(register::start(token.0, self.pg.clone()).await?))
     }
 
     #[oai(path = "/register", method = "post")]

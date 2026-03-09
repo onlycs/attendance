@@ -36,7 +36,7 @@ const matches = computed(() => {
 
 .widget {
     @apply flex flex-col items-center justify-center gap-2;
-    @apply rounded-lg bg-drop;
+    @apply min-h-64 rounded-lg bg-drop;
 }
 
 .icon {
