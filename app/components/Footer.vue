@@ -7,13 +7,6 @@
             <FancyLink href="https://github.com/onlycs" class="message">
                 Angad
             </FancyLink>
-            <p class="message overflowing">for</p>
-            <FancyLink
-                href="https://thebluealliance.com/team/2791"
-                class="message overflowing"
-            >
-                Team 2791
-            </FancyLink>
         </div>
 
         <div class="section self-end">
@@ -24,15 +17,6 @@
                 lineless
             >
                 <Icon class="icon" name="hugeicons:github" />
-            </FancyLink>
-
-            <FancyLink
-                href="https://thebluealliance.com/team/2791"
-                class="linkbox"
-                dashless
-                lineless
-            >
-                <NuxtImg class="icon" src="/tba-white.svg" />
             </FancyLink>
         </div>
     </div>

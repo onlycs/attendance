@@ -91,7 +91,7 @@ const entries = computed(() => ({
 <template>
     <div class="sidebar group/sidebar">
         <div class="header">
-            <NuxtImg src="/favicon.png" class="icon" />
+            <img src="/favicon.png" class="icon" />
             <span class="text">Attendance</span>
         </div>
 
@@ -156,7 +156,7 @@ const entries = computed(() => ({
     }
 
     .text {
-        @apply duration-[20ms];
+        @apply duration-20;
         @apply text-2xl font-semibold whitespace-nowrap select-none;
         @apply w-0 opacity-0;
 

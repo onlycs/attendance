@@ -105,7 +105,12 @@ onMounted(refresh);
     <template v-if="qr">
         <div class="vline" />
 
-        <NuxtImg :src="qr" alt="TOTP QR Code" class="qr" />
+        <img
+            :src="qr"
+            :srcset="`${qr} 1x, ${qr} 2x`"
+            alt="TOTP QR Code"
+            class="qr"
+        />
 
         <TimedProgress
             v-model:timer="timer"
