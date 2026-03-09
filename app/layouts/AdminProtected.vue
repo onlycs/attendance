@@ -14,6 +14,7 @@ const open = ref(false);
 const loading = ref(false);
 const promise = ref((_a: AdminCreds) => {});
 const route = useRoute();
+const mobile = useMobile();
 
 function exit(
     usr: (typeof user)["value"] = user.value,
@@ -102,9 +103,12 @@ const form = computed(() => {
 <template>
     <DefaultLayout ref="layout">
         <div class="page">
-            <Sidebar />
+            <Sidebar v-if="!mobile" />
+            <div v-else />
 
-            <div class="content">
+            <div
+                :class="cn('content', mobile && '-ml-2 w-[calc(100%+0.5rem)]!')"
+            >
                 <slot />
             </div>
         </div>

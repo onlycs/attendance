@@ -8,11 +8,12 @@ const crypto = useCrypto();
 const code = defineModel<string>("code", { required: true });
 const totp = ref<TotpResponse | null>(null);
 const issuer = ref<string | null>(null);
-const { kind } = defineProps<{ kind: HourType }>();
+const props = defineProps<{ kind: MaybeRef<HourType> }>();
+const kind = computed(() => unref(props.kind));
 
 watch(
-    user,
-    (creds) => {
+    [user, kind],
+    ([creds, kind]) => {
         if (creds.role !== "admin" || !creds.ok) {
             totp.value = null;
             return;
@@ -65,8 +66,8 @@ watch(totp, refresh);
 const qr = ref<string | null>(null);
 
 watch(
-    [code, issuer, totp],
-    async ([code, issuer, totp]) => {
+    [code, issuer, totp, kind],
+    async ([code, issuer, totp, kind]) => {
         if (!totp || !issuer || code === "") {
             qr.value = null;
             return;

@@ -92,7 +92,7 @@ const entries = computed(() => ({
     <div class="sidebar group/sidebar">
         <div class="header">
             <NuxtImg src="/favicon.png" class="icon" />
-            <span class="text">Odom</span>
+            <span class="text">Attendance</span>
         </div>
 
         <SidebarRoutes :routes="entries" :key="$route.fullPath" />

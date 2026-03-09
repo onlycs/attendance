@@ -70,8 +70,9 @@ const form = f.form({
 <template>
     <Require
         :redirects="{
-            '/dashboard': () => $user.value.role === 'admin',
+            '/dashboard': () => $user.value.role === 'admin' && !mobile,
             '/student': () => $user.value.role === 'student',
+            '/attendance': () => $user.value.role === 'admin' && mobile,
         }"
     />
     <div :class="cn('content', loading && 'justify-center')">
