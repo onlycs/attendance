@@ -42,7 +42,7 @@ async function add() {
 <template>
     <div class="root">
         <div
-            v-for="(entry, i) of $props.entries.value"
+            v-for="entry of $props.entries.value"
             class="entry"
             :key="hash(entry)"
         >

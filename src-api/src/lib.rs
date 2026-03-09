@@ -14,6 +14,8 @@ mod roster;
 mod student;
 mod telemetry;
 
+#[cfg(all(not(debug_assertions), feature = "serve-static"))]
+use poem::endpoint::StaticFilesEndpoint;
 use poem::{EndpointExt, Route, Server, listener::TcpListener, middleware::Cors};
 use poem_openapi::OpenApiService;
 use prelude::*;
@@ -38,10 +40,33 @@ pub async fn run_server(pool: PgPool) -> Result<(), InitError> {
     let address = format!("{}:{}", *env::ADDRESS, *env::PORT);
     let service = oai(pool);
 
-    let app = Route::new()
+    let app = Route::new();
+
+    #[cfg(any(debug_assertions, not(feature = "serve-static")))]
+    let app = app
         .nest("/docs", service.scalar())
         .nest("/openapi.yml", service.spec_endpoint_yaml())
         .nest("/", service)
+        .with(Cors::new());
+
+    #[cfg(all(not(debug_assertions), feature = "serve-static"))]
+    let app = app
+        .nest("/api/docs", service.scalar())
+        .nest("/api/openapi.yml", service.spec_endpoint_yaml())
+        .nest("/api/", service)
+        .nest(
+            "/",
+            StaticFilesEndpoint::new("static")
+                .index_file("index.html")
+                .map_to_response()
+                .after(|res| async move {
+                    use poem::IntoResponse;
+
+                    Ok(res?
+                        .with_header("cross-origin-opener-policy", "same-origin")
+                        .with_header("cross-origin-embedder-policy", "require-corp"))
+                }),
+        )
         .with(Cors::new());
 
     Server::new(TcpListener::bind(address)).run(app).await?;

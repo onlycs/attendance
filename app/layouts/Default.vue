@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Analytics } from "@vercel/analytics/vue";
-import { SpeedInsights } from "@vercel/speed-insights/vue";
 import { Toaster } from "vue-sonner";
 
 onLoad(handleRedirectQuery);
@@ -8,9 +6,6 @@ useRouter().beforeEach(() => useCleanup().run());
 </script>
 
 <template>
-    <SpeedInsights />
-    <Analytics />
-
     <div id="content" ref="content" data-vaul-drawer-wrapper>
         <slot />
     </div>

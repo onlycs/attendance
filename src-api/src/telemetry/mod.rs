@@ -55,7 +55,7 @@ impl TelemetryService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::Telemetry)?;
 
-        let id = format!("{}:{}", Utc::now().timestamp(), cuid2());
+        let id = cuid2();
         let filter = request.0;
         let pg = self.pg.clone();
 
@@ -110,10 +110,10 @@ impl TelemetryService {
         Ok(())
     }
 
-    #[oai(path = "/stream", method = "get")]
+    #[oai(path = "/stream/:id", method = "get")]
     async fn stream(
         &self,
-        id: Query<Option<String>>,
+        id: Path<Option<String>>,
         jwt: Jwt,
     ) -> Result<EventStream<BoxStream<'static, TelemetryEvent>>, stream::Error> {
         let claims = jwt.verify()?;

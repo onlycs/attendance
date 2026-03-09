@@ -29,5 +29,7 @@ async fn main() -> Result<(), InitError> {
         .connect(&*DATABASE_URL)
         .await?;
 
+    sqlx::migrate!().run(&pool).await?;
+
     run_server(pool).await
 }

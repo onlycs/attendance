@@ -86,7 +86,6 @@ const props = defineProps<{ entry: AttendanceRecord }>();
 const dirty = ref(false);
 const control = ref<FormControl<typeof form>>();
 const loading = ref(false);
-const formSubmit = ref(() => {});
 const defaults = computed(() => {
     const entry = props.entry;
 
@@ -145,7 +144,7 @@ async function del(id: string) {
                 class="button"
                 class:content="gap-2 text-sm"
                 v-if="dirty"
-                @click="formSubmit()"
+                @click="control?.submit()"
             >
                 <Icon name="hugeicons:upload-01" size="20" />
                 Submit

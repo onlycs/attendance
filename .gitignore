@@ -30,3 +30,6 @@ app/wasm/*
 app/utils/api/hey/*
 app/utils/api/client.ts
 src-api/openapi.yml
+
+.firebaserc
+.firebase

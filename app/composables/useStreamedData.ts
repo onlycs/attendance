@@ -291,9 +291,7 @@ export function useTelemetry({
             if (!id) return;
 
             useSSE().add(() => {
-                return api.telemetry.stream({
-                    query: { id },
-                });
+                return api.telemetry.stream({ path: { id } });
             }, add);
             onInit?.();
         },

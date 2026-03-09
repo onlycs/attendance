@@ -31,6 +31,13 @@ pub enum InitError {
         source: dotenvy::Error,
         location: &'static Location<'static>,
     },
+
+    #[error("At {location}: Migration error: {source}")]
+    Migration {
+        #[from]
+        source: sqlx::migrate::MigrateError,
+        location: &'static Location<'static>,
+    },
 }
 
 pub(crate) trait LogError<E>: Sized {

@@ -8,10 +8,10 @@ wasm:
 	@echo "=== Building WASM package"
 	cd src-crypto && rm -rf pkg && wasm-pack build --target web --release
 	@echo "=== Copying package files"
-	rm -rf app/wasm
-	cp -r src-crypto/pkg app/wasm
+	rm -rf public/wasm
+	cp -r src-crypto/pkg public/wasm
 	@echo "=== Patching workerHelpers.js files"
-	sed -i 's|\.\./\.\./\.\.|../../../attendance_crypto.js|g' app/wasm/snippets/*/src/workerHelpers.js
+	sed -i 's|\.\./\.\./\.\.|../../../attendance_crypto.js|g' public/wasm/snippets/*/src/workerHelpers.js
 
 openapi:
 	@echo "=== Generating OpenAPI spec"

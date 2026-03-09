@@ -43,13 +43,7 @@ export default defineNuxtConfig({
         },
     },
     devtools: { enabled: false },
-    modules: [
-        "@nuxt/icon",
-        "@nuxt/image",
-        "v-gsap-nuxt",
-        "@vueuse/nuxt",
-        "vue-sonner/nuxt",
-    ],
+    modules: ["@nuxt/icon", "@vueuse/nuxt", "vue-sonner/nuxt"],
     pages: true,
     css: ["~/style/tailwind.css"],
     postcss: {
@@ -77,18 +71,23 @@ export default defineNuxtConfig({
                 },
             },
         ],
-        define: {
-            __API_URL__: JSON.stringify(
-                process.env.API_URL || "http://localhost:3000",
-            ),
-        },
         worker: {
             format: "es",
+        },
+        build: {
+            rollupOptions: {
+                external: ["/wasm/attendance_crypto.js"],
+            },
         },
     },
     icon: {
         serverBundle: {
             collections: ["hugeicons"],
+        },
+    },
+    runtimeConfig: {
+        public: {
+            apiUrl: process.env.API_URL,
         },
     },
     ssr: false,

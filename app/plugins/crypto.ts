@@ -1,6 +1,6 @@
 import type { WorkerMessage } from "~/workers/attendance-crypto";
 
-type CryptoJs = typeof import("~/wasm/attendance_crypto");
+type CryptoJs = typeof import("../../public/wasm/attendance_crypto");
 type Awaited<R> = R extends Promise<infer T> ? T : R;
 
 export class CryptoWorker {
@@ -33,6 +33,12 @@ export class CryptoWorker {
                 this.pending.delete(id);
             }
         };
+
+        this.pending.set(-1, {
+            resolve: console.log,
+            reject: () => {},
+        });
+        this.worker.postMessage("init");
     }
 
     async execute<K extends keyof CryptoJs>(

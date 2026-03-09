@@ -1,20 +1,23 @@
-import * as attendance_crypto from "~/wasm/attendance_crypto";
+type CryptoJs = typeof import("../../public/wasm/attendance_crypto");
+
+// @ts-ignore
+let attendance_crypto: CryptoJs;
 
 let initialized = false;
 
-export interface WorkerMessage<K extends keyof typeof attendance_crypto> {
+export interface WorkerMessage<K extends keyof CryptoJs> {
     id: number;
     operation: K;
-    args: (typeof attendance_crypto)[K] extends (...args: infer P) => any
-        ? P
-        : never;
+    args: CryptoJs[K] extends (...args: infer P) => any ? P : never;
 }
 
-self.onmessage = async (
-    event: MessageEvent<WorkerMessage<keyof typeof attendance_crypto>>,
-) => {
+self.onmessage = async (event: MessageEvent<WorkerMessage<keyof CryptoJs>>) => {
     if (!initialized) {
-        await attendance_crypto.default();
+        attendance_crypto = await import(
+            /* @vite-ignore */
+            location.origin + "/wasm/attendance_crypto.js"
+        );
+        await attendance_crypto.default("/wasm/attendance_crypto_bg.wasm");
 
         try {
             await attendance_crypto.initThreadPool(
@@ -28,10 +31,14 @@ self.onmessage = async (
         initialized = true;
     }
 
+    if (typeof event.data === "string" && event.data === "init") {
+        self.postMessage({ id: -1, result: "Worker initialized" });
+        return;
+    }
+
     const { id, operation, args } = event.data;
     const func = attendance_crypto[operation] as (...args: any[]) => any;
-    const fnargs = args as any[];
-    const result = await (func as any)(...fnargs);
+    const result = await (func as any)(...(args as any[]));
 
     self.postMessage({ id, result });
 };

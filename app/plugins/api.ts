@@ -78,8 +78,12 @@ function error(
 export type ApiClient = NuxtApp["$api"];
 
 export default defineNuxtPlugin(() => {
-    const config = useRuntimeConfig();
-    const url = (config.public.apiUrl as string) ?? "http://localhost:8080";
+    const runtime = useRuntimeConfig();
+
+    const url = [
+        runtime.public.apiUrl,
+        import.meta.dev ? "http://localhost:8080/" : "/api",
+    ].find((u) => !!u)!;
 
     hclient.setConfig({
         baseUrl: url,

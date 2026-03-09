@@ -4,69 +4,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "**.rs"
+      - "**.vue"
+      - "**.ts"
+      - ".github/workflows/deploy.yaml"
+      - "**Dockerfile"
   workflow_dispatch:
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2025-11-15
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        id: cargo-cache
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            src-api/target
-            src-crypto/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Install dependencies and run postinstall
-        run: bun i
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Save Cargo cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            src-api/target
-            src-crypto/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Upload workspace
-        uses: actions/upload-artifact@v4
-        with:
-          name: workspace
-          path: |
-            .
-            !.git
-          retention-days: 1
-
-  api:
-    needs: setup
+  deploy:
     runs-on: ubuntu-latest
 
     permissions:
@@ -74,27 +21,60 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download workspace
-        uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
         with:
-          name: workspace
+          token_format: "access_token"
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+          access_token_lifetime: 600s
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        id: build-cache
+        with:
+          path: |
+            src-api/target
+            src-crypto/target
+            src-macro/target
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            node_modules
+          key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-build-
 
       - name: Set up Rust
+        if: steps.build-cache.outputs.cache-hit != 'true'
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly-2025-11-15
+          targets: wasm32-unknown-unknown
+          components: rustfmt
 
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            src-api/target
-            src-crypto/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+      - name: Write to .env
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > src-api/.env
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Check if sqlx CLI is cached
         id: checkfile
@@ -113,92 +93,84 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Build API (release)
-        run: cargo build --release --locked
-        working-directory: src-api
+      - name: Install dependencies and run postinstall
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > src-api/.env
+          bun i
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Login to Google Cloud
-        id: gcp-auth
-        uses: google-github-actions/auth@v2
-        with:
-          token_format: "access_token"
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA }}
-          access_token_lifetime: 600s
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Login to Artifact Registry
-        uses: docker/login-action@v2
-        with:
-          registry: us-central1-docker.pkg.dev
-          username: oauth2accesstoken
-          password: ${{ steps.gcp-auth.outputs.access_token }}
-
-      - name: Build Docker image
+      - name: Build API
         working-directory: src-api
-        run: |
-          docker build . -t onlycs/attendance:latest -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
-
-      - name: Push Docker image
-        run: |
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
-          docker push onlycs/attendance:latest
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy attendance \
-          --image=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest \
-          --platform=managed \
-          --region=us-central1 \
-          --allow-unauthenticated
-
-  static:
-    needs: setup
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Download workspace
-        uses: actions/download-artifact@v4
-        with:
-          name: workspace
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun i --frozen-lockfile
+        run: cargo build --release --locked --no-default-features
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build API image
+        run: docker build . -t onlycs/attendance:api -f Dockerfile.api
 
       - name: Generate static site
         run: bun generate
+
+      - name: Build API (include static assets)
+        working-directory: src-api
+        run: cargo build --release --locked
         env:
-          API_URL: ${{ secrets.API_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Login to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA }}
+      - name: Build standard image
+        run: docker build . -t onlycs/attendance:latest
 
-      - name: Deploy to Firebase Hosting
+      - name: Push Docker images
+        run: |
+          docker push onlycs/attendance:api
+          docker push onlycs/attendance:latest
+
+      - name: Regenerate frontend for ourselves
+        run: |
+          rm -rf .output
+          echo "NUXT_PUBLIC_API_URL=${{ secrets.API_URL }}" > .env
+          bun generate
+        env:
+          API_URL: ${{ secrets.API_URL }}
+
+      - name: Deploy API to GCE
+        run: |
+          gcloud compute ssh attendance-vm \
+            --zone=us-central1-a \
+            --tunnel-through-iap \
+            --command="
+              sudo docker pull onlycs/attendance:api &&
+              sudo docker stop attendance || true &&
+              sudo docker rm attendance || true &&
+              sudo docker run -d \
+                --name attendance \
+                --restart always \
+                --network=attendance-net \
+                -e DATABASE_URL='${{ secrets.DATABASE_URL }}' \
+                -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+                -p 8080:8080 \
+                onlycs/attendance:api
+            "
+
+      - name: Deploy Static to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.GCP_SA }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_RIVER_WAVE_445602_N7 }}
           channelId: live
           projectId: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Save Build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            src-api/target
+            src-crypto/target
+            src-macro/target
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            node_modules
+          key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/package-lock.json') }}
