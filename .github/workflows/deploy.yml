@@ -4,45 +4,97 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "src-api/**/*"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: src-api
-
-    permissions:
-      contents: read
-      id-token: write # Required for Google Cloud
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Load target cache
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2025-11-15
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Restore Cargo cache
         uses: actions/cache/restore@v4
-        id: cache-restore
+        id: cargo-cache
         with:
           path: |
-            /home/runner/work/attendance/attendance/src-api/target
             ~/.cargo/registry
             ~/.cargo/git
             ~/.cargo/bin
-          key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-rust-cache
+            src-api/target
+            src-crypto/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install dependencies and run postinstall
+        run: bun i
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Save Cargo cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            src-api/target
+            src-crypto/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Upload workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace
+          path: |
+            .
+            !.git
+          retention-days: 1
+
+  api:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly
-          default: true
-          override: true
+          toolchain: nightly-2025-11-15
+
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            src-api/target
+            src-crypto/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Check if sqlx CLI is cached
         id: checkfile
@@ -52,16 +104,18 @@ jobs:
           fi
 
       - name: Install sqlx CLI
-        run: cargo install sqlx-cli --no-default-features --features postgres
         if: steps.checkfile.outputs.exists == 'false'
+        run: cargo install sqlx-cli --no-default-features --features postgres
 
       - name: Run database migrations
         run: sqlx migrate run
+        working-directory: src-api
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Build
+      - name: Build API (release)
         run: cargo build --release --locked
+        working-directory: src-api
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
@@ -89,6 +143,7 @@ jobs:
           password: ${{ steps.gcp-auth.outputs.access_token }}
 
       - name: Build Docker image
+        working-directory: src-api
         run: |
           docker build . -t onlycs/attendance:latest -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/attendance/attendance:latest
 
@@ -105,13 +160,45 @@ jobs:
           --region=us-central1 \
           --allow-unauthenticated
 
-      - name: Save target cache
-        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || steps.cache-restore.outputs.cache-primary-key == '${{ runner.os }}-rust-cache')
-        uses: actions/cache/save@v4
+  static:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            /home/runner/work/attendance/attendance/src-api/target
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-          key: ${{ runner.os }}-rust-cache-${{ hashFiles('**/Cargo.lock') }}
+          name: workspace
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun i --frozen-lockfile
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Generate static site
+        run: bun generate
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Login to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_SA }}
+          channelId: live
+          projectId: ${{ secrets.GCP_PROJECT_ID }}
