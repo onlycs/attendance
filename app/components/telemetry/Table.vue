@@ -13,7 +13,7 @@ defineProps<{ data: TableEntry[] }>();
 
 <template>
     <div class="tbl">
-        <span class="title !bg-card-2">Field</span>
+        <span class="title bg-card-2!">Field</span>
         <span class="title">Old</span>
         <span class="title">Changed To</span>
 

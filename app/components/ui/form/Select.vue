@@ -87,8 +87,8 @@ watch(
                     $props['class:btn'],
                 )
             "
-            class:active="!rounded-sm"
-            class:hover="!rounded-sm"
+            class:active="rounded-sm!"
+            class:hover="rounded-sm!"
             class:content="px-4"
             :ref="
                 (el) => {

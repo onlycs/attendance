@@ -108,7 +108,7 @@ onMounted(async () => {
         </div>
 
         <div
-            class="data col-span-2 cursor-not-allowed !bg-black/75 select-none"
+            class="data col-span-2 cursor-not-allowed bg-black/75! select-none"
         >
             N/A
         </div>
@@ -156,7 +156,7 @@ onMounted(async () => {
     .button {
         @apply col-span-4;
         @apply flex flex-row items-center justify-center gap-4;
-        @apply !rounded-t-sm px-8 py-6 text-2xl;
+        @apply rounded-t-sm! px-8 py-6 text-2xl;
     }
 
     div {

@@ -119,7 +119,7 @@ const control = ref<FormControl<(typeof form)["value"]>>(null!);
 
             <Button
                 kind="primary"
-                class="submit !p-1"
+                class="submit p-1!"
                 class:content="gap-2 text-sm"
                 v-if="dirty && !loading"
                 @click="control.submit()"
@@ -136,7 +136,7 @@ const control = ref<FormControl<(typeof form)["value"]>>(null!);
 .filter {
     @apply relative;
     @apply rounded-lg bg-drop p-4;
-    @apply h-[34rem] w-full;
+    @apply h-[56rem] w-full;
     @apply overflow-y-scroll;
 }
 

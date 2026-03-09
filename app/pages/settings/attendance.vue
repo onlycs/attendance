@@ -28,7 +28,7 @@ const items = Object.fromEntries(
             f
                 .date({
                     title: `${kind}-start`,
-                    class: "!rounded-md",
+                    class: "rounded-md!",
                     omitYear: true,
                 })
                 .optional(),
@@ -38,7 +38,7 @@ const items = Object.fromEntries(
             f
                 .date({
                     title: `${kind}-end`,
-                    class: "!rounded-md",
+                    class: "rounded-md!",
                     omitYear: true,
                 })
                 .optional(),
@@ -46,7 +46,7 @@ const items = Object.fromEntries(
         [
             `${kind}_goal`,
             f.input(
-                { title: `${kind}-goal`, class: "!rounded-md goal" },
+                { title: `${kind}-goal`, class: "rounded-md! goal" },
                 zGoal,
             ),
         ],
@@ -166,7 +166,7 @@ const loading = ref(false);
                     kind="primary"
                     @click="() => control?.submit()"
                     class="save"
-                    class:content="!gap-2"
+                    class:content="gap-2!"
                 >
                     <Icon name="hugeicons:upload-01" class="icon" />
                     Save

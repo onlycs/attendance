@@ -21,14 +21,14 @@ const form_student = f.form({
         length: f.input(
             {
                 title: "id-length",
-                class: "!rounded-md form-input",
+                class: "rounded-md! form-input",
             },
             z.string().regex(/^\d+$/, "Must be an integer"),
         ),
         regex: f.input(
             {
                 title: "id-regex",
-                class: "!rounded-md form-input",
+                class: "rounded-md! form-input",
             },
             z.string(),
         ),

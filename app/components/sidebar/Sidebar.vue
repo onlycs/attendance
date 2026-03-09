@@ -92,7 +92,7 @@ const entries = computed(() => ({
     <div class="sidebar group/sidebar">
         <div class="header">
             <NuxtImg src="/favicon.png" class="icon" />
-            <span class="text">Attendance</span>
+            <span class="text">Odom</span>
         </div>
 
         <SidebarRoutes :routes="entries" :key="$route.fullPath" />
@@ -126,7 +126,7 @@ const entries = computed(() => ({
                         },
                     },
                 }"
-                :class="cn(useRoute().path.includes('settings') && '!gap-2')"
+                :class="cn(useRoute().path.includes('settings') && 'gap-2!')"
             />
         </div>
     </div>
