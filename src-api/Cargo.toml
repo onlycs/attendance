@@ -23,7 +23,7 @@ heck = "0.5.0"
 hex = "0.4.3"
 itertools = "0.14.0"
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
-oade = { path = "../../oade" }
+oade = { git = "https://github.com/onlycs/oade" }
 poem = { git = "https://github.com/onlycs/poem", features = ["websocket"] }
 poem-openapi = { git = "https://github.com/onlycs/poem", features = ["chrono", "scalar"] }
 rand = "0.9.2"
