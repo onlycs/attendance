@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { toast } from "vue-sonner";
 import { f } from "~/utils/form";
 
 const { auth } = useAuth();
@@ -62,7 +61,8 @@ const form = f.form({
             if (!mobile.value) router.push("/dashboard");
             else router.push("/attendance");
         } else {
-            toast.warning("Student login is not implemented yet.");
+            auth.student(output.studentid);
+            router.push("/student");
         }
     },
 });

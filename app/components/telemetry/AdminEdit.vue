@@ -6,20 +6,6 @@ const creds = useCreds();
 const crypto = useCrypto();
 const denied = ref(false);
 
-const oldStudent = decryptedStudent(
-    creds,
-    crypto,
-    props.event.old.sid_hashed,
-    denied,
-);
-
-const newStudent = decryptedStudent(
-    creds,
-    crypto,
-    props.event.sid_hashed,
-    denied,
-);
-
 const admin = await telemetryAdmin(props.event.admin_id, denied);
 
 const fields = [
@@ -35,14 +21,6 @@ const table = computed(() => {
             title: "Username",
             data: props.event.old.username,
             update: props.event.username ?? null,
-        },
-        {
-            title: "Student",
-            data: studentName(oldStudent.value) ?? "Unknown",
-            update:
-                props.event.sid_hashed === null
-                    ? "Removed"
-                    : studentName(newStudent.value),
         },
     ];
 });
