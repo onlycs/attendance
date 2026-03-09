@@ -206,7 +206,7 @@ impl HourTypeService {
     }
 
     #[oai(path = "/:kind/goal", method = "get")]
-    async fn get(&self, kind: Path<HourType>) -> Result<Json<f64>, hour_type::HourTypeError> {
+    async fn goal(&self, kind: Path<HourType>) -> Result<Json<f64>, hour_type::HourTypeError> {
         Ok(Json(kind.0.goal(self.pg.clone()).await?))
     }
 }

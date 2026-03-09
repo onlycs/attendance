@@ -49,7 +49,6 @@ export default defineNuxtConfig({
         "v-gsap-nuxt",
         "@vueuse/nuxt",
         "vue-sonner/nuxt",
-        "reka-ui/nuxt",
     ],
     pages: true,
     css: ["~/style/tailwind.css"],
