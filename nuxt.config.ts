@@ -85,11 +85,6 @@ export default defineNuxtConfig({
             collections: ["hugeicons"],
         },
     },
-    runtimeConfig: {
-        public: {
-            apiUrl: process.env.API_URL,
-        },
-    },
     ssr: false,
     compatibilityDate: "2025-08-18",
 });

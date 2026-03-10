@@ -19,26 +19,18 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Google Cloud
-        id: gcp-auth
-        uses: google-github-actions/auth@v2
-        with:
-          token_format: "access_token"
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.GCP_WLIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA }}
-          access_token_lifetime: 600s
-
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore build cache
         uses: actions/cache/restore@v4
@@ -94,72 +86,24 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Install dependencies and run postinstall
-        run: |
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > src-api/.env
-          bun i
+        run: bun i
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build API
-        working-directory: src-api
-        run: cargo build --release --locked --no-default-features
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build API image
-        run: docker build . -t onlycs/attendance:api -f Dockerfile.api
 
       - name: Generate static site
         run: bun generate
 
-      - name: Build API (include static assets)
+      - name: Build API
         working-directory: src-api
         run: cargo build --release --locked
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Build standard image
-        run: docker build . -t onlycs/attendance:latest
+        run: docker build . -t ghcr.io/${{ github.repository }}:latest
 
       - name: Push Docker images
-        run: |
-          docker push onlycs/attendance:api
-          docker push onlycs/attendance:latest
-
-      - name: Regenerate frontend for ourselves
-        run: |
-          rm -rf .output
-          echo "NUXT_PUBLIC_API_URL=${{ secrets.API_URL }}" > .env
-          bun generate
-        env:
-          API_URL: ${{ secrets.API_URL }}
-
-      - name: Deploy API to GCE
-        run: |
-          gcloud compute ssh attendance-vm \
-            --zone=us-central1-a \
-            --tunnel-through-iap \
-            --command="
-              sudo docker pull onlycs/attendance:api &&
-              sudo docker stop attendance || true &&
-              sudo docker rm attendance || true &&
-              sudo docker run -d \
-                --name attendance \
-                --restart always \
-                --network=attendance-net \
-                -e DATABASE_URL='${{ secrets.DATABASE_URL }}' \
-                -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-                -p 8080:8080 \
-                onlycs/attendance:api
-            "
-
-      - name: Deploy Static to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_RIVER_WAVE_445602_N7 }}
-          channelId: live
-          projectId: ${{ secrets.GCP_PROJECT_ID }}
+        run: docker push ghcr.io/${{ github.repository }}:latest
 
       - name: Save Build cache
         if: always()

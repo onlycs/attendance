@@ -33,3 +33,4 @@ src-api/openapi.yml
 
 .firebaserc
 .firebase
+firebase.json
