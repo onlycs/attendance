@@ -145,6 +145,7 @@ const entries = computed(() => ({
     &:hover {
         @apply w-78 p-6;
         @apply items-start;
+        @apply overflow-y-scroll;
     }
 }
 

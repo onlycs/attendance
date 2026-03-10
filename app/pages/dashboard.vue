@@ -11,7 +11,8 @@ const { events, update } = useTelemetry({
 });
 
 const open = ref(false);
-const heightOk = ref(true);
+const cutA = ref(false);
+const cutB = ref(false);
 const event = ref<Event | null>(null);
 
 provide("open", (data: TelemetryEvent) => {
@@ -24,7 +25,8 @@ defineExpose({ EventInfo: TelemetryDataCell });
 
 onMounted(() => {
     const update = () => {
-        heightOk.value = window?.innerHeight >= 1025;
+        cutA.value = window?.innerHeight < 1025;
+        cutB.value = window?.innerHeight < 830;
     };
 
     window.addEventListener("resize", update);
@@ -60,9 +62,9 @@ onMounted(() => {
         </div>
 
         <div class="column w-fit">
-            <WidgetQuickSwipe v-show="heightOk" />
+            <WidgetQuickSwipe v-show="!cutA" />
             <WidgetTotals />
-            <WidgetChart />
+            <WidgetChart v-show="!cutB" />
             <WidgetStudentHours />
         </div>
     </RequireWidth>
