@@ -15,21 +15,21 @@ An FRC-focused attendance tracker.
 
 1. Deploy the docker container. Railway is by far the easiest way to do this.
 
-    [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/wWtiqs?referralCode=Y3VMtD&utm_medium=integration&utm_source=template&utm_campaign=generic)
+    [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/frc-attendance?referralCode=Y3VMtD&utm_medium=integration&utm_source=template&utm_campaign=generic)
     1. To set the timezone (`TZ`), use the [database timezone format](https://wikipedia.org/wiki/List_of_tz_database_time_zones).
     2. Set the `JWT_SECRET` to a large (>32 character), random password. You do not need to remember this.
 
 2. On your app's dashboard, select `onlycs/attendance`, and then `Settings` > `Networking`. If your team has a domain
    (e.g. `attendance.team2791.org`), add a `Custom Domain`. Otherwise, generate a domain.
 
-     <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-url.png?raw=true" alt="URL Settings" width="69%">
+      <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-url.png?raw=true" alt="URL Settings" width="69%">
 
 3. Visit `https://<your-domain>/onboard`, and click `Get a new setup token`. To view this, in Railway, select `onlycs/attendance`, and then `Deployments` > `View Logs`.
 
-    <p align="center">
-      <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-logs.png?raw=true" alt="Logs" width="69%">
-      <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-token.png?raw=true" alt="Setup Token" width="69%">
-    </p>
+ <p align="center">
+   <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-logs.png?raw=true" alt="Logs" width="69%">
+   <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-token.png?raw=true" alt="Setup Token" width="69%">
+ </p>
 
 4. Use the setup token, enter the initial admin username and password, and you're all set!
 
