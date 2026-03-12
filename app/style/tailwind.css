@@ -72,6 +72,10 @@ body,
     font-weight: 400;
 }
 
+.body {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
 html,
 body {
     overflow: hidden;

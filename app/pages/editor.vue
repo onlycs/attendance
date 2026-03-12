@@ -151,13 +151,18 @@ const sWrap = { e: sEntries };
 
 // idrc about ag, but once it's updated, we get a ref in rows, which matters
 // also, this effect only runs once praise the lord
-watch([data, sHashed, sDate], ([data, hashed, date]) => {
+watch([data, sHashed, sDate, sOpen], ([data, hashed, date, open]) => {
+    if (!open) {
+        sEntries.value = [];
+        return;
+    }
+
     const student = data.get(hashed);
-    if (!student) return [];
+    if (!student) return;
 
     student.cells ??= [];
     const cell = student.cells.find((c) => c.date.equals(date));
-    if (!cell) return [];
+    if (!cell) return;
 
     sEntries.value = [...cell.records];
 });

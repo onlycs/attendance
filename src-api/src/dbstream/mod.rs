@@ -1,80 +1,60 @@
 pub(crate) mod tables;
 pub(crate) mod types;
 
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-    sync::{Arc, LazyLock},
-};
-
+use futures_util::Stream;
 use sqlx::postgres::PgListener;
-use tokio::sync::{
-    Mutex,
-    broadcast::{self, Receiver},
-};
-use tokio_stream::wrappers::BroadcastStream;
 
 use crate::prelude::*;
 
-pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>() -> BroadcastStream<Replication<R>>
-{
-    async fn create<R: Row>() -> Receiver<Replication<R>> {
-        let (tx, rx) = broadcast::channel(1024);
+pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>()
+-> Result<impl Stream<Item = Replication<R>>, sqlx::Error> {
+    let mut pg = PgListener::connect(&*env::DATABASE_URL).await?;
+    pg.listen(&format!("replicate:{}", R::NAME)).await?;
 
-        tokio::spawn(async move {
-            let mut listener = PgListener::connect(&*env::DATABASE_URL).await?;
-            listener.listen(&format!("replicate:{}", R::NAME)).await?;
+    info!(
+        task = %format!("ws::sql::{}", R::NAME),
+        "started replication listener"
+    );
 
-            info!(
-                task = %format!("ws::sql::{}", R::NAME),
-                "started replication listener"
-            );
-
-            while let Ok(notif) = listener.recv().await {
-                let pl = notif.payload();
-
-                debug!(
+    Ok(pg.into_stream().filter_map(|notif| async move {
+        let pl = match notif {
+            Ok(n) => n.payload().to_string(),
+            Err(err) => {
+                warn!(
                     task = %format!("ws::sql::{}", R::NAME),
-                    payload = %pl,
-                    "received replication notification"
+                    error = %err,
+                    "Failed to receive notification"
                 );
-
-                let repl = match serde_json::from_str::<Replication<R>>(pl) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        warn!(
-                            task = %format!("ws::sql::{}", R::NAME),
-                            error = %err,
-                            "failed to parse replication payload"
-                        );
-                        continue;
-                    }
-                };
-
-                tx.send(repl).unwrap_or(0);
+                return None;
             }
+        };
 
-            Ok::<(), sqlx::Error>(())
-        });
+        debug!(
+            task = %format!("ws::sql::{}", R::NAME),
+            payload = %pl,
+            "received replication notification"
+        );
 
-        rx
-    }
+        let repl = match serde_json::from_str::<Replication<R>>(&pl) {
+            Ok(r) => r,
+            Err(err) => {
+                warn!(
+                    task = %format!("ws::sql::{}", R::NAME),
+                    error = %err,
+                    "failed to parse replication payload"
+                );
+                return None;
+            }
+        };
 
-    static CACHE: LazyLock<Mutex<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>> =
-        LazyLock::new(|| Mutex::new(HashMap::new()));
+        info!(
+            task = %format!("ws::sql::{}", R::NAME),
+            replication = ?repl,
+            "recieved replication"
+        );
 
-    let typ = TypeId::of::<R>();
-    let mut lock = CACHE.lock().await;
-
-    if let Some(rx) = lock.get(&typ) {
-        let rx = rx.clone().downcast::<Receiver<Replication<R>>>().unwrap();
-        return BroadcastStream::new(rx.resubscribe());
-    }
-
-    let rx = Arc::new(create().await);
-
-    lock.insert(typ, rx.clone());
-    BroadcastStream::new(rx.resubscribe())
+        Some(repl)
+    }))
 }
 
 pub(crate) use tables::*;

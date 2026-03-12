@@ -38,10 +38,8 @@ impl StudentService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::StudentView)?;
 
-        let stream = dbstream::stream::<dbstream::Student>().await;
-        Ok(EventStream::new(Box::pin(
-            stream.filter_map(|repl| async move { repl.ok() }),
-        )))
+        let stream = dbstream::stream::<dbstream::Student>().await?;
+        Ok(EventStream::new(Box::pin(stream)))
     }
 
     #[oai(path = "/", method = "post")]

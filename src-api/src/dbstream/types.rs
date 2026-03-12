@@ -21,6 +21,7 @@ pub(crate) trait Row:
     + ParseFromJSON
     + ToJSON
     + Clone
+    + Debug
     + Unpin
     + Send
     + Sync
@@ -47,6 +48,7 @@ pub(crate) trait Row:
         + ParseFromJSON
         + ToJSON
         + Clone
+        + Debug
         + Send
         + Sync
         + 'static;

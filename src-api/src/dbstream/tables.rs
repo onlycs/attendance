@@ -11,7 +11,7 @@ declare_replication!("admins");
 
 /// Dummy: we're never going to send/recieve update/deletes for telemetry, it's
 /// constant!
-#[derive(Clone, Serialize, Deserialize, Object)]
+#[derive(Clone, Debug, Serialize, Deserialize, Object)]
 pub(crate) struct PartialTelemetryEvent {}
 
 impl Identifiable<String> for PartialTelemetryEvent {
