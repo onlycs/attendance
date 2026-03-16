@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use poem_openapi::Union;
+use sqlx::AssertSqlSafe;
 
 use crate::{dbstream::Admin, prelude::*, telemetry::TelemetryEvent};
 
@@ -309,19 +310,16 @@ pub(super) async fn route(
             return Err(Error::date_range());
         }
 
-        let events = sqlx::query_as::<_, TelemetryEvent>(
-            format!(
-                r#"
-                SELECT * FROM telemetry
-                WHERE timestamp >= $1 AND timestamp <= $2 {}
-                ORDER BY timestamp DESC
-                "#,
-                event_type
-                    .as_ref()
-                    .map_or_else(|| "".to_string(), |f| format!("AND {}", f.into_sql()))
-            )
-            .as_str(),
-        )
+        let events = sqlx::query_as::<_, TelemetryEvent>(AssertSqlSafe(format!(
+            r#"
+            SELECT * FROM telemetry
+            WHERE timestamp >= $1 AND timestamp <= $2 {}
+            ORDER BY timestamp DESC
+            "#,
+            event_type
+                .as_ref()
+                .map_or_else(|| "".to_string(), |f| format!("AND {}", f.into_sql()))
+        )))
         .bind(*after)
         .bind(*before)
         .fetch_all(&pg)
@@ -338,21 +336,18 @@ pub(super) async fn route(
         return Err(Error::high_count());
     }
 
-    let events = sqlx::query_as::<_, TelemetryEvent>(
-        format!(
-            r#"
-            SELECT * FROM telemetry
-            {}
-            ORDER BY timestamp DESC
-            OFFSET $2
-            LIMIT $1
-            "#,
-            event_type
-                .as_ref()
-                .map_or_else(|| "".to_string(), |f| format!("WHERE {}", f.into_sql()))
-        )
-        .as_str(),
-    )
+    let events = sqlx::query_as::<_, TelemetryEvent>(AssertSqlSafe(format!(
+        r#"
+        SELECT * FROM telemetry
+        {}
+        ORDER BY timestamp DESC
+        OFFSET $2
+        LIMIT $1
+        "#,
+        event_type
+            .as_ref()
+            .map_or_else(|| "".to_string(), |f| format!("WHERE {}", f.into_sql()))
+    )))
     .bind(count as i32)
     .bind(skip as i64)
     .fetch_all(&pg)

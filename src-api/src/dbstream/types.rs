@@ -4,7 +4,7 @@ use poem_openapi::{
     Union,
     types::{IsObjectType, ParseFromJSON, ToJSON, Type},
 };
-use sqlx::postgres::PgRow;
+use sqlx::{AssertSqlSafe, postgres::PgRow};
 
 use crate::prelude::*;
 
@@ -54,9 +54,10 @@ pub(crate) trait Row:
         + 'static;
 
     async fn select_all(pg: &PgPool) -> Result<HashMap<Self::Key, Self>, sqlx::Error> {
-        let rows = sqlx::query_as::<_, Self>(&format!("SELECT * FROM {}", Self::NAME))
-            .fetch_all(pg)
-            .await?;
+        let rows =
+            sqlx::query_as::<_, Self>(AssertSqlSafe(format!("SELECT * FROM {}", Self::NAME)))
+                .fetch_all(pg)
+                .await?;
 
         Ok(rows
             .into_iter()
