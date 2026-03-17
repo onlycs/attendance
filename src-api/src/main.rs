@@ -1,5 +1,7 @@
 #![feature(never_type, error_generic_member_access)]
 
+use std::time::Duration;
+
 use attendance_api::{DATABASE_URL, InitError, run_server};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -26,6 +28,8 @@ async fn main() -> Result<(), InitError> {
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
+        .idle_timeout(Duration::from_secs(20))
+        .max_lifetime(Duration::from_secs(180))
         .connect(&*DATABASE_URL)
         .await?;
 
