@@ -16,14 +16,40 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
     permissions:
       contents: read
       id-token: write
       packages: write
 
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/app
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 -U postgres && exit 0
+            sleep 1
+          done
+          exit 1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -58,10 +84,6 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt
 
-      - name: Write to .env
-        run: |
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > src-api/.env
-
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
 
@@ -80,15 +102,11 @@ jobs:
         run: cargo install sqlx-cli --no-default-features --features postgres
 
       - name: Run database migrations
-        run: sqlx migrate run
         working-directory: src-api
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: sqlx migrate run
 
-      - name: Install dependencies and run postinstall
+      - name: Install dependencies
         run: bun i
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Generate static site
         run: bun generate
@@ -96,16 +114,14 @@ jobs:
       - name: Build API
         working-directory: src-api
         run: cargo build --release --locked
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Build standard image
+      - name: Build Docker image
         run: docker build . -t ghcr.io/${{ github.repository }}:latest
 
-      - name: Push Docker images
+      - name: Push Docker image
         run: docker push ghcr.io/${{ github.repository }}:latest
 
-      - name: Save Build cache
+      - name: Save build cache
         if: always()
         uses: actions/cache/save@v4
         with:
