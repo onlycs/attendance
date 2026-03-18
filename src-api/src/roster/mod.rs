@@ -66,7 +66,7 @@ impl RosterService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
-        let stream = dbstream::stream::<dbstream::Record>().await?;
+        let stream = dbstream::stream::<dbstream::Record>().await;
         let pg = self.pg.clone();
 
         Ok(EventStream::new(Box::pin(stream.filter_map(move |_| {
@@ -112,8 +112,11 @@ impl RosterService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::HoursView)?;
 
-        let stream = dbstream::stream::<Record>().await?;
-        Ok(EventStream::new(Box::pin(stream)))
+        let stream = dbstream::stream::<Record>().await;
+
+        Ok(EventStream::new(Box::pin(
+            stream.filter_map(|repl| async move { repl.ok() }),
+        )))
     }
 
     #[oai(path = "/", method = "post")]

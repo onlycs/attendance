@@ -60,8 +60,11 @@ impl AdminService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::AdminView)?;
 
-        let stream = dbstream::stream::<Admin>().await?;
-        Ok(EventStream::new(Box::pin(stream)))
+        let stream = dbstream::stream::<Admin>().await;
+
+        Ok(EventStream::new(Box::pin(
+            stream.filter_map(|repl| async move { repl.ok() }),
+        )))
     }
 
     #[oai(path = "/", method = "patch")]

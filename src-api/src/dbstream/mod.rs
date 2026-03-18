@@ -1,60 +1,111 @@
 pub(crate) mod tables;
 pub(crate) mod types;
 
-use futures_util::Stream;
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    sync::{Arc, LazyLock},
+    time::Duration,
+};
+
 use sqlx::postgres::PgListener;
+use tokio::{
+    sync::{
+        Mutex,
+        broadcast::{self, Receiver},
+    },
+    time,
+};
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::prelude::*;
 
-pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>()
--> Result<impl Stream<Item = Replication<R>>, sqlx::Error> {
-    let mut pg = PgListener::connect(&*env::DATABASE_URL).await?;
-    pg.listen(&format!("replicate:{}", R::NAME)).await?;
+pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>() -> BroadcastStream<Replication<R>>
+{
+    async fn create<R: Row>() -> Receiver<Replication<R>> {
+        let (tx, rx) = broadcast::channel(1024);
 
-    info!(
-        task = %format!("ws::sql::{}", R::NAME),
-        "started replication listener"
-    );
+        tokio::spawn(async move {
+            loop {
+                let mut listener = match PgListener::connect(&*env::DATABASE_URL).await {
+                    Ok(l) => l,
+                    Err(err) => {
+                        error!(
+                            task = %format!("ws::sql::{}", R::NAME),
+                            error = %err,
+                            "failed to connect listener, retrying in 5s"
+                        );
+                        time::sleep(Duration::from_secs(5)).await;
+                        continue;
+                    }
+                };
 
-    Ok(pg.into_stream().filter_map(|notif| async move {
-        let pl = match notif {
-            Ok(n) => n.payload().to_string(),
-            Err(err) => {
+                if let Err(err) = listener.listen(&format!("replicate:{}", R::NAME)).await {
+                    error!(
+                        task = %format!("ws::sql::{}", R::NAME),
+                        error = %err,
+                        "failed to subscribe to channel, retrying in 5s"
+                    );
+                    time::sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
+
+                info!(
+                    task = %format!("ws::sql::{}", R::NAME),
+                    "started replication listener"
+                );
+
+                while let Ok(notif) = listener.recv().await {
+                    let pl = notif.payload();
+
+                    debug!(
+                        task = %format!("ws::sql::{}", R::NAME),
+                        payload = %pl,
+                        "received replication notification"
+                    );
+
+                    let repl = match serde_json::from_str::<Replication<R>>(pl) {
+                        Ok(r) => r,
+                        Err(err) => {
+                            warn!(
+                                task = %format!("ws::sql::{}", R::NAME),
+                                error = %err,
+                                "failed to parse replication payload"
+                            );
+                            continue;
+                        }
+                    };
+
+                    tx.send(repl).unwrap_or(0);
+                }
+
                 warn!(
                     task = %format!("ws::sql::{}", R::NAME),
-                    error = %err,
-                    "Failed to receive notification"
+                    "replication listener disconnected, reconnecting in 5s"
                 );
-                return None;
+
+                time::sleep(Duration::from_secs(5)).await;
             }
-        };
+        });
 
-        debug!(
-            task = %format!("ws::sql::{}", R::NAME),
-            payload = %pl,
-            "received replication notification"
-        );
+        rx
+    }
 
-        let repl = match serde_json::from_str::<Replication<R>>(&pl) {
-            Ok(r) => r,
-            Err(err) => {
-                warn!(
-                    task = %format!("ws::sql::{}", R::NAME),
-                    error = %err,
-                    "failed to parse replication payload"
-                );
-                return None;
-            }
-        };
+    static CACHE: LazyLock<Mutex<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
 
-        info!(
-            task = %format!("ws::sql::{}", R::NAME),
-            replication = ?repl,
-            "recieved replication"
-        );
+    let typ = TypeId::of::<R>();
+    let mut lock = CACHE.lock().await;
 
-        Some(repl)
-    }))
+    if let Some(rx) = lock.get(&typ) {
+        let rx = rx.clone().downcast::<Receiver<Replication<R>>>().unwrap();
+        return BroadcastStream::new(rx.resubscribe());
+    }
+
+    let rx = Arc::new(create().await);
+
+    lock.insert(typ, rx.clone());
+    BroadcastStream::new(rx.resubscribe())
 }
 
 pub(crate) use tables::*;

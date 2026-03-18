@@ -119,7 +119,7 @@ impl TelemetryService {
         let claims = jwt.verify()?;
         claims.perms.assert(Permission::Telemetry)?;
 
-        let stream = dbstream::stream::<TelemetryEvent>().await?;
+        let stream = dbstream::stream::<TelemetryEvent>().await;
         let pg = self.pg.clone();
 
         sqlx::query!(
@@ -166,7 +166,7 @@ impl TelemetryService {
                 .flatten();
 
                 let evt = match repl {
-                    dbstream::Replication::Insert(event)
+                    Ok(dbstream::Replication::Insert(event))
                         if filter.is_none_or(|f| f.matches(&event)) =>
                     {
                         Some(event)
