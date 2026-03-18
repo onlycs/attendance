@@ -67,7 +67,7 @@ pub(super) async fn route(
     let new = sqlx::query_as::<_, Admin>(
         r#"
         UPDATE admins
-        SET username = COALESCE($2, username),
+        SET username = COALESCE($2, username)
         WHERE id = $1
         RETURNING *
         "#,
