@@ -9,8 +9,7 @@ import { AgGridVue } from "ag-grid-vue3";
 import { Temporal } from "temporal-polyfill";
 import { toast } from "vue-sonner";
 import { type AgRow, Theme } from "~/composables/useAgData";
-import api from "~/utils/api";
-import { Math2 } from "~/utils/math";
+import api, { type HourType } from "~/utils/api";
 
 const { user } = useAuth();
 const router = useRouter();
@@ -89,42 +88,68 @@ async function edit(edit: CellValueChangedEvent<AgRow, string>) {
 
 // export
 function exportCSV() {
-    const header = [
-        "Student ID",
-        "First Name",
-        "Last Name",
-        "Sign In",
-        "Sign Out",
-        "In Progress?",
-        "For",
-    ];
-
-    const records = [header.join(",")];
+    const records = new Map<
+        string,
+        Record<HourType, number> & { first: string; last: string }
+    >();
 
     for (const student of data.value.values()) {
         for (const cell of student.cells ?? []) {
             for (const entry of cell.records) {
-                records.push(
-                    [
-                        student.id,
-                        student.first,
-                        student.last,
-                        Math2.formatDate(entry.sign_in),
-                        ornull(Math2.formatDate)(entry.sign_out) ?? "",
-                        entry.sign_out === null ? "Yes" : "No",
-                        entry.hour_type,
-                    ].join(","),
-                );
+                if (!entry.sign_out) continue;
+
+                let re = records.get(student.id);
+
+                if (!re) {
+                    re = {
+                        build: 0,
+                        learning: 0,
+                        demo: 0,
+                        offseason: 0,
+                        first: student.first,
+                        last: student.last,
+                    };
+                    records.set(student.id, re);
+                }
+
+                re[entry.hour_type] += entry.sign_in.until(
+                    entry.sign_out,
+                ).hours;
             }
         }
     }
 
-    const blob = new Blob([records.join("\n")], { type: "text/csv" });
+    const header = [
+        "Student ID",
+        "First Name",
+        "Last Name",
+        "Build",
+        "Learning",
+        "Demo",
+        "Offseason",
+        "Total",
+    ];
+
+    const fmt = [...records.entries()]
+        .map(([id, v]) => [
+            id,
+            v.first,
+            v.last,
+            v.build,
+            v.learning,
+            v.demo,
+            v.offseason,
+            v.build + v.learning + v.demo + v.offseason,
+        ])
+        .map((arr) => arr.join(","))
+        .join("\n");
+
+    const blob = new Blob([[header, fmt].join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.setAttribute("href", url);
-    link.setAttribute("download", "time-entries.csv");
+    link.setAttribute("download", "hour-totals.csv");
     link.click();
 }
 
@@ -192,23 +217,13 @@ defineExpose({ Dropdown: EditorDropdown });
     <div class="page">
         <div class="utilities">
             <Button
-                kind="danger"
-                class="w-fit!"
-                class:content="button"
-                @click="$router.push('/dashboard')"
-            >
-                <Icon name="hugeicons:logout-02" size="22" />
-                Exit
-            </Button>
-
-            <Button
                 kind="secondary"
                 class="w-fit!"
                 class:content="button"
                 @click="exportCSV"
             >
                 <Icon name="hugeicons:file-export" size="22" />
-                Export All
+                Export Totals
             </Button>
 
             <Button
@@ -230,7 +245,7 @@ defineExpose({ Dropdown: EditorDropdown });
                 :disabled="!creds?.claims.perms.hours_edit"
             >
                 <Icon name="hugeicons:calendar-add-01" size="22" />
-                Add Date
+                Add Entry
             </Button>
 
             <Button

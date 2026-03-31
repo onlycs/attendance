@@ -13,24 +13,6 @@ const token = route.query.token as string | undefined;
 
 if (!k3 || !token) {
     router.push(redirect.build("/", "bad-invite-link"));
-    throw new Error("Invalid invite link");
-}
-
-const res = await api.auth.register.start({
-    query: { token: token! },
-});
-
-if (!res.data) {
-    api.error(res.error, res.response, { handle401: "api-message" });
-    router.push(redirect.build("/", "bad-invite"));
-    throw new Error("Invalid invite");
-}
-
-const k1 = await crypto.invite.decryptk1(k3!, hex.asbytes(res.data!.k2));
-
-if (!k1) {
-    toast.error("Failed to decrypt master key. Make a new code to try again");
-    setTimeout(() => router.push("/"), 10000);
 }
 
 const form = f.form({
@@ -71,6 +53,29 @@ const form = f.form({
     },
     async submit(output) {
         loading.value = true;
+
+        const reg = await api.auth.register.start({
+            query: { token: token! },
+        });
+
+        if (!reg.data) {
+            api.error(reg.error, reg.response, { handle401: "api-message" });
+            router.push(redirect.build("/", "bad-invite"));
+            return;
+        }
+
+        const k1 = await crypto.invite.decryptk1(
+            k3!,
+            hex.asbytes(reg.data!.k2),
+        );
+
+        if (!k1) {
+            toast.error(
+                "Failed to decrypt master key. You will need a new invite.",
+            );
+            setTimeout(() => router.push("/"), 4000);
+            return;
+        }
 
         const end = () => {
             setTimeout(() => (loading.value = false), 500); // prevent flashing the spinner
