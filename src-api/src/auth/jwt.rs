@@ -27,20 +27,19 @@ fn secret() -> &'static [u8] {
 
 fn sign(claims: &Claims) -> Result<String, jsonwebtoken::errors::Error> {
     let secret = secret();
-    let token = jsonwebtoken::encode(&header(), claims, &EncodingKey::from_secret(&secret))?;
+    let token = jsonwebtoken::encode(&header(), claims, &EncodingKey::from_secret(secret))?;
 
     Ok(token)
 }
 
 fn verify(jwt: &str) -> Result<Claims, JwtVerifyError> {
     let secret = secret();
-    let TokenData { claims, .. } = match jsonwebtoken::decode::<Claims>(
+    let Ok(TokenData { claims, .. }) = jsonwebtoken::decode::<Claims>(
         jwt,
-        &jsonwebtoken::DecodingKey::from_secret(&secret),
+        &jsonwebtoken::DecodingKey::from_secret(secret),
         &jsonwebtoken::Validation::new(header().alg),
-    ) {
-        Ok(data) => data,
-        Err(_) => return Err(JwtVerifyError::jwt()),
+    ) else {
+        return Err(JwtVerifyError::jwt());
     };
 
     if claims.exp < Utc::now() {

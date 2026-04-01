@@ -41,7 +41,7 @@ pub(super) async fn route(
 
     let mut k2 = [0u8; 32];
     rng().fill_bytes(&mut k2);
-    let k2 = hex::encode(&k2);
+    let k2 = hex::encode(k2);
 
     sqlx::query!(
         r#"
@@ -67,5 +67,5 @@ pub(super) async fn route(
         .log();
     });
 
-    Ok(Response { token, k2 })
+    Ok(Response { k2, token })
 }

@@ -87,13 +87,13 @@ fn kickoff_day() -> NaiveDate {
 
     // calculate kickoff day
     let days2sat = 6 - nydotw.days_since(chrono::Weekday::Sun);
-    let kickoff_day = nyd + chrono::Duration::days(days2sat as i64 + postpone);
 
-    kickoff_day
+    nyd + chrono::Duration::days(i64::from(days2sat) + postpone)
 }
 
 impl HourType {
     /// Check if this hour type is allowed in the given 1-based month.
+    #[allow(clippy::too_many_lines)]
     pub(crate) async fn allowed(self, pg: &PgPool) -> Result<bool, HourTypeError> {
         let today = Local::now().date_naive();
         let year = Local::now().year();
@@ -117,7 +117,7 @@ impl HourType {
                 Some(info) => *info,
                 None => {
                     let info = HourType::Build.query(pg.clone()).await?;
-                    *build_info = Some(info.clone());
+                    *build_info = Some(info);
                     info
                 }
             };
@@ -135,7 +135,7 @@ impl HourType {
                 Some(info) => *info,
                 None => {
                     let info = HourType::Build.query(pg.clone()).await?;
-                    *build_info = Some(info.clone());
+                    *build_info = Some(info);
                     info
                 }
             };

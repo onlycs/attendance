@@ -13,7 +13,7 @@ pub(super) struct CreateRequest {
     sid_hashed: String,
     kind: HourType,
     time_in: chrono::DateTime<Utc>,
-    /// Must be after and on the same day as time_in (in server's local time)
+    /// Must be after and on the same day as `time_in` (in server's local time)
     time_out: Option<chrono::DateTime<Utc>>,
 }
 
@@ -78,7 +78,7 @@ pub(super) enum GetOneError {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
 pub(super) enum CreateError {
-    /// time_out is before or on a different day than time_in
+    /// `time_out` is before or on a different day than `time_in`
     #[oai(status = 400)]
     #[construct(time_out, "time_out must be after and on the same day as time_in")]
     BadRequest(PlainText<String>),
@@ -97,7 +97,7 @@ pub(super) enum CreateError {
 #[derive(ApiResponse, ApiError)]
 #[from(JwtVerifyError, PermissionDeniedError)]
 pub(super) enum UpdateError {
-    /// time_out is before or on a different day than time_in
+    /// `time_out` is before or on a different day than `time_in`
     #[oai(status = 400)]
     #[construct(time_out, "time_out must be after and on the same day as time_in")]
     BadRequest(PlainText<String>),

@@ -22,7 +22,7 @@ use crate::prelude::*;
 
 pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>() -> BroadcastStream<Replication<R>>
 {
-    async fn create<R: Row>() -> Receiver<Replication<R>> {
+    fn create<R: Row>() -> Receiver<Replication<R>> {
         let (tx, rx) = broadcast::channel(1024);
 
         tokio::spawn(async move {
@@ -102,7 +102,7 @@ pub(crate) async fn stream<R: Row + for<'de> Deserialize<'de>>() -> BroadcastStr
         return BroadcastStream::new(rx.resubscribe());
     }
 
-    let rx = Arc::new(create().await);
+    let rx = Arc::new(create());
 
     lock.insert(typ, rx.clone());
     BroadcastStream::new(rx.resubscribe())

@@ -106,7 +106,6 @@ pub(super) async fn start(username: String, pg: PgPool) -> Result<StartResponse,
         .await
         {
             error!("Failed to delete expired login sessions: {}", e);
-            return;
         }
     });
 

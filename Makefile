@@ -46,6 +46,6 @@ build:
 	bun i # will run `make postinstall` (see package.json)
 
 	@echo "=== Building frontend"
-	bun run build
+	bun generate
 
 postinstall: openapi wasm fmt typegen

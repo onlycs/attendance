@@ -9,7 +9,7 @@ async fn inner() -> Result<(), Box<dyn Error>> {
 
     fs::write(
         concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.yml"),
-        oai(pool).spec_yaml(),
+        oai(&pool).spec_yaml(),
     )
     .await?;
 

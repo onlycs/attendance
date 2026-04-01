@@ -132,7 +132,7 @@ impl TelemetryService {
         )
         .fetch_optional(&self.pg)
         .await?
-        .ok_or_else(|| stream::Error::not_found())?;
+        .ok_or_else(stream::Error::not_found)?;
 
         Ok(EventStream::new(Box::pin(stream.filter_map(move |repl| {
             let id = id.0.clone();
@@ -165,16 +165,14 @@ impl TelemetryService {
                 }
                 .flatten();
 
-                let evt = match repl {
+                match repl {
                     Ok(dbstream::Replication::Insert(event))
                         if filter.is_none_or(|f| f.matches(&event)) =>
                     {
                         Some(event)
                     }
                     _ => None,
-                };
-
-                evt
+                }
             }
         }))))
     }

@@ -1,6 +1,18 @@
-#![feature(never_type, error_generic_member_access, if_let_guard)]
 #![warn(clippy::pedantic)]
-#![allow(clippy::similar_names, clippy::missing_errors_doc)]
+#![allow(
+    clippy::similar_names,
+    clippy::missing_errors_doc,
+    clippy::needless_raw_string_hashes,
+    clippy::must_use_candidate,
+    clippy::enum_variant_names,
+    clippy::wildcard_imports,
+    clippy::single_match_else,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::explicit_auto_deref
+)]
 
 #[macro_use]
 extern crate tracing;
@@ -21,7 +33,7 @@ use poem_openapi::OpenApiService;
 use prelude::*;
 use sqlx::PgPool;
 
-pub fn oai(pg: PgPool) -> OpenApiService<impl OpenApi, ()> {
+pub fn oai(pg: &PgPool) -> OpenApiService<impl OpenApi, ()> {
     OpenApiService::new(
         (
             admin::AdminService::new(pg.clone()),
@@ -38,7 +50,7 @@ pub fn oai(pg: PgPool) -> OpenApiService<impl OpenApi, ()> {
 
 pub async fn run_server(pool: PgPool) -> Result<(), InitError> {
     let address = format!("{}:{}", *env::ADDRESS, *env::PORT);
-    let service = oai(pool);
+    let service = oai(&pool);
 
     let app = Route::new();
 

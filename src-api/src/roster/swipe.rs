@@ -112,6 +112,7 @@ pub(super) enum SwipeError {
 }
 
 #[tracing::instrument(skip(pg), err)]
+#[allow(clippy::too_many_lines)]
 pub(super) async fn route(
     Request {
         issuer,

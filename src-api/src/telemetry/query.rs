@@ -149,6 +149,7 @@ impl EventTypeFilter {
         )
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn into_sql(&self) -> String {
         macro_rules! to_sql {
             (@condition $variant:ident $field:ident) => {
@@ -318,7 +319,7 @@ pub(super) async fn route(
             "#,
             event_type
                 .as_ref()
-                .map_or_else(|| "".to_string(), |f| format!("AND {}", f.into_sql()))
+                .map_or_else(String::new, |f| format!("AND {}", f.into_sql()))
         )))
         .bind(*after)
         .bind(*before)
@@ -346,7 +347,7 @@ pub(super) async fn route(
         "#,
         event_type
             .as_ref()
-            .map_or_else(|| "".to_string(), |f| format!("WHERE {}", f.into_sql()))
+            .map_or_else(String::new, |f| format!("WHERE {}", f.into_sql()))
     )))
     .bind(count as i32)
     .bind(skip as i64)
@@ -362,7 +363,7 @@ pub(super) async fn by_id(id: String, pg: PgPool) -> Result<TelemetryEvent, ById
         .bind(id)
         .fetch_optional(&pg)
         .await?
-        .ok_or_else(|| ByIdError::not_found())?;
+        .ok_or_else(ByIdError::not_found)?;
 
     Ok(event)
 }

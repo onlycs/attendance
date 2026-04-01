@@ -22,7 +22,7 @@ An FRC-focused attendance tracker.
 2. On your app's dashboard, select `onlycs/attendance`, and then `Settings` > `Networking`. If your team has a domain
    (e.g. `attendance.team2791.org`), add a `Custom Domain`. Otherwise, generate a domain.
 
-   <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-url.png?raw=true" alt="URL Settings" width="69%">
+     <img src="https://github.com/onlycs/attendance/blob/main/assets/deploy-railway-url.png?raw=true" alt="URL Settings" width="69%">
 
 3. Visit `https://<your-domain>/onboard`, and click `Get a new setup token`. To view this, in Railway, select `onlycs/attendance`, and then `Deployments` > `View Logs`.
 

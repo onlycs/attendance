@@ -1,4 +1,5 @@
-#![feature(never_type, error_generic_member_access)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::explicit_auto_deref)]
 
 use std::time::Duration;
 
@@ -29,7 +30,7 @@ async fn main() -> Result<(), InitError> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .idle_timeout(Duration::from_secs(20))
-        .max_lifetime(Duration::from_secs(180))
+        .max_lifetime(Duration::from_mins(3))
         .connect(&*DATABASE_URL)
         .await?;
 
